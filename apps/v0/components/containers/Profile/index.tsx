@@ -11,6 +11,13 @@ import {
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import useStorage from "@hooks/useStorage";
 import { useZen } from "@hooks/useZen";
+import {
+  RATING_BANDS,
+  STATUS_XP,
+  bandFor,
+  displayOptionLabel,
+  estimateStrength,
+} from "@utils/practice";
 import clsx from "clsx";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -52,35 +59,11 @@ const HISTORY_KEY = "lc-rating-progress-history";
 const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
 const XP_PER_LEVEL = 120;
 
-// XP scales with problem rating: harder problems are worth much more,
-// so grinding below your level is never the optimal strategy.
-const RATING_BANDS = [
-  { label: "入门", range: "<1200", min: 0, max: 1200, xp: 6, color: "var(--rating-color-0)" },
-  { label: "普及", range: "1200+", min: 1200, max: 1400, xp: 10, color: "var(--rating-color-1)" },
-  { label: "提高", range: "1400+", min: 1400, max: 1600, xp: 15, color: "var(--rating-color-2)" },
-  { label: "进阶", range: "1600+", min: 1600, max: 1900, xp: 22, color: "var(--rating-color-3)" },
-  { label: "困难", range: "1900+", min: 1900, max: 2100, xp: 32, color: "var(--rating-color-4)" },
-  { label: "传说", range: "2100+", min: 2100, max: Infinity, xp: 50, color: "var(--rating-color-5)" },
-];
-
-// Honest effort always earns something, even when the problem wins.
-const STATUS_XP = { WORKING: 2, REVIEW_NEEDED: 2, TOO_HARD: 1, CUSTOM: 1 };
-
-const bandFor = (rating: number) =>
-  RATING_BANDS.find((band) => rating >= band.min && rating < band.max) ??
-  RATING_BANDS[0];
-
 const formatDay = (date: Date) => {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const displayOptionLabel = (key: string, label?: string) => {
-  if (label) return label;
-  if (key === "TODO") return "待开始";
-  return key;
 };
 
 const sameSnapshot = (
@@ -248,13 +231,7 @@ export default function Profile() {
 
   // Capability estimate: average of the user's top-quartile AC ratings.
   // Used only for guidance ("which band fits you"), never to reduce XP.
-  const suggestedRating = useMemo(() => {
-    if (acRatings.length < 3) return 0;
-    const sorted = [...acRatings].sort((a, b) => b - a);
-    const top = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 4)));
-    const estimate = top.reduce((sum, rating) => sum + rating, 0) / top.length;
-    return Math.round((estimate + 100) / 50) * 50;
-  }, [acRatings]);
+  const suggestedRating = useMemo(() => estimateStrength(acRatings), [acRatings]);
 
   const bandStats = useMemo(() => {
     const stats = RATING_BANDS.map((band) => ({ ...band, ac: 0, total: 0 }));
@@ -549,7 +526,7 @@ export default function Profile() {
   );
 
   return (
-    <Container fluid className="profile page-shell">
+    <Container fluid className="duo-shell page-shell">
       <section className="duo-card duo-hero">
         <div className="duo-hero-top">
           <div
@@ -661,47 +638,6 @@ export default function Profile() {
             })}
           </div>
         )}
-      </section>
-
-      <section className="duo-card">
-        <header className="duo-card-head">
-          <h2>成就</h2>
-          <span className="meta">
-            已解锁 {unlockedCount} / {achievements.length}
-          </span>
-        </header>
-        <div className="duo-achievements">
-          {achievements.map(({ icon: Icon, tone, name, desc, goal, value }) => {
-            const done = value >= goal;
-            const percent = Math.min(100, Math.round((value / goal) * 100));
-            return (
-              <div
-                className={clsx("duo-achievement", { unlocked: done })}
-                key={name}
-              >
-                <span className={clsx("duo-chip", done && tone)}>
-                  <Icon aria-hidden size={24} />
-                </span>
-                <div className="duo-achievement-body">
-                  <div className="duo-achievement-text">
-                    <strong>{name}</strong>
-                    <span>{desc}</span>
-                  </div>
-                  <div className="duo-bar gold slim">
-                    <span style={{ width: `${percent}%` }} />
-                  </div>
-                </div>
-                <span className="duo-achievement-count">
-                  {done ? (
-                    <LuCheck aria-hidden size={20} />
-                  ) : (
-                    `${Math.min(value, goal)}/${goal}`
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
       </section>
 
       <section className="duo-card">
@@ -844,6 +780,47 @@ export default function Profile() {
               <span>{nudge}</span>
             </div>
           )}
+        </div>
+      </section>
+
+      <section className="duo-card">
+        <header className="duo-card-head">
+          <h2>成就</h2>
+          <span className="meta">
+            已解锁 {unlockedCount} / {achievements.length}
+          </span>
+        </header>
+        <div className="duo-achievements">
+          {achievements.map(({ icon: Icon, tone, name, desc, goal, value }) => {
+            const done = value >= goal;
+            const percent = Math.min(100, Math.round((value / goal) * 100));
+            return (
+              <div
+                className={clsx("duo-achievement", { unlocked: done })}
+                key={name}
+              >
+                <span className={clsx("duo-chip", done && tone)}>
+                  <Icon aria-hidden size={24} />
+                </span>
+                <div className="duo-achievement-body">
+                  <div className="duo-achievement-text">
+                    <strong>{name}</strong>
+                    <span>{desc}</span>
+                  </div>
+                  <div className="duo-bar gold slim">
+                    <span style={{ width: `${percent}%` }} />
+                  </div>
+                </div>
+                <span className="duo-achievement-count">
+                  {done ? (
+                    <LuCheck aria-hidden size={20} />
+                  ) : (
+                    `${Math.min(value, goal)}/${goal}`
+                  )}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </section>
 

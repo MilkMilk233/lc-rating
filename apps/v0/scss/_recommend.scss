@@ -1,0 +1,280 @@
+// Recommend page (/recommend): one-problem-at-a-time practice loop.
+// Reuses the .duo-shell tokens and duo-* components from _profile.scss.
+
+.rec-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 .25rem;
+}
+
+.rec-head h1 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.rec-head .meta {
+  color: var(--app-muted);
+  font-size: .85rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+// Result banner shown after marking a problem.
+.rec-banner {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .75rem 1rem;
+  border-radius: 14px;
+  background: var(--duo-blue-soft);
+  color: var(--app-text);
+  font-size: .92rem;
+  font-weight: 800;
+  animation: duo-pop .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+
+.rec-banner svg {
+  flex: none;
+  color: var(--duo-blue-dark);
+}
+
+.rec-banner.ac {
+  background: var(--duo-green-soft);
+}
+
+.rec-banner.ac svg {
+  color: var(--duo-green-dark);
+}
+
+[data-bs-theme="dark"] .duo-shell .rec-banner svg {
+  color: var(--duo-blue);
+}
+
+[data-bs-theme="dark"] .duo-shell .rec-banner.ac svg {
+  color: var(--duo-green);
+}
+
+// The main recommendation card.
+.rec-card {
+  padding: 1.25rem;
+  animation: duo-pop .45s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+
+.rec-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .6rem;
+}
+
+.rec-badge {
+  padding: .2rem .65rem;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.rec-badge.blue { background: var(--duo-blue-soft); color: var(--duo-blue-dark); }
+.rec-badge.orange { background: var(--duo-orange-soft); color: var(--duo-orange-dark); }
+.rec-badge.purple { background: var(--duo-purple-soft); color: var(--duo-purple-dark); }
+
+[data-bs-theme="dark"] .duo-shell .rec-badge.blue { color: var(--duo-blue); }
+[data-bs-theme="dark"] .duo-shell .rec-badge.orange { color: var(--duo-orange); }
+[data-bs-theme="dark"] .duo-shell .rec-badge.purple { color: var(--duo-purple); }
+
+.rec-xp {
+  color: var(--duo-gold-dark);
+  font-size: .8rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+[data-bs-theme="dark"] .duo-shell .rec-xp {
+  color: var(--duo-gold);
+}
+
+.rec-title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .4rem;
+  margin: 0 0 .35rem;
+  color: var(--app-text);
+  font-size: clamp(1.35rem, 1.15rem + 1vw, 1.8rem);
+  font-weight: 900;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.rec-title:hover {
+  color: var(--duo-blue-dark);
+}
+
+[data-bs-theme="dark"] .duo-shell .rec-title:hover {
+  color: var(--duo-blue);
+}
+
+.rec-meta {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--app-muted);
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.rec-meta a {
+  color: var(--app-muted);
+}
+
+.rec-meta a:hover {
+  color: var(--app-text);
+}
+
+.rec-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-top: .7rem;
+}
+
+.rec-reason {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: .8rem;
+  color: var(--app-muted);
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+.rec-reason svg {
+  flex: none;
+  color: var(--duo-gold-dark);
+}
+
+[data-bs-theme="dark"] .duo-shell .rec-reason svg {
+  color: var(--duo-gold);
+}
+
+.rec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  margin-top: 1.1rem;
+}
+
+// Secondary chunky button (same press feel as .duo-btn, neutral colors).
+.duo-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .7rem 1.1rem;
+  border: 2px solid var(--app-border);
+  border-bottom-width: 5px;
+  border-radius: 14px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-decoration: none;
+  transition:
+    transform .08s ease,
+    border-bottom-width .08s ease,
+    background .15s ease;
+}
+
+.duo-btn-outline:hover {
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+}
+
+.duo-btn-outline:active {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+}
+
+.duo-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .7rem .5rem;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--app-muted);
+  font-weight: 800;
+}
+
+.duo-btn-ghost:hover {
+  color: var(--app-text);
+  text-decoration: underline;
+}
+
+// Marking row.
+.rec-mark {
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--app-border);
+}
+
+.rec-mark-label {
+  display: block;
+  margin-bottom: .55rem;
+  color: var(--app-muted);
+  font-size: .8rem;
+  font-weight: 850;
+}
+
+.rec-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.rec-status-btn {
+  padding: .5rem .85rem;
+  border: 2px solid var(--status-color, var(--app-border));
+  border-radius: 12px;
+  background: transparent;
+  color: var(--status-color, var(--app-muted));
+  font-size: .9rem;
+  font-weight: 850;
+  transition:
+    background .12s ease,
+    color .12s ease;
+}
+
+.rec-status-btn:hover {
+  border-color: var(--status-color);
+  background: var(--status-color);
+  color: #ffffff;
+}
+
+// Loading / empty / skipped-all states.
+.rec-placeholder {
+  display: grid;
+  justify-items: center;
+  gap: .5rem;
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+}
+
+.rec-placeholder h2 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+
+.rec-placeholder p {
+  margin: 0 0 .5rem;
+  color: var(--app-muted);
+  font-weight: 700;
+}

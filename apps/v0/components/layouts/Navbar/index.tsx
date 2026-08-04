@@ -17,6 +17,7 @@ import {
   LuListChecks,
   LuMedal,
   LuSearch,
+  LuSparkles,
   LuTarget,
   LuTrophy,
 } from "react-icons/lu";
@@ -95,6 +96,10 @@ export default function () {
         void loadZen();
         void loadSolutions();
         void loadQuestionTags();
+      } else if (href === "/recommend") {
+        void loadZen();
+        void loadSolutions();
+        void loadQuestionTags();
       } else if (href === "/profile") {
         void loadZen();
       }
@@ -111,6 +116,7 @@ export default function () {
   const navItems = [
     { href: "/", label: "竞赛列表", icon: LuTrophy },
     { href: "/zen", label: "难度练习", icon: LuTarget },
+    { href: "/recommend", label: "推荐刷题", icon: LuSparkles },
     { href: "/search", label: "题解搜索", icon: LuSearch },
   ];
 

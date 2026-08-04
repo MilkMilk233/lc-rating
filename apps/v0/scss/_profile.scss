@@ -19,11 +19,12 @@
 }
 
 // ---------------------------------------------------------------------------
-// Profile page: chunky, playful, Duolingo-inspired design language.
+// Duo design system (profile, recommend): chunky, playful, Duolingo-inspired.
 // Flat surfaces, thick borders, saturated accent palette, tactile buttons.
+// Scoped design tokens live on .duo-shell; duo-* components are global.
 // ---------------------------------------------------------------------------
 
-.profile {
+.duo-shell {
   --duo-green: #58cc02;
   --duo-green-dark: #46a302;
   --duo-green-soft: #dcf7c4;
@@ -49,7 +50,7 @@
   align-content: start;
 }
 
-[data-bs-theme="dark"] .profile {
+[data-bs-theme="dark"] .duo-shell {
   --duo-green-soft: rgba(88, 204, 2, .18);
   --duo-blue-soft: rgba(28, 176, 246, .18);
   --duo-gold-soft: rgba(255, 200, 0, .16);
@@ -58,7 +59,7 @@
   --duo-red-soft: rgba(255, 75, 75, .16);
 }
 
-.profile.page-shell {
+.duo-shell.page-shell {
   width: min(100%, 780px);
 }
 
@@ -111,12 +112,12 @@
 .duo-chip.purple { background: var(--duo-purple-soft); color: var(--duo-purple-dark); }
 .duo-chip.red { background: var(--duo-red-soft); color: var(--duo-red-dark); }
 
-[data-bs-theme="dark"] .profile .duo-chip.green { color: var(--duo-green); }
-[data-bs-theme="dark"] .profile .duo-chip.blue { color: var(--duo-blue); }
-[data-bs-theme="dark"] .profile .duo-chip.gold { color: var(--duo-gold); }
-[data-bs-theme="dark"] .profile .duo-chip.orange { color: var(--duo-orange); }
-[data-bs-theme="dark"] .profile .duo-chip.purple { color: var(--duo-purple); }
-[data-bs-theme="dark"] .profile .duo-chip.red { color: var(--duo-red); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.green { color: var(--duo-green); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.blue { color: var(--duo-blue); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.gold { color: var(--duo-gold); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.orange { color: var(--duo-orange); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.purple { color: var(--duo-purple); }
+[data-bs-theme="dark"] .duo-shell .duo-chip.red { color: var(--duo-red); }
 
 // The signature chunky "3D" button: thick bottom edge that presses in.
 .duo-btn {
@@ -288,7 +289,7 @@
   color: var(--duo-orange-dark);
 }
 
-[data-bs-theme="dark"] .profile .duo-day.today .duo-day-label {
+[data-bs-theme="dark"] .duo-shell .duo-day.today .duo-day-label {
   color: var(--duo-orange);
 }
 
@@ -485,7 +486,7 @@
   color: var(--duo-green-dark);
 }
 
-[data-bs-theme="dark"] .profile .duo-achievement.unlocked .duo-achievement-count {
+[data-bs-theme="dark"] .duo-shell .duo-achievement.unlocked .duo-achievement-count {
   color: var(--duo-green);
 }
 
@@ -563,8 +564,8 @@
 .duo-subhead.green { color: var(--duo-green-dark); }
 .duo-subhead.orange { color: var(--duo-orange-dark); }
 
-[data-bs-theme="dark"] .profile .duo-subhead.green { color: var(--duo-green); }
-[data-bs-theme="dark"] .profile .duo-subhead.orange { color: var(--duo-orange); }
+[data-bs-theme="dark"] .duo-shell .duo-subhead.green { color: var(--duo-green); }
+[data-bs-theme="dark"] .duo-shell .duo-subhead.orange { color: var(--duo-orange); }
 
 .duo-bands {
   display: grid;
@@ -686,7 +687,7 @@
   color: var(--duo-gold-dark);
 }
 
-[data-bs-theme="dark"] .profile .duo-nudge svg {
+[data-bs-theme="dark"] .duo-shell .duo-nudge svg {
   color: var(--duo-gold);
 }
 
@@ -726,7 +727,7 @@
   font-weight: 800;
 }
 
-[data-bs-theme="dark"] .profile .duo-tag-chip {
+[data-bs-theme="dark"] .duo-shell .duo-tag-chip {
   color: var(--duo-green);
 }
 
@@ -749,7 +750,7 @@
   text-decoration: underline;
 }
 
-[data-bs-theme="dark"] .profile .duo-text-btn {
+[data-bs-theme="dark"] .duo-shell .duo-text-btn {
   color: var(--duo-blue);
 }
 
@@ -835,7 +836,7 @@
   color: var(--duo-blue-dark);
 }
 
-[data-bs-theme="dark"] .profile .settings-sidebar .nav-link.active {
+[data-bs-theme="dark"] .duo-shell .settings-sidebar .nav-link.active {
   color: var(--duo-blue);
 }
 
@@ -862,15 +863,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .profile .duo-btn,
-  .profile .duo-bar > span,
-  .profile .duo-chart-bar,
-  .profile .duo-stack-seg {
+  .duo-shell .duo-btn,
+  .duo-shell .duo-bar > span,
+  .duo-shell .duo-chart-bar,
+  .duo-shell .duo-stack-seg {
     transition: none;
   }
 
-  .profile .flame-chip,
-  .profile .duo-day-dot {
+  .duo-shell .flame-chip,
+  .duo-shell .duo-day-dot {
     animation: none !important;
   }
 }
