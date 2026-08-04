@@ -9,15 +9,22 @@ import {
 } from "@hooks/useProgress";
 import useStorage from "@hooks/useStorage";
 import { useZen } from "@hooks/useZen";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
+  LuArrowRight,
   LuBadgeCheck,
+  LuCalendarCheck,
   LuChartNoAxesColumnIncreasing,
-  LuCircleDot,
+  LuCrown,
   LuFlame,
+  LuGem,
+  LuGift,
   LuSettings,
+  LuSparkles,
   LuTarget,
+  LuZap,
 } from "react-icons/lu";
 
 type ProgressHistoryEntry = {
@@ -56,6 +63,26 @@ const sameSnapshot = (
     entry.review === snapshot.review &&
     entry.hard === snapshot.hard
   );
+};
+
+const diffDays = (a: string, b: string) => {
+  const start = new Date(`${a}T00:00:00`).getTime();
+  const end = new Date(`${b}T00:00:00`).getTime();
+  return Math.round((end - start) / 86400000);
+};
+
+const computeStreak = (entries: ProgressHistoryEntry[]) => {
+  if (entries.length === 0) return 0;
+
+  let streak = 1;
+  for (let i = entries.length - 1; i > 0; i -= 1) {
+    if (diffDays(entries[i - 1].date, entries[i].date) === 1) {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+  return streak;
 };
 
 export default function Profile() {
@@ -120,6 +147,26 @@ export default function Profile() {
   const startedPercent = Math.round((snapshot.marked / totalPool) * 100);
   const recentHistory = history.slice(-14);
   const maxMarked = Math.max(...recentHistory.map((item) => item.marked), 1);
+  const xp = snapshot.ac * 10 + snapshot.working * 3 + snapshot.review * 2;
+  const level = Math.max(1, Math.floor(xp / 120) + 1);
+  const levelStart = (level - 1) * 120;
+  const levelProgress = Math.min(100, Math.round(((xp - levelStart) / 120) * 100));
+  const nextSolvedGoal = Math.max(5, Math.ceil((snapshot.ac + 1) / 5) * 5);
+  const solvedToGoal = Math.max(0, nextSolvedGoal - snapshot.ac);
+  const todayEntry = history[history.length - 1];
+  const previousEntry =
+    todayEntry?.date === snapshot.date ? history[history.length - 2] : todayEntry;
+  const todayGain = Math.max(
+    0,
+    snapshot.ac - (previousEntry?.ac ?? snapshot.ac),
+  );
+  const streak = computeStreak(history);
+  const nextActionLabel =
+    snapshot.working > 0
+      ? "继续攻略中的题目"
+      : snapshot.review > 0
+        ? "先复习一题"
+        : "开始一题新挑战";
 
   const statusRows = optionKeys
     .map((key) => {
@@ -133,55 +180,89 @@ export default function Profile() {
     })
     .filter((item) => item.key !== "TODO" || item.count > 0);
 
+  const milestones = [
+    {
+      title: "First AC",
+      text: "完成第一题",
+      done: snapshot.ac >= 1,
+      icon: LuSparkles,
+    },
+    {
+      title: "5 Wins",
+      text: "过 5 题",
+      done: snapshot.ac >= 5,
+      icon: LuGift,
+    },
+    {
+      title: "25 Wins",
+      text: "进入节奏",
+      done: snapshot.ac >= 25,
+      icon: LuGem,
+    },
+    {
+      title: "100 Wins",
+      text: "稳定刷题",
+      done: snapshot.ac >= 100,
+      icon: LuCrown,
+    },
+  ];
+
   return (
     <Container fluid className="profile page-shell">
-      <header className="page-heading profile-heading">
-        <div>
-          <p className="eyebrow">Profile</p>
-          <h1 className="page-title">个人进度</h1>
-          <p className="page-description">
-            这里使用当前浏览器的本地进度缓存。每天第一次打开或更新进度时，会记录一条本地趋势快照。
+      <section className="profile-hero">
+        <div className="hero-copy">
+          <p className="eyebrow">Practice streak</p>
+          <h1>今天也推进一点点</h1>
+          <p>
+            本页只读取当前浏览器里的本地进度。把目标拆小一点，看到数字上涨，会更容易坚持。
           </p>
-        </div>
-        <div className="profile-score">
-          <div
-            className="progress-ring"
-            style={{
-              background: `conic-gradient(var(--app-accent) ${solvedPercent * 3.6}deg, var(--app-surface-muted) 0deg)`,
-            }}
-            aria-label={`Solved ${solvedPercent}%`}
-          >
-            <span>{solvedPercent}%</span>
-          </div>
-          <div>
-            <span className="profile-score-label">Solved</span>
-            <strong>
-              {snapshot.ac} / {totalPool}
-            </strong>
+          <div className="hero-actions">
+            <Link href="/zen" className="primary-quest">
+              <LuZap aria-hidden size={18} />
+              <span>{nextActionLabel}</span>
+              <LuArrowRight aria-hidden size={18} />
+            </Link>
+            <span className="quest-note">
+              距离 {nextSolvedGoal} 题还差 <strong>{solvedToGoal}</strong> 题
+            </span>
           </div>
         </div>
-      </header>
+
+        <div className="level-card">
+          <div className="level-orb">
+            <span>Lv</span>
+            <strong>{level}</strong>
+          </div>
+          <div className="level-copy">
+            <span>Training XP</span>
+            <strong>{xp}</strong>
+            <div className="level-track" aria-label={`Level ${levelProgress}%`}>
+              <span style={{ width: `${levelProgress}%` }} />
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="profile-grid">
-        <div className="profile-card metric-card">
+        <div className="profile-card metric-card solved">
           <LuBadgeCheck aria-hidden size={22} />
           <span>已通过</span>
           <strong>{snapshot.ac}</strong>
         </div>
-        <div className="profile-card metric-card">
+        <div className="profile-card metric-card active">
           <LuFlame aria-hidden size={22} />
           <span>攻略中</span>
           <strong>{snapshot.working}</strong>
         </div>
-        <div className="profile-card metric-card">
-          <LuCircleDot aria-hidden size={22} />
-          <span>已标记</span>
-          <strong>{snapshot.marked}</strong>
+        <div className="profile-card metric-card streak">
+          <LuCalendarCheck aria-hidden size={22} />
+          <span>连续记录</span>
+          <strong>{streak}</strong>
         </div>
-        <div className="profile-card metric-card">
+        <div className="profile-card metric-card today">
           <LuTarget aria-hidden size={22} />
-          <span>启动率</span>
-          <strong>{startedPercent}%</strong>
+          <span>今日新增 AC</span>
+          <strong>{todayGain}</strong>
         </div>
       </section>
 
@@ -216,6 +297,30 @@ export default function Profile() {
           </div>
         </div>
 
+        <div className="profile-card quest-card">
+          <div className="profile-card-header">
+            <div>
+              <p className="eyebrow">Quest map</p>
+              <h2>小成就</h2>
+            </div>
+          </div>
+          <div className="milestone-path">
+            {milestones.map(({ title, text, done, icon: Icon }) => (
+              <div className={`milestone ${done ? "done" : ""}`} key={title}>
+                <span className="milestone-icon">
+                  <Icon aria-hidden size={20} />
+                </span>
+                <div>
+                  <strong>{title}</strong>
+                  <span>{text}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="profile-lower">
         <div className="profile-card status-card">
           <div className="profile-card-header">
             <div>
@@ -234,6 +339,27 @@ export default function Profile() {
                 <strong>{item.count}</strong>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="profile-card progress-card">
+          <div
+            className="progress-ring"
+            style={{
+              background: `conic-gradient(var(--app-accent) ${solvedPercent * 3.6}deg, var(--app-surface-muted) 0deg)`,
+            }}
+            aria-label={`Solved ${solvedPercent}%`}
+          >
+            <span>{solvedPercent}%</span>
+          </div>
+          <div>
+            <p className="eyebrow">Total progress</p>
+            <h2>
+              {snapshot.ac} / {totalPool}
+            </h2>
+            <p>
+              已启动 {startedPercent}% 的练习池。保持每天一题，曲线会越来越好看。
+            </p>
           </div>
         </div>
       </section>
