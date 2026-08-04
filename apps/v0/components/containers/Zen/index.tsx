@@ -13,10 +13,19 @@ import {
   useQuestProgress,
 } from "@hooks/useProgress";
 import { QTag, useQuestionTags } from "@hooks/useQuestionTags";
+import {
+  LeetCodeLanguage,
+  useLeetCodeLanguage,
+} from "@hooks/useLeetCodeLanguage";
 import { SolutionType, useSolutions } from "@hooks/useSolutions";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
 import { useZen } from "@hooks/useZen";
+import {
+  leetCodeContestUrl,
+  leetCodeProblemUrl,
+  leetCodeSolutionUrl,
+} from "@utils/leetcodeLinks";
 
 import {
   Column,
@@ -46,8 +55,6 @@ import {
 } from "react-bootstrap";
 
 // Constants and Enums
-const LC_HOST = `https://leetcode.cn`;
-const LC_HOST_EN = `https://leetcode.com`;
 const LC_RATING_ZEN_LAST_USED_FILTER_KEY = `lc-rating-zen-last-used-filter`;
 const LC_RATING_ZEN_SETTINGS_KEY = `lc-rating-zen-settings`;
 
@@ -307,6 +314,7 @@ const defaultSettings: SettingsType = {
 export default function Zenk() {
   // State and hooks
   const { zen: data, isPending: progressLoading } = useZen();
+  const { language, isCn } = useLeetCodeLanguage();
   const { solutions } = useSolutions();
 
   const { tags, isPending: tagsLoading } = useQuestionTags(null);
@@ -418,7 +426,7 @@ export default function Zenk() {
         <FilterSettings
           optionKeys={optionKeys}
           getOption={getOption}
-          lang={"zh"}
+          lang={isCn ? "zh" : "en"}
           tags={qtags}
           handleClose={() => setShowFilter(false)}
           onSettingsSaved={setSettings}
@@ -432,6 +440,8 @@ export default function Zenk() {
           querySolution={(id: string) => {
             return solutions[id];
           }}
+          language={language}
+          tagLanguage={isCn ? "zh" : "en"}
           columnVisibility={settings.columnVisibility}
           queryTags={queryTags}
           data={filteredData}
@@ -452,6 +462,8 @@ interface ZenTableCompProps {
   queryTags: (id: string) => QTag;
   data: ConstQuestion[];
   querySolution: (id: string) => SolutionType;
+  language: LeetCodeLanguage;
+  tagLanguage: "zh" | "en";
   quest2progress: (v: ConstQuestion) => ProgressKeyType;
   handleProgressSelectChange: (questID: string, value: ProgressKeyType) => void;
 }
@@ -462,6 +474,8 @@ const ZenTableComp = React.memo(
     getOption,
     queryTags,
     data,
+    language,
+    tagLanguage,
     columnVisibility,
     querySolution,
     quest2progress,
@@ -478,7 +492,7 @@ const ZenTableComp = React.memo(
             return (
               <div className="d-flex justify-content-between align-items-center p-1">
                 <a
-                  href={`${LC_HOST}/contest/${item.cont_title_slug}`}
+                  href={leetCodeContestUrl(item.cont_title_slug, language)}
                   target="_blank"
                 >
                   {item.cont_title}
@@ -502,25 +516,24 @@ const ZenTableComp = React.memo(
             const item = info.row.original;
             const soln = querySolution(item._hash.toString());
             let link = soln
-              ? LC_HOST +
-                "/problems/" +
-                soln.questSlug +
-                "/solution/" +
-                soln.solnSlug
+              ? leetCodeSolutionUrl(soln.questSlug, soln.solnSlug, language)
               : null;
             return (
               <div className="d-flex justify-content-between align-items-center">
                 {!!item.paid_only && <span>👑</span>}
                 <div>
                   <a
-                    href={`${LC_HOST}/problems/${item.title_slug}`}
+                    href={leetCodeProblemUrl(item.title_slug, language)}
                     target="_blank"
                   >
                     {item.question_id}. {item.title}
                   </a>
                   {columnVisibility["en"] && (
                     <a
-                      href={`${LC_HOST_EN}/problems/${item.title_slug}`}
+                      href={leetCodeProblemUrl(
+                        item.title_slug,
+                        language === "cn" ? "en" : "cn",
+                      )}
                       target="_blank"
                       className="ms-2"
                     >
@@ -560,7 +573,7 @@ const ZenTableComp = React.memo(
         {
           accessorFn: (row) => {
             let tags = queryTags(row._hash.toString());
-            return tags ? tags[1] : "-";
+            return tags ? tags[tagLanguage === "en" ? 0 : 1] : "-";
           },
           header: "算法标签",
           id: "tags",
@@ -612,7 +625,7 @@ const ZenTableComp = React.memo(
           footer: (props) => props.column.id,
         },
       ],
-      [queryTags],
+      [queryTags, language, tagLanguage],
     );
 
     // const { zen: data, isPending: loading } = useZen(null);

@@ -1,8 +1,8 @@
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import useStorage from "@hooks/useStorage";
+import { leetCodeContestUrl } from "@utils/leetcodeLinks";
 import React from "react";
 import Form from "react-bootstrap/Form";
-
-const host = `https://leetcode.cn`;
 
 function openUrl(url: string) {
   window.open(url, "_blank");
@@ -14,11 +14,12 @@ interface ContestCellProps {
 }
 
 function ContestCell({ title, titleSlug }: ContestCellProps) {
+  const { language } = useLeetCodeLanguage();
   const [mark, setMark] = useStorage<string>("__mark", {
     defaultValue: "",
   });
 
-  let link = `${host}/contest/${titleSlug}`;
+  let link = leetCodeContestUrl(titleSlug, language);
   const onClick = (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
     openUrl(link);

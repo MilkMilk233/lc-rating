@@ -1,6 +1,8 @@
 import { hashCode } from "@utils/hash";
 import ProblemCategoryList from "./ProblemCategoryList";
 import { useProgressOptions, useQuestProgress } from "@hooks/useProgress";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { translateLeetCodeHtml } from "@utils/leetcodeLinks";
 
 interface ProblemCategory {
   title: string;
@@ -38,6 +40,7 @@ function ProblemCategory({
   showRating,
   showPremium,
 }: ProblemCategoryProps) {
+  const { language } = useLeetCodeLanguage();
   const { optionKeys, getOption } = useProgressOptions();
   const { allProgress, updateProgress, removeProgress } = useQuestProgress();
 
@@ -51,7 +54,9 @@ function ProblemCategory({
       {summary && (
         <span
           className="d-inline-block p-2 mb-2 rounded summary bg-secondary-subtle text-warning-emphasis"
-          dangerouslySetInnerHTML={{ __html: summary }}
+          dangerouslySetInnerHTML={{
+            __html: translateLeetCodeHtml(summary, language),
+          }}
         ></span>
       )}
       <div className={`level-${level}`}>

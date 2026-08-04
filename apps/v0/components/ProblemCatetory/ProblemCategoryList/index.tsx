@@ -1,5 +1,6 @@
 import { ShareIcon } from "@components/icons";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import {
   OptionEntry,
   ProgressKeyType,
@@ -8,6 +9,7 @@ import {
 } from "@hooks/useProgress";
 import useStorage from "@hooks/useStorage";
 import { hashCode } from "@utils/hash";
+import { leetCodeProblemUrl, translateLeetCodeHtml } from "@utils/leetcodeLinks";
 import Form from "react-bootstrap/esm/Form";
 
 const getCols = (l: number) => {
@@ -63,6 +65,8 @@ function ProblemCategoryList({
   showRating,
   showPremium,
 }: ProblemCategoryListProps) {
+  const { language } = useLeetCodeLanguage();
+
   // Event handlers
   const handleProgressSelectChange = (
     questID: string,
@@ -87,7 +91,9 @@ function ProblemCategoryList({
       {data.summary && (
         <p
           className="p-2 rounded summary bg-secondary-subtle text-warning-emphasis"
-          dangerouslySetInnerHTML={{ __html: data.summary }}
+          dangerouslySetInnerHTML={{
+            __html: translateLeetCodeHtml(data.summary, language),
+          }}
         ></p>
       )}
       <ul className={`list p-2 ${getCols(filteredChild.length)}`}>
@@ -106,7 +112,10 @@ function ProblemCategoryList({
               >
                 <div>
                   <a
-                    href={"https://leetcode.cn/problems" + item.src}
+                    href={leetCodeProblemUrl(
+                      (item.src || "").replaceAll("/", ""),
+                      language,
+                    )}
                     target="_blank"
                   >
                     {item.title + (item.isPremium ? " (会员题)" : "")}
@@ -114,7 +123,10 @@ function ProblemCategoryList({
                   {showEn && (
                     <a
                       className="ms-2"
-                      href={"https://leetcode.com/problems" + item.src}
+                      href={leetCodeProblemUrl(
+                        (item.src || "").replaceAll("/", ""),
+                        language === "cn" ? "en" : "cn",
+                      )}
                       target="_blank"
                     >
                       <ShareIcon height={16} width={16} />

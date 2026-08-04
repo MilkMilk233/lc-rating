@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuestionTags } from "@hooks/useQuestionTags";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useSolutions } from "@hooks/useSolutions";
 import { useTags } from "@hooks/useTags";
 import {
@@ -10,6 +11,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { leetCodeProblemUrl, leetCodeSolutionUrl } from "@utils/leetcodeLinks";
 import React, { useMemo, useState } from "react";
 import { Button } from "react-bootstrap";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
@@ -17,7 +19,6 @@ import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Spinner from "react-bootstrap/Spinner";
 
-const LC_HOST = `https://leetcode.cn`;
 const columnHelper = createColumnHelper<filtSolnsType>();
 
 interface filtSolnsType {
@@ -224,10 +225,8 @@ export default function Search() {
   const { tags: qtags } = useQuestionTags(filter);
   const { tags } = useTags();
 
-  const [lang, setLang] = useState<"zh" | "en">("zh");
-  const onChangeLang = () => {
-    setLang(() => (lang === "en" ? "zh" : "en"));
-  };
+  const { language, toggleLanguage, isCn } = useLeetCodeLanguage();
+  const lang = isCn ? "zh" : "en";
 
   const [selectedTags, setSelectedTags] = useState<Record<string, Boolean>>({});
   const onSelectTags = (key: string) => {
@@ -264,8 +263,12 @@ export default function Search() {
       })
       .map((key, idx) => {
         const soln = solutions[key];
-        const questLink = `${LC_HOST}/problems/${soln.questSlug}`;
-        const solnLink = `${LC_HOST}/problems/${soln.questSlug}/solution/${soln.solnSlug}`;
+        const questLink = leetCodeProblemUrl(soln.questSlug, language);
+        const solnLink = leetCodeSolutionUrl(
+          soln.questSlug,
+          soln.solnSlug,
+          language
+        );
         const questTitle = `${soln.questId}. ${soln.questTitle}`;
         const tags =
           qtags[soln._hash.toString()]?.[lang === "en" ? 0 : 1] || [];
@@ -280,7 +283,7 @@ export default function Search() {
           solnLink,
         };
       });
-  }, [filter, solutions, selectedTags, solLoading]);
+  }, [filter, solutions, selectedTags, qtags, lang, language]);
 
   return (
     <Container fluid className="search page-shell">
@@ -314,11 +317,11 @@ export default function Search() {
         <div className="toolbar-group">
           <ButtonGroup className="w-100">
             <Button
-              className="fw-medium"
-              variant="outline-secondary"
-              size="sm"
-              onClick={onChangeLang}
-            >{`${lang === "en" ? "中文" : "英文"}标签`}</Button>
+                className="fw-medium"
+                variant="outline-secondary"
+                size="sm"
+                onClick={toggleLanguage}
+              >{`${isCn ? "EN" : "CN"} 站点/标签`}</Button>
             <Button
               className="fw-medium"
               variant="outline-secondary"

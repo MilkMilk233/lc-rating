@@ -7,8 +7,10 @@ import {
   TableOfContent,
   TOC,
 } from "@components/ProblemCatetory/TableOfContent";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import useStorage from "@hooks/useStorage";
 import { hashCode } from "@utils/hash";
+import { translateLeetCodeUrl } from "@utils/leetcodeLinks";
 import { useEffect } from "react";
 import Container from "react-bootstrap/Container";
 import Form from "react-bootstrap/esm/Form";
@@ -36,6 +38,8 @@ const mapCategory2TOC = (
 };
 
 export default function ({ data }: { data: ProblemCategory }) {
+  const { language } = useLeetCodeLanguage();
+
   const scrollToComponent = () => {
     if (window.location.hash) {
       let id = window.location.hash.replace("#", "");
@@ -128,7 +132,11 @@ export default function ({ data }: { data: ProblemCategory }) {
             label="会员题"
           />
         </div>
-        <a target="_blank" className="source-link" href={data.original_src}>
+        <a
+          target="_blank"
+          className="source-link"
+          href={translateLeetCodeUrl(data.original_src, language)}
+        >
           原始题单
         </a>
       </section>

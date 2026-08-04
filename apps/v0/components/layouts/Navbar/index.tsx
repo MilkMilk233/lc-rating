@@ -2,6 +2,7 @@
 
 import SettingsPanel from "@components/SettingsPanel";
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useTheme } from "@hooks/useTheme";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -71,6 +72,7 @@ const questList = [
 
 export default function () {
   const { theme, toggleTheme } = useTheme();
+  const { language, toggleLanguage } = useLeetCodeLanguage();
   const pathname = usePathname();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -175,6 +177,15 @@ export default function () {
               灵茶山艾府
             </Link>
           </span>
+          <button
+            className="language-toggle"
+            onClick={toggleLanguage}
+            aria-label="切换 LeetCode 站点语言"
+            title="切换 LeetCode 站点语言"
+          >
+            <span className={language === "cn" ? "active" : ""}>CN</span>
+            <span className={language === "en" ? "active" : ""}>EN</span>
+          </button>
           <button
             className="theme-toggle d-none d-lg-flex"
             aria-label="切换主题"

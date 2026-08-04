@@ -196,6 +196,35 @@ a {
     color: var(--app-text);
 }
 
+.language-toggle {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .15rem;
+    align-items: center;
+    min-width: 72px;
+    height: 38px;
+    margin-right: .5rem;
+    padding: .2rem;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    background: var(--app-surface);
+    color: var(--app-muted);
+    font-size: .78rem;
+    font-weight: 800;
+}
+
+.language-toggle span {
+    display: inline-grid;
+    place-items: center;
+    height: 28px;
+    border-radius: 6px;
+}
+
+.language-toggle span.active {
+    background: var(--app-accent-soft);
+    color: var(--app-text);
+}
+
 .page-shell {
     width: min(100%, 1480px);
     margin: 0 auto;

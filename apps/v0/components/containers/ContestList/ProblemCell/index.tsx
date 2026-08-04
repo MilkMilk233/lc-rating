@@ -1,13 +1,13 @@
 import RatingCircle, { COLORS } from "@components/RatingCircle";
 import { QuestionType } from "@hooks/useContests";
+import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { SolutionType } from "@hooks/useSolutions";
+import { leetCodeProblemUrl, leetCodeSolutionUrl } from "@utils/leetcodeLinks";
 import clsx from "clsx";
 import React, { useEffect, useState } from "react";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Popover from "react-bootstrap/Popover";
 import Spinner from "react-bootstrap/Spinner";
-
-const host = `https://leetcode.cn`;
 
 function openUrl(url: string) {
   window.open(url, "_blank");
@@ -19,7 +19,8 @@ interface ProblemCellProps {
 }
 
 function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
-  let link = `${host}/problems/${que.title_slug}`;
+  const { language } = useLeetCodeLanguage();
+  let link = leetCodeProblemUrl(que.title_slug, language);
   const onClick = (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
     openUrl(link);
@@ -83,13 +84,7 @@ function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
           >
             <a
               className="fr ans"
-              href={
-                host +
-                "/problems/" +
-                soln.questSlug +
-                "/solution/" +
-                soln.solnSlug
-              }
+              href={leetCodeSolutionUrl(soln.questSlug, soln.solnSlug, language)}
             >
               🎈
             </a>
