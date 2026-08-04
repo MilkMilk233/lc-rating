@@ -16,7 +16,7 @@ import MoveToTodoButton from "./MoveToTodoButton";
 
 const mapCategory2TOC = (
   { title, leafChild, nonLeafChild }: ProblemCategory,
-  level: number
+  level: number,
 ): TOC => {
   let toc = {
     id: `#${hashCode(title)}`,
@@ -59,7 +59,7 @@ export default function ({ data }: { data: ProblemCategory }) {
     "lc-rating-list-settings",
     {
       defaultValue: settingDefault,
-    }
+    },
   );
 
   const buttons = [
@@ -79,80 +79,72 @@ export default function ({ data }: { data: ProblemCategory }) {
     },
   ];
 
-  const switchers = [
-    {
-      id: "toggle-tags",
-      content: (
-        <Form.Check
-          checked={setting.showEn}
-          onChange={() => {
-            setSetting({ ...setting, showEn: !setting.showEn });
-          }}
-          type="switch"
-          label="英文链接"
-        />
-      ),
-    },
-    {
-      id: "toggle-ratings",
-      content: (
-        <Form.Check
-          checked={setting.showRating}
-          onChange={() => {
-            setSetting({ ...setting, showRating: !setting.showRating });
-          }}
-          type="switch"
-          label="难度分"
-        />
-      ),
-    },
-    {
-      id: "toggle-premiums",
-      content: (
-        <Form.Check
-          checked={setting.showPremium}
-          onChange={() => {
-            setSetting({ ...setting, showPremium: !setting.showPremium });
-          }}
-          type="switch"
-          label="会员题"
-        />
-      ),
-    },
-  ];
-
   return (
-    <Container fluid className="p-2 problem-list order-1">
+    <Container fluid className="problem-list page-shell order-1">
       <FixedSidebar
         gap={3}
         initialOffset={{ x: "2rem", y: "2rem" }}
         items={buttons}
         position="bottom"
       />
-      <FixedSidebar
-        className="fw-bold"
-        direction="horizontal"
-        gap={3}
-        initialOffset={{ x: "1rem", y: "4rem" }}
-        items={switchers}
-        position="top"
-      />
-      <div className="toc" id="toc">
-        <TableOfContent toc={mapCategory2TOC(data, 0)} />
-      </div>
-      <div
-        className="pb-content ms-5 p-2"
-        data-bs-spy="scroll"
-        data-bs-target="#toc"
-      >
-        <ProblemCategory
-          title={`<p class="fs-6 fw-bold fst-italic">来源:<a target="_blank" class="ms-2 fs-6 link" href="${data.original_src}">${data.original_src}</a> <span class="ms-3 fw-semibold fst-italic">最近更新: ${data["last_update"]}</span></p>`}
-          data={[data]}
-          showEn={setting.showEn}
-          showRating={setting.showRating}
-          showPremium={setting.showPremium}
-          summary={""}
-        />
+      <header className="page-heading topic-heading">
+        <div>
+          <p className="eyebrow">Study plan</p>
+          <h1 className="page-title">{data.title}</h1>
+          <p className="page-description">
+            题单内容已冻结，进度会保存在当前浏览器本地。
+          </p>
+        </div>
+        <div className="metric-strip">
+          <span className="metric-pill">
+            Updated <strong>{data["last_update"]}</strong>
+          </span>
+        </div>
+      </header>
+      <section className="toolbar-panel topic-toolbar">
+        <div className="toolbar-group">
+          <Form.Check
+            checked={setting.showEn}
+            onChange={() => {
+              setSetting({ ...setting, showEn: !setting.showEn });
+            }}
+            type="switch"
+            label="英文链接"
+          />
+          <Form.Check
+            checked={setting.showRating}
+            onChange={() => {
+              setSetting({ ...setting, showRating: !setting.showRating });
+            }}
+            type="switch"
+            label="难度分"
+          />
+          <Form.Check
+            checked={setting.showPremium}
+            onChange={() => {
+              setSetting({ ...setting, showPremium: !setting.showPremium });
+            }}
+            type="switch"
+            label="会员题"
+          />
+        </div>
+        <a target="_blank" className="source-link" href={data.original_src}>
+          原始题单
+        </a>
+      </section>
+      <div className="topic-layout">
+        <aside className="toc data-panel" id="toc">
+          <TableOfContent toc={mapCategory2TOC(data, 0)} />
+        </aside>
+        <div className="pb-content" data-bs-spy="scroll" data-bs-target="#toc">
+          <ProblemCategory
+            data={[data]}
+            showEn={setting.showEn}
+            showRating={setting.showRating}
+            showPremium={setting.showPremium}
+            summary={""}
+          />
+        </div>
       </div>
     </Container>
   );

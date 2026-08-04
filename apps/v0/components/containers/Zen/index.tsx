@@ -40,7 +40,6 @@ import {
   Container,
   Dropdown,
   Form,
-  FormLabel,
   Modal,
   Pagination,
   Table,
@@ -102,12 +101,12 @@ const FilterButton = React.memo(
     <Button onClick={() => onFilterChange(label)} variant={variant}>
       {label}
     </Button>
-  )
+  ),
 );
 
 function buildTagFilterFn(
   selectedTags: Record<string, boolean>,
-  q: (id: string) => QTag
+  q: (id: string) => QTag,
 ) {
   return Object.keys(selectedTags).length == 0
     ? () => true
@@ -319,7 +318,7 @@ export default function Zenk() {
     LC_RATING_ZEN_SETTINGS_KEY,
     {
       defaultValue: defaultSettings,
-    }
+    },
   );
 
   const { allProgress, updateProgress, removeProgress } = useQuestProgress();
@@ -329,7 +328,7 @@ export default function Zenk() {
     LC_RATING_ZEN_LAST_USED_FILTER_KEY,
     {
       defaultValue: ALL_FILTER_LABEL,
-    }
+    },
   );
 
   const queryTags = (id: string): QTag => {
@@ -368,7 +367,7 @@ export default function Zenk() {
         updateProgress(questID, progress);
       }
     },
-    []
+    [],
   );
 
   if (progressLoading) {
@@ -376,8 +375,25 @@ export default function Zenk() {
   }
 
   return (
-    <Container fluid="lg" className="zen-container">
-      <nav className="nav navbar z-3 zen-nav justify-content-start postion-sticky">
+    <Container fluid className="zen-container page-shell">
+      <header className="page-heading">
+        <div>
+          <p className="eyebrow">Difficulty practice</p>
+          <h1 className="page-title">难度练习</h1>
+          <p className="page-description">
+            按评级区间、标签和本地进度筛选题目，进度只保存在当前浏览器。
+          </p>
+        </div>
+        <div className="metric-strip">
+          <span className="metric-pill">
+            Showing <strong>{filteredData.length}</strong>
+          </span>
+          <span className="metric-pill">
+            Filter <strong>{currentFilterKey}</strong>
+          </span>
+        </div>
+      </header>
+      <nav className="toolbar-panel zen-nav">
         <ButtonGroup>
           {ratingFilters.map((filter: Filter) => (
             <FilterButton
@@ -394,6 +410,7 @@ export default function Zenk() {
         </ButtonGroup>
         <Button variant="outline-secondary" onClick={() => setShowFilter(true)}>
           <FilterIcon width={24} height={24} />
+          <span className="ms-1">筛选</span>
         </Button>
       </nav>
 
@@ -408,7 +425,7 @@ export default function Zenk() {
           settings={settings}
         />
       )}
-      <div style={{ width: "100%" }}>
+      <div className="data-panel zen-data-panel">
         <ZenTableComp
           optionKeys={optionKeys}
           getOption={getOption}
@@ -566,7 +583,7 @@ const ZenTableComp = React.memo(
                 onChange={(e) =>
                   handleProgressSelectChange(
                     item.question_id,
-                    e.target.value as ProgressKeyType
+                    e.target.value as ProgressKeyType,
                   )
                 }
                 style={{ color: curOption.color }}
@@ -595,7 +612,7 @@ const ZenTableComp = React.memo(
           footer: (props) => props.column.id,
         },
       ],
-      [queryTags]
+      [queryTags],
     );
 
     // const { zen: data, isPending: loading } = useZen(null);
@@ -609,7 +626,7 @@ const ZenTableComp = React.memo(
         }}
       />
     );
-  }
+  },
 );
 
 const ZenTable = React.memo(
@@ -653,64 +670,55 @@ const ZenTable = React.memo(
       },
       autoResetPageIndex: true, // turn off page index reset when sorting or filtering
     });
-    return (
-      <div className="p-2">
-        <Pagination className="d-flex justify-content-start gap-2">
-          <Pagination.First
-            className="border rounded p-1"
-            onClick={() => table.firstPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<<"}
-          </Pagination.First>
-          <Pagination.Prev
-            className="border rounded p-1"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<"}
-          </Pagination.Prev>
-          <Pagination.Next
-            className="border rounded p-1"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            {">"}
-          </Pagination.Next>
-          <Pagination.Last
-            className="border rounded p-1"
-            onClick={() => table.lastPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            {">>"}
-          </Pagination.Last>
-          <Form className="d-flex align-items-center">
-            <FormLabel className="d-flex align-items-center">
+
+    const renderPagination = (align: "start" | "end") => (
+      <div className={`pagination-bar justify-content-${align}`}>
+        <div className="toolbar-group">
+          <Pagination>
+            <Pagination.First
+              onClick={() => table.firstPage()}
+              disabled={!table.getCanPreviousPage()}
+            />
+            <Pagination.Prev
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            />
+            <Pagination.Next
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            />
+            <Pagination.Last
+              onClick={() => table.lastPage()}
+              disabled={!table.getCanNextPage()}
+            />
+          </Pagination>
+          <span className="metric-pill">
+            Page{" "}
+            <strong>
               {table.getState().pagination.pageIndex + 1} /{" "}
               {table.getPageCount().toLocaleString()}
-            </FormLabel>
-          </Form>
-          <span className="d-flex align-items-center">
-            <Form.Control
-              type="number"
-              defaultValue={table.getState().pagination.pageIndex + 1}
-              onChange={(e) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-              className="border p-1 rounded w-16"
-            />
+            </strong>
           </span>
+          <Form.Control
+            type="number"
+            defaultValue={table.getState().pagination.pageIndex + 1}
+            onChange={(e) => {
+              const page = e.target.value ? Number(e.target.value) - 1 : 0;
+              table.setPageIndex(page);
+            }}
+            className="compact-input"
+            aria-label="跳转页码"
+          />
           <Dropdown
             onSelect={(e) => {
               //@ts-ignore
               table.setPageSize(Number(e));
             }}
           >
-            <Dropdown.Toggle key="dropdown">
-              Page size {table.getState().pagination.pageSize}
+            <Dropdown.Toggle variant="outline-secondary">
+              {table.getState().pagination.pageSize} / page
             </Dropdown.Toggle>
-            <Dropdown.Menu key="menu" className="super-colors">
+            <Dropdown.Menu>
               {[10, 20, 30, 50, 100].map((pageSize, idx) => (
                 <Dropdown.Item key={`opt-${idx}`} eventKey={pageSize}>
                   {pageSize}
@@ -718,154 +726,96 @@ const ZenTable = React.memo(
               ))}
             </Dropdown.Menu>
           </Dropdown>
-          <FormLabel className="d-flex justify-content-center align-items-center fs-6 text-success">
-            {"Total: "} {table.getRowCount().toLocaleString()}
-          </FormLabel>
-        </Pagination>
-        <div className="h-2" />
-        <Table
-          hover
-          striped
-          bordered
-          className="overflow-x-auto"
-          {...{
-            style: {
-              width: "100%",
-            },
-          }}
-        >
-          <thead>
-            {table.getHeaderGroups().map((headerGroup, idx) => (
-              <tr key={headerGroup.id + idx}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <th
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      style={{
-                        width: `${header.getSize()}px`,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <div
-                        {...{
-                          className: header.column.getCanSort()
-                            ? "cursor-pointer select-none"
-                            : "select-none",
-                          onClick: header.column.getToggleSortingHandler(),
+          <span className="metric-pill">
+            Total <strong>{table.getRowCount().toLocaleString()}</strong>
+          </span>
+        </div>
+      </div>
+    );
+
+    return (
+      <div>
+        {renderPagination("start")}
+        <div className="table-scroll">
+          <Table
+            hover
+            className="app-table zen-table"
+            {...{
+              style: {
+                width: "100%",
+              },
+            }}
+          >
+            <thead>
+              {table.getHeaderGroups().map((headerGroup, idx) => (
+                <tr key={headerGroup.id + idx}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <th
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        style={{
+                          width: `${header.getSize()}px`,
+                          overflow: "hidden",
                         }}
                       >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        ) as React.ReactNode}
-                        {{
-                          asc: " 🔼",
-                          desc: " 🔽",
-                        }[header.column.getIsSorted() as string] ??
-                          (header.column.getCanSort() ? "↕️" : null)}
-                        {header.column.getCanFilter() ? (
-                          <div>
-                            <Filter column={header.column} table={table} />
-                          </div>
-                        ) : null}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => {
-              return (
-                <tr key={row.id} className="zen-table-row">
-                  {row.getVisibleCells().map((cell) => {
-                    return (
-                      <td key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        ) as React.ReactNode}
-                      </td>
+                        <div
+                          {...{
+                            className: header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : "select-none",
+                            onClick: header.column.getToggleSortingHandler(),
+                          }}
+                        >
+                          {
+                            flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            ) as React.ReactNode
+                          }
+                          {{
+                            asc: " 🔼",
+                            desc: " 🔽",
+                          }[header.column.getIsSorted() as string] ??
+                            (header.column.getCanSort() ? "↕️" : null)}
+                          {header.column.getCanFilter() ? (
+                            <div>
+                              <Filter column={header.column} table={table} />
+                            </div>
+                          ) : null}
+                        </div>
+                      </th>
                     );
                   })}
                 </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-        <div className="h-2" />
-        <Pagination className="d-flex justify-content-end gap-2">
-          <Pagination.First
-            className="border rounded p-1"
-            onClick={() => table.firstPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<<"}
-          </Pagination.First>
-          <Pagination.Prev
-            className="border rounded p-1"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            {"<"}
-          </Pagination.Prev>
-          <Pagination.Next
-            className="border rounded p-1"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            {">"}
-          </Pagination.Next>
-          <Pagination.Last
-            className="border rounded p-1"
-            onClick={() => table.lastPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            {">>"}
-          </Pagination.Last>
-          <Form className="d-flex align-items-center">
-            <FormLabel className="d-flex align-items-center">
-              {table.getState().pagination.pageIndex + 1} /{" "}
-              {table.getPageCount().toLocaleString()}
-            </FormLabel>
-          </Form>
-          <span className="d-flex align-items-center">
-            <Form.Control
-              type="number"
-              defaultValue={table.getState().pagination.pageIndex + 1}
-              onChange={(e) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-              className="border p-1 rounded w-16"
-            />
-          </span>
-          <Dropdown
-            onSelect={(e) => {
-              //@ts-ignore
-              table.setPageSize(Number(e));
-            }}
-          >
-            <Dropdown.Toggle key="dropdown">
-              Page size {table.getState().pagination.pageSize}
-            </Dropdown.Toggle>
-            <Dropdown.Menu key={"menu"} className="super-colors">
-              {[10, 20, 30, 50, 100].map((pageSize, idx) => (
-                <Dropdown.Item key={`opt-${idx}`} eventKey={pageSize}>
-                  {pageSize}
-                </Dropdown.Item>
               ))}
-            </Dropdown.Menu>
-          </Dropdown>
-          <FormLabel className="d-flex justify-content-center align-items-center fs-6 text-success">
-            {"Total: "} {table.getRowCount().toLocaleString()}
-          </FormLabel>
-        </Pagination>
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map((row) => {
+                return (
+                  <tr key={row.id} className="zen-table-row">
+                    {row.getVisibleCells().map((cell) => {
+                      return (
+                        <td key={cell.id}>
+                          {
+                            flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            ) as React.ReactNode
+                          }
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+        {renderPagination("end")}
       </div>
     );
-  }
+  },
 );
 
 function Filter({

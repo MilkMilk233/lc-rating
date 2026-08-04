@@ -1,22 +1,35 @@
 .zen-container {
-  min-width: 60%;
+  width: min(100%, 1380px);
 }
 
 .zen-nav {
   position: sticky;
-  top: 0;
-  z-index: 1000;
-  gap: 1rem;
+  top: 64px;
+  z-index: 8;
+  justify-content: flex-start;
+
+  .btn-group {
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+
+  .btn-group > .btn {
+    border-radius: var(--app-radius) !important;
+  }
+}
+
+.zen-data-panel {
+  overflow: hidden;
+}
+
+.zen-table {
+  min-width: 1040px;
 }
 
 .zen-table-row {
-  :hover {
-    cursor: pointer;
-  }
   td {
     vertical-align: middle;
-    text-align: center;
-    padding: 0.25rem!important;
+    text-align: left;
   }
 
   .zen-spinner-td {
@@ -24,40 +37,44 @@
   }
 
   .zen-ans {
-    float: right;
-
     a {
-      color: black!important;
-      font-size: 1.5rem!important;
+      color: var(--app-accent-strong) !important;
+      font-size: 1.2rem !important;
       font-weight: normal;
       text-decoration: none;
+
       &:hover {
-        transform: scale(1.2);
+        color: var(--app-accent);
       }
     }
   }
 }
 
-.zen-table-header {
-  .zen-table-header-no {
-    width: 100px;
+.zen-filter-dialog {
+  margin-top: 5% !important;
+
+  .modal-content {
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius);
+    background: var(--app-surface);
   }
 
-  .zen-table-header-question {
-    width: 400px;
-  }
+  .zen-filter-tag {
+    gap: .4rem;
 
-  .zen-table-header-progress {
-    width: 250px;
+    .active {
+      background: var(--app-accent);
+    }
   }
 }
 
-.zen-filter-dialog {
-  margin-top: 5%!important;
+@include media-breakpoint-down(md) {
+  .zen-nav {
+    position: static;
 
-  .zen-filter-tag {
-    .active {
-      background: plum;
+    .btn-group,
+    .btn {
+      width: 100%;
     }
   }
 }

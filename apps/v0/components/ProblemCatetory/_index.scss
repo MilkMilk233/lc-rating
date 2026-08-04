@@ -1,208 +1,163 @@
 .toc {
-    display: grid;
-    position: sticky;
-    top: 5rem;
-    grid-area: toc;
-    overflow-y: auto;
-    height: calc(100vh - 5rem);
+  position: sticky;
+  top: 132px;
+  max-height: calc(100vh - 148px);
+  padding: .75rem;
+  overflow-y: auto;
 }
+
 .toc-list,
 .toc-list ul {
-    list-style-type: none;
-    li {
-        a {
-            display: flex;
-            width: 100%;
-            font-size: 1.2rem;
-            text-decoration: none;
-            &:hover {
-                background: rgb(235, 238, 240);
-                padding-left: .2rem;
-            }
-        }
-    }
-}
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 
-.toc-list {
-    padding: 0 0.5rem 0 0.5rem;
+  li {
+    a {
+      display: flex;
+      width: 100%;
+      padding: .34rem .45rem;
+      border-radius: var(--app-radius);
+      color: var(--app-muted) !important;
+      font-size: .92rem;
+      line-height: 1.25;
+      text-decoration: none;
+
+      &:hover {
+        background: var(--app-surface-muted);
+        color: var(--app-text) !important;
+      }
+    }
+  }
 }
 
 .toc-list ul {
-    padding-inline-start: 1ch;
+  padding-inline-start: .8rem;
 }
 
 .pb-container {
+  display: grid;
+  gap: .85rem;
+  min-width: 0;
+
+  .title {
+    margin: 0;
+    color: var(--app-text) !important;
+  }
+
+  > .title {
+    display: none;
+  }
+
+  .summary {
+    display: block;
+    border: 1px solid var(--app-border);
+    background: var(--app-surface-muted) !important;
+    color: var(--app-text) !important;
+    font-weight: 550;
+
+    a {
+      text-decoration: underline !important;
+      text-underline-offset: .18rem;
+    }
+
+    img {
+      max-width: min(100%, 520px) !important;
+      height: auto;
+    }
+  }
+
+  .level-2,
+  .level-4 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
     gap: 1rem;
+  }
 
-    .pb-rating-bg {
-        // border-radius: 16px;
-        // padding: 0 2px 0 2px;
-        .rating-text {
-            font-family: '黑体', '微软雅黑';
-            font-weight: 900;
-            font-size: .75rem;
-            margin-left: -3px;
-        }
-    }
-    .summary {
-        background: rgb(251, 251, 251);
-        font-weight: 600;
-        a {
-            text-decoration: underline!important;
-        }
-        img {
-            max-width: 400px!important;
-        }
+  .leaf {
+    padding: .9rem !important;
+    border: 1px solid var(--app-border);
+    border-radius: var(--app-radius) !important;
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow) !important;
+
+    h3 {
+      margin: 0 0 .65rem;
+      font-size: 1rem;
+      font-weight: 800;
     }
 
-    &.level-0 {
-        border-radius: 0;
-        background: transparent;
+    .list {
+      display: grid;
+      gap: .45rem;
+      margin: 0;
+      padding: 0 !important;
+      background: transparent;
+      list-style: none;
 
-        &>.title {
-            color: $gray-900!important;
-        }
+      &.col2,
+      &.col3 {
+        columns: unset;
+      }
     }
 
-    .level-3 {
-        h3 > p {
-            font-weight: 900;
-        }
+    li {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: .65rem;
+      align-items: center;
+      width: 100%;
+      min-height: 42px;
+      padding: .45rem .55rem;
+      border: 1px solid var(--app-border);
+      border-radius: var(--app-radius);
+      background: var(--app-surface-muted);
     }
 
-    .level-2,
-    .level-4 {
-        display: flex;
-        flex-flow: row wrap;
-        gap: 1rem;
-        background: transparent;
+    li[data-todo="true"] {
+      border-color: color-mix(in srgb, var(--app-accent) 42%, var(--app-border));
+      background: color-mix(in srgb, var(--app-accent-soft) 72%, var(--app-surface));
     }
 
-    .leaf {
-        background: rgb(244, 242, 242);
-        h3 {
-            font-weight: 800;
-        }
-        .list {
-            background: rgb(251, 236, 209);
-            list-style: none;
-            max-width: 100%;
-            margin-block-end: 0;
-
-            li:nth-child(n) {
-                margin-bottom: .2rem;
-            }
-
-            li:last-child {
-                margin-bottom: 0;
-            }
-
-            &.col2,
-            &.col3 {
-                columns: 2;
-                column-rule-width: 2px;
-                column-rule-color: rgb(107, 107, 107);
-                column-gap: 1cm;
-                column-rule-style: dashed;
-            }
-
-            &.col3 {
-                columns: 3;
-            }
-        }
-
-        a {
-            color: rgb(0, 0, 0);
-            font-weight: bolder;
-            text-decoration: underline;
-            text-underline-offset: 0.25rem;
-        }
-
-        li {
-            width: 100%;
-        }
-
+    a {
+      color: var(--app-text);
+      font-weight: 650;
+      text-decoration: none;
     }
 
-    border-radius: 15px;
-
-    .title {
-        color: aliceblue;
+    a:hover {
+      color: var(--app-accent-strong);
     }
+
+    .form-select {
+      min-width: 112px;
+      max-width: 138px;
+      padding-top: .25rem;
+      padding-bottom: .25rem;
+      font-size: .86rem;
+    }
+  }
+
+  .pb-rating-bg {
+    .rating-text {
+      margin-left: -3px;
+      font-size: .72rem;
+      font-weight: 900;
+    }
+  }
 }
 
 @include media-breakpoint-down(md) {
-    .toc {
-        display: none;
+  .pb-container {
+    .leaf {
+      li {
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+      }
+
+      .form-select {
+        max-width: 100%;
+      }
     }
-    .pb-container {
-        min-width: 100%;
-
-        .leaf {
-            .list {
-
-                &.col2,
-                &.col3 {
-                    columns: unset;
-                }
-            }
-        }
-    }
-}
-
-@include color-mode(light, false) {
-    .pb-container {
-        background: white;
-    }
-
-    .title {
-        color: $gray-900;
-    }
-}
-
-@include color-mode(dark, false) {
-    .toc-list,
-    .toc-list ul {
-        li {
-            a {
-                &:hover {
-                    background: white;
-                    padding-left: .2rem;
-                }
-            }
-        }
-    }
-    .pb-container {
-        background: rgb(36, 36, 36);
-        .summary {
-            a {
-                color: $blue;
-            }
-        }
-
-        &.level-0 {
-            border-radius: 0;
-
-            &>.title {
-                color: white !important;
-            }
-        }
-
-        .leaf {
-            background: rgb(30, 29, 29);
-
-            a {
-                color: white;
-            }
-
-            .list {
-                background: rgb(43, 43, 43);
-                color: white;
-            }
-        }
-    }
-
-    .title {
-        color: white;
-    }
+  }
 }

@@ -32,8 +32,6 @@ import {
 
 import { rankItem } from "@tanstack/match-sorter-utils";
 
-import FixedSidebar from "@components/FixedSidebar";
-import MoveToTopButton from "@components/MoveToTopButton";
 import { Contest, useContests } from "@hooks/useContests";
 import { useSolutions } from "@hooks/useSolutions";
 import useStorage from "@hooks/useStorage";
@@ -69,7 +67,7 @@ const fuzzyFilter: FilterFn<Contest> = (row, columnId, value, addMeta) => {
 };
 
 function ContestList() {
-  const { solutions, isPending } = useSolutions();
+  const { solutions } = useSolutions();
 
   const { contests, isPending: loading } = useContests();
 
@@ -91,7 +89,7 @@ function ContestList() {
   }, [pageIndex, pageSize, contests]);
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
 
   const [mark, setMark] = useStorage<string>("__mark", {
@@ -191,207 +189,209 @@ function ContestList() {
     }
   }, [table.getState().columnFilters[0]?.id]);
 
-  return (
-    <Container fluid className="contest">
-      <div className="contest-table">
-        <FixedSidebar
-          items={[
-            {
-              id: "back-to-top",
-              content: <MoveToTopButton />,
-            },
-          ]}
-          position="bottom"
-          initialOffset={{ x: "2rem", y: "2rem" }}
-          gap={3}
+  const renderPagination = () => (
+    <div className="pagination-bar">
+      <div className="toolbar-group">
+        <Pagination>
+          <Pagination.First
+            onClick={() => table.setPageIndex(0)}
+            disabled={!table.getCanPreviousPage()}
+          />
+          <Pagination.Prev
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          />
+          <Pagination.Next
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          />
+          <Pagination.Last
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+            disabled={!table.getCanNextPage()}
+          />
+        </Pagination>
+        <span className="metric-pill">
+          Page{" "}
+          <strong>
+            {table.getState().pagination.pageIndex + 1} /{" "}
+            {Math.max(table.getPageCount(), 1)}
+          </strong>
+        </span>
+        <Form.Control
+          type="number"
+          min={1}
+          max={Math.max(table.getPageCount(), 1)}
+          value={table.getState().pagination.pageIndex + 1}
+          onChange={(e) => {
+            const page = e.target.value ? Number(e.target.value) - 1 : 0;
+            table.setPageIndex(page);
+          }}
+          className="compact-input"
+          aria-label="跳转页码"
         />
-        <Table
-          striped
-          bordered
-          hover
-          className="table table-striped overflow-x-auto"
-        >
-          <thead
-            style={{
-              cursor: "pointer",
-              background: "white",
-              position: "sticky",
-              top: -1,
-            }}
-          >
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  let hsz = header.getSize();
-                  return (
-                    <th
-                      key={header.id}
-                      {...{
-                        colSpan: header.colSpan,
-                        style: {
-                          width: hsz,
-                          overflow: "hidden",
-                        },
-                      }}
-                    >
-                      {header.isPlaceholder ? null : (
-                        <div className="d-flex flex-row align-items-center justify-content-center">
-                          <Button
-                            variant="light"
-                            {...{
-                              style: { fontWeight: 700, minWidth: 65 },
-                              className: header.column.getCanSort()
-                                ? "cursor-pointer select-none"
-                                : "",
-                              onClick: header.column.getToggleSortingHandler(),
-                            }}
-                          >
-                            {/* {flexRender(
+      </div>
+      <div className="toolbar-group">
+        <span className="text-muted fw-semibold">Rows</span>
+        <ButtonGroup aria-label="Page size">
+          {[20, 50, 100, 200, 500].map((v) => {
+            return (
+              <Button
+                key={v}
+                className={pageSize === v ? "active" : ""}
+                onClick={() => {
+                  table.setPageSize(Number(v));
+                  setSize(`${v}`);
+                }}
+                variant="outline-secondary"
+              >
+                {v}
+              </Button>
+            );
+          })}
+        </ButtonGroup>
+      </div>
+    </div>
+  );
+
+  return (
+    <Container fluid className="contest page-shell">
+      <header className="page-heading">
+        <div>
+          <p className="eyebrow">Contest archive</p>
+          <h1 className="page-title">竞赛题目评级</h1>
+          <p className="page-description">
+            冻结的本地题库，按周赛/双周赛浏览 A-D 题的难度和题解。
+          </p>
+        </div>
+        <div className="metric-strip">
+          <span className="metric-pill">
+            Contests <strong>{contests.length}</strong>
+          </span>
+          <span className="metric-pill">
+            Page size <strong>{pageSize}</strong>
+          </span>
+        </div>
+      </header>
+      <div className="data-panel contest-table">
+        {renderPagination()}
+        <div className="table-scroll">
+          <Table hover className="app-table contest-table-grid">
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    let hsz = header.getSize();
+                    return (
+                      <th
+                        key={header.id}
+                        {...{
+                          colSpan: header.colSpan,
+                          style: {
+                            width: hsz,
+                            overflow: "hidden",
+                          },
+                        }}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div className="d-flex flex-row align-items-center justify-content-center">
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              {...{
+                                style: { minWidth: 65 },
+                                className: header.column.getCanSort()
+                                  ? "cursor-pointer select-none"
+                                  : "",
+                                onClick:
+                                  header.column.getToggleSortingHandler(),
+                              }}
+                            >
+                              {/* {flexRender(
                             header.column.columnDef.header,
                             header.getContext()
                           )} */}
-                            <>
-                              {{
-                                asc: header.column.columnDef.header + " 🔼",
-                                desc: header.column.columnDef.header + " 🔽",
-                                false: header.column.columnDef.header,
-                              }[header.column.getIsSorted() as string] ?? null}
-                            </>
-                          </Button>
-                          {header.column.getCanFilter() ? (
-                            <div className="ms-1">
-                              <Filter column={header.column} table={table} />
-                            </div>
-                          ) : null}
-                        </div>
-                      )}
-                      <div
-                        {...{
-                          onMouseDown: header.getResizeHandler(),
-                          onTouchStart: header.getResizeHandler(),
-                          className: `resizer ${
-                            header.column.getIsResizing() ? "isResizing" : ""
-                          }`,
-                          style: {
-                            transform:
-                              columnResizeMode === "onEnd" &&
-                              header.column.getIsResizing()
-                                ? `translateX(${
-                                    table.getState().columnSizingInfo
-                                      .deltaOffset
-                                  }px)`
-                                : "",
-                          },
-                        }}
-                      />
-                    </th>
+                              <>
+                                {{
+                                  asc: header.column.columnDef.header + " 🔼",
+                                  desc: header.column.columnDef.header + " 🔽",
+                                  false: header.column.columnDef.header,
+                                }[header.column.getIsSorted() as string] ??
+                                  null}
+                              </>
+                            </Button>
+                            {header.column.getCanFilter() ? (
+                              <div className="ms-1">
+                                <Filter column={header.column} table={table} />
+                              </div>
+                            ) : null}
+                          </div>
+                        )}
+                        <div
+                          {...{
+                            onMouseDown: header.getResizeHandler(),
+                            onTouchStart: header.getResizeHandler(),
+                            className: `resizer ${
+                              header.column.getIsResizing() ? "isResizing" : ""
+                            }`,
+                            style: {
+                              transform:
+                                columnResizeMode === "onEnd" &&
+                                header.column.getIsResizing()
+                                  ? `translateX(${
+                                      table.getState().columnSizingInfo
+                                        .deltaOffset
+                                    }px)`
+                                  : "",
+                            },
+                          }}
+                        />
+                      </th>
+                    );
+                  })}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {!loading &&
+                table.getRowModel().rows.map((row) => {
+                  return (
+                    <tr
+                      key={row.id}
+                      className={
+                        selectedRow === row.original.TitleSlug
+                          ? "row-selected"
+                          : ""
+                      }
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        return (
+                          <td
+                            key={cell.id}
+                            {...{
+                              className: "tb-overflow",
+                            }}
+                          >
+                            {
+                              flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              ) as React.ReactNode
+                            }
+                          </td>
+                        );
+                      })}
+                    </tr>
                   );
                 })}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {!loading &&
-              table.getRowModel().rows.map((row) => {
-                return (
-                  <tr
-                    key={row.id}
-                    className={
-                      selectedRow === row.original.TitleSlug
-                        ? "row-selected"
-                        : ""
-                    }
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      return (
-                        <td
-                          key={cell.id}
-                          {...{
-                            className: "tb-overflow",
-                          }}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          ) as React.ReactNode}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-          </tbody>
-        </Table>
+            </tbody>
+          </Table>
+        </div>
         {loading && (
           <div className="w-100 p-3 border-0 text-center">
             <Spinner />
           </div>
         )}
-      </div>
-      <div className="d-flex flex-row justify-content-center right-side">
-        <Pagination className="me-2 mb-0">
-          <Pagination.First
-            // className="border rounded"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          />
-          <Pagination.Prev
-            // className="border rounded"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          />
-          <Pagination.Next
-            // className="border rounded"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          />
-          <Pagination.Last
-            className="rounded"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          />
-        </Pagination>
-        <div className="d-flex flex-row mb-1 me-5" style={{ height: "38px" }}>
-          <span className="d-sm-inline-flex mh-100 ms-2">
-            <strong className="d-inline-flex align-items-center">
-              {table.getState().pagination.pageIndex + 1} {" / "}
-              {table.getPageCount()}
-            </strong>
-          </span>
-          <span className="d-sm-inline-flex mh-100 ms-2">
-            <span className="d-flex align-items-center">Page</span>
-            <input
-              type="number"
-              defaultValue={table.getState().pagination.pageIndex + 1}
-              onChange={(e) => {
-                const page = e.target.value ? Number(e.target.value) - 1 : 0;
-                table.setPageIndex(page);
-              }}
-              className="d-inline-block border rounded align-middle ms-1 p-1"
-              style={{ width: "60px" }}
-            />
-          </span>
-          <span className="d-sm-inline-flex mh-100 ms-2">
-            <span className="d-flex align-items-center me-2">Size</span>
-            <ButtonGroup aria-label="Basic example">
-              {[20, 50, 100, 200, 500].map((v) => {
-                return (
-                  <Button
-                    key={v}
-                    className={pageSize === v ? "active" : ""}
-                    onClick={(e) => {
-                      table.setPageSize(Number(v));
-                      setSize(`${v}`);
-                    }}
-                    variant="outline-secondary"
-                  >
-                    {v}
-                  </Button>
-                );
-              })}
-            </ButtonGroup>
-          </span>
-        </div>
+        {renderPagination()}
       </div>
     </Container>
   );
@@ -415,7 +415,7 @@ function Filter({
       typeof firstValue === "number"
         ? []
         : Array.from(column.getFacetedUniqueValues().keys()).sort(),
-    [column.getFacetedUniqueValues()]
+    [column.getFacetedUniqueValues()],
   );
 
   const [min, max] = column.getFacetedMinMaxValues() ?? [0, 0];

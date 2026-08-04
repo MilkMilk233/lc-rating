@@ -4,8 +4,17 @@ import SettingsPanel from "@components/SettingsPanel";
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
 import { useTheme } from "@hooks/useTheme";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Button, Container, Dropdown, Nav, Navbar } from "react-bootstrap";
+import {
+  LuBookOpen,
+  LuListChecks,
+  LuSearch,
+  LuSettings,
+  LuTarget,
+  LuTrophy,
+} from "react-icons/lu";
 
 const questList = [
   {
@@ -62,6 +71,7 @@ const questList = [
 
 export default function () {
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
   const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -72,135 +82,108 @@ export default function () {
     setShowModal(false);
   };
 
+  const navItems = [
+    { href: "/", label: "竞赛列表", icon: LuTrophy },
+    { href: "/zen", label: "难度练习", icon: LuTarget },
+    { href: "/search", label: "题解搜索", icon: LuSearch },
+  ];
+
   return (
-    <Navbar sticky="top" className="p-0">
-      <Container className="">
-        <Navbar.Brand>力扣竞赛题目</Navbar.Brand>
+    <Navbar sticky="top" expand="lg" className="site-navbar">
+      <Container fluid="xl" className="site-navbar-inner">
+        <Navbar.Brand as={Link} href="/" className="brand-lockup">
+          <span className="brand-mark">LC</span>
+          <span>
+            <span className="brand-title">LC Rating</span>
+            <span className="brand-subtitle">contest practice</span>
+          </span>
+        </Navbar.Brand>
         <div className="d-flex flex-fill d-md-none d-lg-none justify-content-end pe-2">
-          <span
-            className="btn d-flex rounded-circle p-1"
+          <button
+            className="theme-toggle"
+            aria-label="切换主题"
             onClick={() => {
               toggleTheme();
             }}
           >
             <ThemeSwitchButton height={24} width={24} theme={theme} />
-          </span>
+          </button>
         </div>
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
         <Navbar.Collapse
           id="responsive-navbar-nav"
           className="justify-content-end"
         >
-          <Nav className="me-auto">
-            <Link
-              href="/"
-              className="nav-link"
-              style={{
-                width: "fit-content",
-              }}
-            >
-              <Button id="nav-cl" className="fw-bold fs-6 p-1">
-                竞赛列表
-              </Button>
-            </Link>
+          <Nav className="me-auto nav-actions">
+            {navItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                href={href}
+                className={`nav-action ${pathname === href ? "active" : ""}`}
+                key={href}
+              >
+                <Icon aria-hidden size={17} />
+                <span>{label}</span>
+              </Link>
+            ))}
 
-            <Link
-              href="/zen"
-              className="nav-link"
-              style={{
-                width: "fit-content",
-              }}
-            >
-              <Button id="nav-tr" className="fw-bold fs-6 p-1">
-                难度练习
-              </Button>
-            </Link>
-
-            <Link
-              href="/search"
-              className="nav-link"
-              style={{
-                width: "fit-content",
-              }}
-            >
-              <Button id="nav-0x3f" className="fw-bold fs-6 p-1">
-                💡0x3F
-              </Button>
-            </Link>
-
-            <Link
-              href="#"
-              className="nav-link"
-              style={{
-                width: "fit-content",
-              }}
-            >
+            <span className="nav-action-button">
               <Button
-                id="nav-pg"
-                className="fw-bold fs-6 p-1"
+                className="nav-action"
+                variant="link"
                 onClick={handleOpenModal}
               >
+                <LuSettings aria-hidden size={17} />
                 站点设置
               </Button>
-            </Link>
+            </span>
             <SettingsPanel show={showModal} onHide={handleCloseModal} />
 
             <Dropdown
-              className="nav-link"
+              className="study-plan-menu"
               show={showDropdown}
               onToggle={(showDropdown) => setShowDropdown(showDropdown)}
             >
-              <Dropdown.Toggle id="nav-pl">📑题单</Dropdown.Toggle>
+              <Dropdown.Toggle className="nav-action" variant="link">
+                <LuListChecks aria-hidden size={17} />
+                题单
+              </Dropdown.Toggle>
 
               <Dropdown.Menu>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(4, 1fr)",
-                    gap: "10px",
-                    padding: "10px",
-                  }}
-                >
+                <div className="study-plan-grid">
                   {questList.map((item) => (
                     <Link
                       key={item.link}
                       href={item.link}
-                      className="text-center"
+                      className="study-plan-link"
+                      onClick={() => setShowDropdown(false)}
                     >
-                      <Button
-                        className="fw-bold w-100"
-                        style={{
-                          whiteSpace: "nowrap",
-                        }}
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        📑{item.title}
-                      </Button>
+                      <LuBookOpen aria-hidden size={15} />
+                      <span>{item.title}</span>
                     </Link>
                   ))}
                 </div>
               </Dropdown.Menu>
             </Dropdown>
           </Nav>
-          <span className="navbar-brand fs-6 fw-semibold">
-            题解来自{" "}
+          <span className="source-credit">
+            题解：
             <Link
               href="https://space.bilibili.com/206214/"
               target="_blank"
-              className="link fw-bold text-danger"
+              className="link fw-semibold"
             >
-              bilibili@灵茶山艾府
-            </Link>{" "}
-            感谢！
+              灵茶山艾府
+            </Link>
           </span>
-          <span
-            className="btn d-flex rounded-circle p-1 d-none d-lg-block d-xl-block d-sm-none"
+          <button
+            className="theme-toggle d-none d-lg-flex"
+            aria-label="切换主题"
             onClick={() => {
               toggleTheme();
             }}
           >
             <ThemeSwitchButton height={24} width={24} theme={theme} />
-          </span>
+          </button>
         </Navbar.Collapse>
       </Container>
     </Navbar>

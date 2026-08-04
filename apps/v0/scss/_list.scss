@@ -1,33 +1,63 @@
 .problem-list {
+  display: block;
+}
+
+.topic-layout {
   display: grid;
-  grid-template-areas: "toc content";
-  grid-template-rows: 1fr;
-  grid-template-columns: 1fr 4fr;
-  z-index: -1;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.topic-toolbar {
+  position: sticky;
+  top: 64px;
+  z-index: 6;
+}
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: .35rem .65rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  color: var(--app-accent-strong);
+  background: var(--app-surface);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.source-link:hover {
+  background: var(--app-accent-soft);
 }
 
 .pb-content {
-  display: grid;
-  grid-area: content;
-  font-family: "宋体", "SimSun", "STSong", "sans-serif";
+  display: block;
+  min-width: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC",
+    "Microsoft YaHei", sans-serif;
 }
 
-@include media-breakpoint-down(md) {
-  .pb-content {
-    margin: 0 !important;
-    padding: 0 !important;
+@include media-breakpoint-down(lg) {
+  .topic-layout {
+    grid-template-columns: 1fr;
   }
-  .problem-list {
-    display: block;
-  }
+
   .toc {
     display: none;
   }
 }
 
+@include media-breakpoint-down(md) {
+  .topic-toolbar {
+    position: static;
+  }
+}
+
 @keyframes blink {
   50% {
-    background-color: yellow;
+    background-color: color-mix(in srgb, var(--app-warn) 24%, transparent);
   }
 }
 

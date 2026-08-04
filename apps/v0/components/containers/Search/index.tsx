@@ -1,7 +1,5 @@
 "use client";
 
-import FixedSidebar from "@components/FixedSidebar";
-import MoveToTopButton from "@components/MoveToTopButton";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useSolutions } from "@hooks/useSolutions";
 import { useTags } from "@hooks/useTags";
@@ -15,7 +13,6 @@ import {
 import React, { useMemo, useState } from "react";
 import { Button } from "react-bootstrap";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
-import Col from "react-bootstrap/Col";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Spinner from "react-bootstrap/Spinner";
@@ -81,7 +78,7 @@ function PaginatedTable({ data }: PaginatedTableProps) {
         ),
       }),
     ],
-    []
+    [],
   );
 
   const [pagination, setPagination] = useState({
@@ -106,8 +103,8 @@ function PaginatedTable({ data }: PaginatedTableProps) {
 
   const paginationRow = () => {
     return (
-      <div className="d-flex align-items-center justify-content-evenly mt-3 mb-3">
-        <span className="d-flex align-items-center gap-2">
+      <div className="pagination-bar search-pagination">
+        <span className="toolbar-group">
           <Button
             variant="primary"
             onClick={() => table.previousPage()}
@@ -127,9 +124,10 @@ function PaginatedTable({ data }: PaginatedTableProps) {
             下一页
           </Button>
         </span>
-        <span className="d-flex align-items-center gap-2">
+        <span className="toolbar-group">
           <span>跳转至第</span>
           <input
+            className="form-control compact-input"
             value={curPage}
             min={1}
             max={table.getPageCount()}
@@ -149,6 +147,7 @@ function PaginatedTable({ data }: PaginatedTableProps) {
           </Button>
         </span>
         <select
+          className="form-select compact-select"
           value={table.getState().pagination.pageSize}
           onChange={(e) => {
             table.setPageSize(Number(e.target.value));
@@ -167,39 +166,48 @@ function PaginatedTable({ data }: PaginatedTableProps) {
   return (
     <div>
       {paginationRow()}
-      <table className="search-table">
-        <thead className="table-head">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr className="table-row" key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th className="d-flex align-items-center" key={header.id}>
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext()
-                  ) as React.ReactNode}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody className="table-body">
-          {table.getRowModel().rows.map((row, rowIndex) => (
-            <tr className="table-row bg-color" key={row.id}>
-              {row.getVisibleCells().map((cell) => {
-                const context = {
-                  ...cell.getContext(),
-                  rowIndex,
-                };
-                return (
-                  <td className="d-flex align-items-center" key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, context) as React.ReactNode}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="table-scroll">
+        <table className="search-table">
+          <thead className="table-head">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr className="table-row" key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <th className="d-flex align-items-center" key={header.id}>
+                    {
+                      flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      ) as React.ReactNode
+                    }
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="table-body">
+            {table.getRowModel().rows.map((row, rowIndex) => (
+              <tr className="table-row bg-color" key={row.id}>
+                {row.getVisibleCells().map((cell) => {
+                  const context = {
+                    ...cell.getContext(),
+                    rowIndex,
+                  };
+                  return (
+                    <td className="d-flex align-items-center" key={cell.id}>
+                      {
+                        flexRender(
+                          cell.column.columnDef.cell,
+                          context,
+                        ) as React.ReactNode
+                      }
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {paginationRow()}
     </div>
   );
@@ -213,7 +221,7 @@ export default function Search() {
   };
 
   const { solutions, isPending: solLoading } = useSolutions();
-  const { tags: qtags, isPending: tgLoading } = useQuestionTags(filter);
+  const { tags: qtags } = useQuestionTags(filter);
   const { tags } = useTags();
 
   const [lang, setLang] = useState<"zh" | "en">("zh");
@@ -231,7 +239,7 @@ export default function Search() {
 
   const filtSolns = useMemo<filtSolnsType[]>(() => {
     const selectedTagIds = Object.keys(selectedTags).filter(
-      (id) => !!selectedTags[id]
+      (id) => !!selectedTags[id],
     );
 
     return Object.keys(solutions)
@@ -275,90 +283,81 @@ export default function Search() {
   }, [filter, solutions, selectedTags, solLoading]);
 
   return (
-    <Container className="search">
-      <FixedSidebar
-        items={[
-          {
-            id: "back-to-top",
-            content: <MoveToTopButton />,
-          },
-        ]}
-        position="bottom"
-        initialOffset={{ x: "2rem", y: "2rem" }}
-        gap={3}
-      />
-      <Row
-        as="div"
-        className="justify-content-center p-3 position-sticky top-0 z-3"
-        style={{ zIndex: 1000 }}
-      >
-        <Row
-          md={12}
-          sm={12}
-          lg={12}
-          className="justify-content-center"
-          style={{ gap: ".5rem" }}
-        >
-          <Col md={5} sm={12} lg={5} className="position-relative">
+    <Container fluid className="search page-shell">
+      <header className="page-heading">
+        <div>
+          <p className="eyebrow">Solution library</p>
+          <h1 className="page-title">0x3F 题解搜索</h1>
+          <p className="page-description">
+            通过题号、题名、题解标题和算法标签快速定位本地冻结题解。
+          </p>
+        </div>
+        <div className="metric-strip">
+          <span className="metric-pill">
+            Results <strong>{filtSolns.length}</strong>
+          </span>
+          <span className="metric-pill">
+            Tags <strong>{tags.length}</strong>
+          </span>
+        </div>
+      </header>
+      <section className="toolbar-panel search-toolbar">
+        <div className="toolbar-group search-input-group">
+          <div className="position-relative search-field">
             <input
               className="form-control"
-              placeholder="题号、标目、题解标题（模糊匹配）"
+              placeholder="题号、题目、题解标题"
               onChange={onSearchTextChange}
             ></input>
-            <span className="qtot">总数：{filtSolns.length}</span>
-          </Col>
-          <Col md={2} sm={12} lg={2}>
-            <ButtonGroup className="w-100">
-              <Button
-                className="fw-medium"
-                variant="outline-secondary"
-                size="sm"
-                onClick={onChangeLang}
-              >{`${lang === "en" ? "中文" : "英文"}标签`}</Button>
-              <Button
-                className="fw-medium"
-                variant="outline-secondary"
-                onClick={onResetTags}
-              >
-                重置
-              </Button>
-            </ButtonGroup>
-          </Col>
-        </Row>
-      </Row>
-      <Row className="justify-content-center">
-        <Col as="ul" md={8} sm={12} lg={10}>
-          <div className="d-flex flex-wrap" style={{ columnGap: "1rem" }}>
-            {tags.map((tag) => {
-              return (
-                <span
-                  onClick={() => onSelectTags(tag[1])}
-                  className="p-1"
-                  key={tag[1]}
-                >
-                  <span
-                    className={`rounded p-1 fw-medium tag ${
-                      !!selectedTags[`${tag[1]}`] ? "active" : ""
-                    }`}
-                  >
-                    {lang === "en" ? tag[1] : tag[2]}
-                  </span>
-                </span>
-              );
-            })}
           </div>
-        </Col>
-      </Row>
-      <Row className="justify-content-center">
-        <Col as="ul" md={8} sm={12} lg={10}>
-          {solLoading && (
-            <Row className="justify-content-center">
-              <Spinner animation="border"></Spinner>
-            </Row>
-          )}
-          <PaginatedTable data={filtSolns} />
-        </Col>
-      </Row>
+        </div>
+        <div className="toolbar-group">
+          <ButtonGroup className="w-100">
+            <Button
+              className="fw-medium"
+              variant="outline-secondary"
+              size="sm"
+              onClick={onChangeLang}
+            >{`${lang === "en" ? "中文" : "英文"}标签`}</Button>
+            <Button
+              className="fw-medium"
+              variant="outline-secondary"
+              onClick={onResetTags}
+            >
+              重置
+            </Button>
+          </ButtonGroup>
+        </div>
+      </section>
+      <section className="data-panel search-tags-panel">
+        <div className="tag-cloud">
+          {tags.map((tag) => {
+            return (
+              <span
+                onClick={() => onSelectTags(tag[1])}
+                className="tag-hit"
+                key={tag[1]}
+              >
+                <span
+                  className={`tag ${
+                    !!selectedTags[`${tag[1]}`] ? "active" : ""
+                  }`}
+                >
+                  {lang === "en" ? tag[1] : tag[2]}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      </section>
+      <section className="data-panel search-results-panel">
+        {solLoading && (
+          <Row className="justify-content-center">
+            <Spinner animation="border"></Spinner>
+          </Row>
+        )}
+        <PaginatedTable data={filtSolns} />
+      </section>
     </Container>
   );
 }
