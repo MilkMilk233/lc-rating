@@ -7,14 +7,14 @@ export function useQuestionTags(filter: any) {
   const { data, isFetching } = useSuspenseQuery({
     queryKey: ["qtags"],
     queryFn: () => {
-      return fetch(
-        "/qtags.json?t=" + (new Date().getTime() / 100000).toFixed(0)
-      )
+      return fetch("/qtags.json", { cache: "force-cache" })
         .then((res) => res.json())
         .then((result: QTags) => {
           return result;
         });
     },
+    staleTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
   });
 

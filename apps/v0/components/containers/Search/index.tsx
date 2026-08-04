@@ -12,7 +12,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { leetCodeProblemUrl, leetCodeSolutionUrl } from "@utils/leetcodeLinks";
-import React, { useMemo, useState } from "react";
+import React, { useDeferredValue, useMemo, useState } from "react";
 import { Button } from "react-bootstrap";
 import ButtonGroup from "react-bootstrap/ButtonGroup";
 import Container from "react-bootstrap/Container";
@@ -216,6 +216,7 @@ function PaginatedTable({ data }: PaginatedTableProps) {
 
 export default function Search() {
   const [filter, setFilter] = useState("");
+  const deferredFilter = useDeferredValue(filter);
   const onSearchTextChange = (e: React.ChangeEvent) => {
     // @ts-ignore
     setFilter(e.target.value);
@@ -245,10 +246,10 @@ export default function Search() {
       .filter((hash) => {
         let sol = solutions[hash];
         return (
-          filter === "" ||
-          sol.solnTitle.indexOf(filter) != -1 ||
-          sol.questId.indexOf(filter) != -1 ||
-          sol.questTitle.indexOf(filter) != -1
+          deferredFilter === "" ||
+          sol.solnTitle.indexOf(deferredFilter) != -1 ||
+          sol.questId.indexOf(deferredFilter) != -1 ||
+          sol.questTitle.indexOf(deferredFilter) != -1
         );
       })
       .filter((hash) => {
@@ -267,7 +268,7 @@ export default function Search() {
         const solnLink = leetCodeSolutionUrl(
           soln.questSlug,
           soln.solnSlug,
-          language
+          language,
         );
         const questTitle = `${soln.questId}. ${soln.questTitle}`;
         const tags =
@@ -283,7 +284,7 @@ export default function Search() {
           solnLink,
         };
       });
-  }, [filter, solutions, selectedTags, qtags, lang, language]);
+  }, [deferredFilter, solutions, selectedTags, qtags, lang, language]);
 
   return (
     <Container fluid className="search page-shell">
@@ -317,11 +318,11 @@ export default function Search() {
         <div className="toolbar-group">
           <ButtonGroup className="w-100">
             <Button
-                className="fw-medium"
-                variant="outline-secondary"
-                size="sm"
-                onClick={toggleLanguage}
-              >{`${isCn ? "EN" : "CN"} 站点/标签`}</Button>
+              className="fw-medium"
+              variant="outline-secondary"
+              size="sm"
+              onClick={toggleLanguage}
+            >{`${isCn ? "EN" : "CN"} 站点/标签`}</Button>
             <Button
               className="fw-medium"
               variant="outline-secondary"

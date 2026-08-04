@@ -9,10 +9,6 @@ import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Popover from "react-bootstrap/Popover";
 import Spinner from "react-bootstrap/Spinner";
 
-function openUrl(url: string) {
-  window.open(url, "_blank");
-}
-
 interface ProblemCellProps {
   question: QuestionType;
   solution: SolutionType;
@@ -21,10 +17,6 @@ interface ProblemCellProps {
 function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
   const { language } = useLeetCodeLanguage();
   let link = leetCodeProblemUrl(que.title_slug, language);
-  const onClick = (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    openUrl(link);
-  };
   let rating = que.rating;
   let idx = COLORS.findIndex((v) => rating >= v.l && rating <= v.r);
   let placement = `${rating}`;
@@ -57,10 +49,11 @@ function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
       </OverlayTrigger>
       <a
         href={link}
-        onClick={onClick}
+        target="_blank"
+        rel="noreferrer"
         className={clsx(
           `rating-color-${idx}`,
-          "ff-st"
+          "ff-st",
         )} /* style={{color: `var(--rating-color-${idx})`}} */
       >
         {que.question_id}.{que.title}
@@ -84,7 +77,13 @@ function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
           >
             <a
               className="fr ans"
-              href={leetCodeSolutionUrl(soln.questSlug, soln.solnSlug, language)}
+              href={leetCodeSolutionUrl(
+                soln.questSlug,
+                soln.solnSlug,
+                language,
+              )}
+              target="_blank"
+              rel="noreferrer"
             >
               🎈
             </a>

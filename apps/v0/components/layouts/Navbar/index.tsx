@@ -120,6 +120,7 @@ export default function () {
             {navItems.map(({ href, label, icon: Icon }) => (
               <Link
                 href={href}
+                prefetch={false}
                 className={`nav-action ${pathname === href ? "active" : ""}`}
                 key={href}
               >
@@ -156,6 +157,7 @@ export default function () {
                     <Link
                       key={item.link}
                       href={item.link}
+                      prefetch={false}
                       className="study-plan-link"
                       onClick={() => setShowDropdown(false)}
                     >

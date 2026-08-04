@@ -49,20 +49,32 @@ function mapContests(data: ContestsResponse): Contest[] {
   });
 }
 
+let contestsCache: Promise<Contest[]> | undefined;
+
+function loadContests() {
+  contestsCache ??= fetch("/contest.json", { cache: "force-cache" })
+    .then((res) => res.json())
+    .then((result: ContestsResponse) => mapContests(result));
+
+  return contestsCache;
+}
+
 export function useContests() {
   const [isPending, startTransition] = useTransition();
   const [contests, setContests] = useState<Contest[]>([]);
 
   useEffect(() => {
-    fetch(
-      "/contest.json?t=" + (new Date().getTime() / 100000).toFixed(0)
-    )
-      .then((res) => res.json())
-      .then((result: ContestsResponse) => {
+    let active = true;
+    loadContests().then((result) => {
+      if (active) {
         startTransition(() => {
-          setContests(mapContests(result));
+          setContests(result);
         });
-      });
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   return { contests, isPending };

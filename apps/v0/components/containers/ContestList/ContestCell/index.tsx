@@ -4,10 +4,6 @@ import { leetCodeContestUrl } from "@utils/leetcodeLinks";
 import React from "react";
 import Form from "react-bootstrap/Form";
 
-function openUrl(url: string) {
-  window.open(url, "_blank");
-}
-
 interface ContestCellProps {
   title: string;
   titleSlug: string;
@@ -20,14 +16,10 @@ function ContestCell({ title, titleSlug }: ContestCellProps) {
   });
 
   let link = leetCodeContestUrl(titleSlug, language);
-  const onClick = (e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    openUrl(link);
-  };
   const [ck, setCk] = React.useState<boolean>(mark === titleSlug);
   return (
     <div className={ck ? "col-contest row-selected" : "col-contest"}>
-      <a href={link} onClick={onClick}>
+      <a href={link} target="_blank" rel="noreferrer">
         {title}
       </a>
       <Form.Group controlId={titleSlug}>

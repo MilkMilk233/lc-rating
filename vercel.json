@@ -1,5 +1,16 @@
 {
   "buildCommand": "pnpm build",
   "outputDirectory": "apps/v0/out",
-  "installCommand": "pnpm install"
+  "installCommand": "pnpm install",
+  "headers": [
+    {
+      "source": "/:path*.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=604800"
+        }
+      ]
+    }
+  ]
 }

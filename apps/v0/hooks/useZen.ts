@@ -16,13 +16,15 @@ interface ConstQuestion {
 
 export function useZen() {
   const { data, isFetching } = useSuspenseQuery({
-    queryKey: [],
+    queryKey: ["zen"],
     queryFn: () =>
-      fetch("/zenk.json")
+      fetch("/zenk.json", { cache: "force-cache" })
         .then((res) => res.json())
         .then((result: ConstQuestion[]) => {
           return result;
         }),
+    staleTime: Infinity,
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
   });
 
