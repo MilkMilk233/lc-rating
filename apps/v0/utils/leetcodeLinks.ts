@@ -25,7 +25,7 @@ export function leetCodeSolutionUrl(
   if (language === "cn" && solutionSlug) {
     return `${leetCodeHost(language)}/problems/${problemSlug}/solution/${solutionSlug}`;
   }
-  return `${leetCodeHost(language)}/problems/${problemSlug}/solutions/`;
+  return leetCodeProblemUrl(problemSlug, language);
 }
 
 export function translateLeetCodeUrl(

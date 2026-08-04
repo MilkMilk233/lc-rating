@@ -544,7 +544,9 @@ const ZenTableComp = React.memo(
                 <div>
                   {link && (
                     <span className="zen-ans">
-                      <a href={link}>🎈</a>
+                      <a href={link} target="_blank" rel="noreferrer">
+                        🎈
+                      </a>
                     </span>
                   )}
                 </div>
