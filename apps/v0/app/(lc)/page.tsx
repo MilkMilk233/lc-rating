@@ -1,8 +1,6 @@
 "use client";
 
-import { lazy } from "react";
-
-const ContestList = lazy(() => import("@components/containers/ContestList"));
+import ContestList from "@components/containers/ContestList";
 
 // function delay(fn: Promise<any>, timeout: number) {
 //   return new Promise<any>((resolve) => {

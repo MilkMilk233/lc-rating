@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
-
-const MainLayout = dynamic(() => import("@components/layouts/MainLayout"), {
-  ssr: false,
-});
+import MainLayout from "@components/layouts/MainLayout";
 
 export const metadata: Metadata = {
   title: "LC-Rating & Training",
@@ -17,6 +13,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh">
+      <head>
+        <link rel="dns-prefetch" href="https://leetcode.cn" />
+        <link rel="dns-prefetch" href="https://leetcode.com" />
+        <link rel="preconnect" href="https://leetcode.cn" />
+        <link rel="preconnect" href="https://leetcode.com" />
+      </head>
       <body>
         <MainLayout>{children}</MainLayout>
       </body>

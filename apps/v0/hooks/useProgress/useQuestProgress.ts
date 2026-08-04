@@ -10,7 +10,7 @@ const isBrowser = () => typeof window !== "undefined";
 
 const getQuestProgressKeys = () => {
   const keys = Object.keys(localStorage).filter((key) =>
-    key.startsWith(storageKeyPrefix)
+    key.startsWith(storageKeyPrefix),
   );
   return keys;
 };
@@ -87,6 +87,8 @@ class Store implements StoreType {
 
   getSnapshot = () => this.allProgress;
 
+  getServerSnapshot = () => ({});
+
   notifyListeners = () => {
     this.listeners.forEach((listener) => listener());
   };
@@ -100,7 +102,11 @@ function useQuestProgress(): {
   updateProgress: (questID: string, progress: ProgressKeyType) => void;
   removeProgress: (questID: string) => void;
 } {
-  const allProgress = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const allProgress = useSyncExternalStore(
+    store.subscribe,
+    store.getSnapshot,
+    store.getServerSnapshot,
+  );
 
   useEffect(() => {
     if (!isBrowser()) {

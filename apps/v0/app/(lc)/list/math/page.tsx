@@ -1,9 +1,11 @@
 "use client";
 
 import data from "@components/containers/List/data/math";
-import { lazy } from "react";
+import dynamic from "next/dynamic";
 
-const List = lazy(() => import("@components/containers/List"));
+const List = dynamic(() => import("@components/containers/List"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <List data={data} />;

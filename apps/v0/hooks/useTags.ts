@@ -5,7 +5,7 @@ export type Tags = Tag[];
 
 let tagsCache: Promise<Tags> | undefined;
 
-function loadTags() {
+export function loadTags() {
   tagsCache ??= fetch("/tags.json", { cache: "force-cache" })
     .then((res) => res.json())
     .then((result: Tags) =>

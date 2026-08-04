@@ -1,6 +1,6 @@
 export default function () {
   return (
-    <div className="d-flex justify-content-center align-items-center vh-100 vw-100 bg-black">
+    <div className="page-loading">
       <svg
         version="1.1"
         x="0px"

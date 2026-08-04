@@ -1,6 +1,6 @@
 "use client";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 // Question Data Type
 interface ConstQuestion {
@@ -14,15 +14,22 @@ interface ConstQuestion {
   _hash: number;
 }
 
+let zenCache: Promise<ConstQuestion[]> | undefined;
+
+export function loadZen() {
+  zenCache ??= fetch("/zenk.json", { cache: "force-cache" })
+    .then((res) => res.json())
+    .then((result: ConstQuestion[]) => {
+      return result;
+    });
+
+  return zenCache;
+}
+
 export function useZen() {
-  const { data, isFetching } = useSuspenseQuery({
+  const { data = [], isFetching } = useQuery({
     queryKey: ["zen"],
-    queryFn: () =>
-      fetch("/zenk.json", { cache: "force-cache" })
-        .then((res) => res.json())
-        .then((result: ConstQuestion[]) => {
-          return result;
-        }),
+    queryFn: loadZen,
     staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,

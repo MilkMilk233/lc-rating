@@ -19,7 +19,7 @@ export type Solutions = Record<string, SolutionType>;
 
 let solutionsCache: Promise<Solutions> | undefined;
 
-function loadSolutions() {
+export function loadSolutions() {
   solutionsCache ??= fetch("/solutions.json", { cache: "force-cache" })
     .then((res) => res.json())
     .then((result: SolutionsResponse) => {

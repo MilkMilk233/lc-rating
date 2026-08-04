@@ -12,15 +12,13 @@ const client = new QueryClient();
 
 export default function ({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<Loading />}>
-      <QueryClientProvider client={client}>
-        <ThemeProvider>
-          <div className="app bg-body">
-            <Navbar />
-            {children}
-          </div>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </Suspense>
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <div className="app bg-body">
+          <Navbar />
+          <Suspense fallback={<Loading />}>{children}</Suspense>
+        </div>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

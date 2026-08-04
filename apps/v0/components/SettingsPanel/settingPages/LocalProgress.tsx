@@ -12,7 +12,7 @@ export default function LocalProgress() {
 
   const allProgressStr = useMemo(
     () => JSON.stringify(allProgress, null, 2),
-    [allProgress]
+    [allProgress],
   );
 
   const onFetchClick = () => {
@@ -31,7 +31,7 @@ export default function LocalProgress() {
     } catch (error) {
       console.error(
         `Error handling Set AllProgress: ` +
-          (error instanceof Error ? error.message : error)
+          (error instanceof Error ? error.message : error),
       );
       setSyncStatus("error");
     }
@@ -41,9 +41,10 @@ export default function LocalProgress() {
     navigator.clipboard.writeText(allProgressStr);
   };
 
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const [windowHeight, setWindowHeight] = useState(720);
 
   useEffect(() => {
+    setWindowHeight(window.innerHeight);
     const onResize = debounce(() => {
       setWindowHeight(window.innerHeight);
     }, 100);

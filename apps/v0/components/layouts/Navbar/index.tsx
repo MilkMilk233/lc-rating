@@ -2,10 +2,15 @@
 
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { loadContests } from "@hooks/useContests";
+import { loadQuestionTags } from "@hooks/useQuestionTags";
+import { loadSolutions } from "@hooks/useSolutions";
+import { loadTags } from "@hooks/useTags";
 import { useTheme } from "@hooks/useTheme";
+import { loadZen } from "@hooks/useZen";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useState } from "react";
 import { Container, Dropdown, Nav, Navbar } from "react-bootstrap";
 import {
   LuBookOpen,
@@ -73,7 +78,35 @@ export default function () {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage } = useLeetCodeLanguage();
   const pathname = usePathname();
+  const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const prefetchRoute = useCallback(
+    (href: string) => {
+      router.prefetch(href);
+      if (href === "/") {
+        void loadContests();
+        void loadSolutions();
+      } else if (href === "/search") {
+        void loadSolutions();
+        void loadTags();
+        void loadQuestionTags();
+      } else if (href === "/zen") {
+        void loadZen();
+        void loadSolutions();
+        void loadQuestionTags();
+      } else if (href === "/profile") {
+        void loadZen();
+      }
+    },
+    [router],
+  );
+
+  const prefetchHandlers = (href: string) => ({
+    onMouseEnter: () => prefetchRoute(href),
+    onFocus: () => prefetchRoute(href),
+    onTouchStart: () => prefetchRoute(href),
+  });
 
   const navItems = [
     { href: "/", label: "竞赛列表", icon: LuTrophy },
@@ -112,6 +145,7 @@ export default function () {
               <Link
                 href={href}
                 prefetch={false}
+                {...prefetchHandlers(href)}
                 className={`nav-action ${pathname === href ? "active" : ""}`}
                 key={href}
               >
@@ -137,6 +171,7 @@ export default function () {
                       key={item.link}
                       href={item.link}
                       prefetch={false}
+                      {...prefetchHandlers(item.link)}
                       className="study-plan-link"
                       onClick={() => setShowDropdown(false)}
                     >
@@ -151,6 +186,7 @@ export default function () {
           <Link
             href="/profile"
             prefetch={false}
+            {...prefetchHandlers("/profile")}
             className={`profile-badge ${pathname === "/profile" ? "active" : ""}`}
             aria-label="打开个人进度"
             title="个人进度"

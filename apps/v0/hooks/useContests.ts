@@ -51,7 +51,7 @@ function mapContests(data: ContestsResponse): Contest[] {
 
 let contestsCache: Promise<Contest[]> | undefined;
 
-function loadContests() {
+export function loadContests() {
   contestsCache ??= fetch("/contest.json", { cache: "force-cache" })
     .then((res) => res.json())
     .then((result: ContestsResponse) => mapContests(result));
