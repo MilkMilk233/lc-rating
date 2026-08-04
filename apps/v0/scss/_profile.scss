@@ -39,6 +39,9 @@
   --duo-purple: #ce82ff;
   --duo-purple-dark: #b35ce8;
   --duo-purple-soft: #f3e2ff;
+  --duo-red: #ff4b4b;
+  --duo-red-dark: #d63b3b;
+  --duo-red-soft: #ffe0e0;
   --duo-radius: 16px;
 
   display: grid;
@@ -52,6 +55,7 @@
   --duo-gold-soft: rgba(255, 200, 0, .16);
   --duo-orange-soft: rgba(255, 150, 0, .18);
   --duo-purple-soft: rgba(206, 130, 255, .16);
+  --duo-red-soft: rgba(255, 75, 75, .16);
 }
 
 .profile.page-shell {
@@ -105,12 +109,14 @@
 .duo-chip.gold { background: var(--duo-gold-soft); color: var(--duo-gold-dark); }
 .duo-chip.orange { background: var(--duo-orange-soft); color: var(--duo-orange-dark); }
 .duo-chip.purple { background: var(--duo-purple-soft); color: var(--duo-purple-dark); }
+.duo-chip.red { background: var(--duo-red-soft); color: var(--duo-red-dark); }
 
 [data-bs-theme="dark"] .profile .duo-chip.green { color: var(--duo-green); }
 [data-bs-theme="dark"] .profile .duo-chip.blue { color: var(--duo-blue); }
 [data-bs-theme="dark"] .profile .duo-chip.gold { color: var(--duo-gold); }
 [data-bs-theme="dark"] .profile .duo-chip.orange { color: var(--duo-orange); }
 [data-bs-theme="dark"] .profile .duo-chip.purple { color: var(--duo-purple); }
+[data-bs-theme="dark"] .profile .duo-chip.red { color: var(--duo-red); }
 
 // The signature chunky "3D" button: thick bottom edge that presses in.
 .duo-btn {
@@ -529,6 +535,269 @@
   background: var(--app-border);
 }
 
+// ----- practice-pool analytics ------------------------------------------------
+
+.duo-analytics {
+  display: grid;
+  gap: .95rem;
+  padding: 1rem 1.25rem 1.15rem;
+}
+
+.duo-subhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: 0 0 .6rem;
+  color: var(--app-text);
+  font-size: .95rem;
+  font-weight: 900;
+}
+
+.duo-subhead > span {
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 750;
+}
+
+.duo-subhead.green { color: var(--duo-green-dark); }
+.duo-subhead.orange { color: var(--duo-orange-dark); }
+
+[data-bs-theme="dark"] .profile .duo-subhead.green { color: var(--duo-green); }
+[data-bs-theme="dark"] .profile .duo-subhead.orange { color: var(--duo-orange); }
+
+.duo-bands {
+  display: grid;
+  gap: .4rem;
+}
+
+.duo-band {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .7rem;
+  padding: .4rem .55rem;
+  border-radius: 12px;
+}
+
+.duo-band.suggested {
+  background: var(--duo-blue-soft);
+}
+
+.duo-band-label {
+  display: flex;
+  align-items: baseline;
+  gap: .4rem;
+  white-space: nowrap;
+}
+
+.duo-band-label strong {
+  color: var(--app-text);
+  font-size: .9rem;
+  font-weight: 850;
+}
+
+.duo-band-label span {
+  color: var(--app-muted);
+  font-size: .74rem;
+  font-weight: 750;
+}
+
+.duo-band-tag {
+  padding: .05rem .42rem;
+  border-radius: 999px;
+  background: var(--duo-blue);
+  color: #ffffff;
+  font-size: .68rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.duo-band-meta {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  color: var(--app-muted);
+  font-size: .8rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.duo-band-meta strong {
+  color: var(--app-text);
+  font-weight: 900;
+}
+
+.duo-band-xp {
+  font-size: .72rem;
+}
+
+.duo-records {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+}
+
+.duo-record {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: .6rem;
+  min-width: 190px;
+  padding: .6rem .75rem;
+  border: 2px solid var(--app-border);
+  border-radius: 14px;
+}
+
+.duo-record .duo-chip {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+}
+
+.duo-record strong {
+  display: block;
+  color: var(--app-text);
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.duo-record > div > span {
+  color: var(--app-muted);
+  font-size: .76rem;
+  font-weight: 750;
+}
+
+.duo-nudge {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem .9rem;
+  border-radius: 14px;
+  background: var(--duo-gold-soft);
+  color: var(--app-text);
+  font-size: .9rem;
+  font-weight: 750;
+}
+
+.duo-nudge svg {
+  flex: none;
+  color: var(--duo-gold-dark);
+}
+
+[data-bs-theme="dark"] .profile .duo-nudge svg {
+  color: var(--duo-gold);
+}
+
+.duo-teaser {
+  padding: 1rem;
+  border: 2px dashed var(--app-border);
+  border-radius: 14px;
+  color: var(--app-muted);
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.duo-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+}
+
+.duo-subhead-inline {
+  margin-right: .15rem;
+  color: var(--app-muted);
+  font-size: .85rem;
+  font-weight: 850;
+}
+
+.duo-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .6rem;
+  border-radius: 999px;
+  background: var(--duo-green-soft);
+  color: var(--duo-green-dark);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+[data-bs-theme="dark"] .profile .duo-tag-chip {
+  color: var(--duo-green);
+}
+
+.duo-tag-chip strong {
+  font-weight: 900;
+}
+
+.duo-text-btn {
+  margin-left: auto;
+  padding: .3rem .2rem;
+  border: 0;
+  background: transparent;
+  color: var(--duo-blue-dark);
+  font-size: .85rem;
+  font-weight: 850;
+}
+
+.duo-text-btn:hover {
+  color: var(--duo-blue);
+  text-decoration: underline;
+}
+
+[data-bs-theme="dark"] .profile .duo-text-btn {
+  color: var(--duo-blue);
+}
+
+// ----- tag board modal ----------------------------------------------------------
+
+.duo-modal {
+  border: 2px solid var(--app-border);
+  border-radius: var(--duo-radius);
+}
+
+.duo-modal .modal-header {
+  border-bottom: 2px solid var(--app-border);
+}
+
+.duo-modal .modal-title {
+  font-weight: 900;
+}
+
+.tag-rank {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(4.5rem, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .6rem;
+  padding: .35rem 0;
+}
+
+.tag-rank-num {
+  color: var(--app-muted);
+  font-size: .85rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.tag-rank-name {
+  color: var(--app-text);
+  font-size: .9rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-rank-count {
+  color: var(--app-text);
+  font-size: .85rem;
+  font-weight: 900;
+}
+
 // ----- settings ---------------------------------------------------------------
 
 .settings-dashboard {
@@ -653,5 +922,15 @@
   .level-badge {
     padding: .45rem .7rem;
     font-size: .95rem;
+  }
+
+  .duo-band {
+    grid-template-columns: minmax(84px, auto) minmax(0, 1fr) auto;
+    gap: .5rem;
+    padding: .4rem .35rem;
+  }
+
+  .duo-band-xp {
+    display: none;
   }
 }
