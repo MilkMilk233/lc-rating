@@ -44,7 +44,7 @@ const routes: Route[] = [
 
 export const metadata: Metadata = {
   title: "My Code Templates",
-  icons: "/lc-rating/v0/favico.svg",
+  icons: "/favico.svg",
 };
 
 export default function RootLayout({

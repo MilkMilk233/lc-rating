@@ -10,7 +10,7 @@ export function useTags() {
 
   useEffect(() => {
     fetch(
-      "/lc-rating/v0/tags.json?t=" + (new Date().getTime() / 100000).toFixed(0)
+      "/tags.json?t=" + (new Date().getTime() / 100000).toFixed(0)
     )
       .then((res) => res.json())
       .then((result: Tags) => {

@@ -24,7 +24,7 @@ export function useSolutions() {
 
   useEffect(() => {
     fetch(
-      "/lc-rating/v0/solutions.json?t=" +
+      "/solutions.json?t=" +
         (new Date().getTime() / 100000).toFixed(0)
     )
       .then((res) => res.json())

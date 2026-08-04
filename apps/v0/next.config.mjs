@@ -16,8 +16,7 @@ const options = {
  */
 const nextConfig = {
   output: "export",
-  basePath: process.env.NODE_ENV === "development" ? "/v0" : "/lc-rating/v0",
-  distDir: "../../build/apps/web/v0",
+
 };
 
 const withMDX = createMDX({

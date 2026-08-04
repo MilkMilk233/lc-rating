@@ -1060,7 +1060,7 @@ export default{
                         },
                         {
                             "title": "§1.4 从最左/最右开始贪心",
-                            "summary": "对于无法排序的题目，尝试从左到右/从右到左贪心。思考第一个数/最后一个数的贪心策略，把 $n$ 个数的原问题转换成 $n-1$ 个数（或更少）的子问题。<br>读者可以对比下面的题目和 <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划题单</a> 中的线性 DP、状态机 DP 的区别，思考什么情况下只能 DP 不能贪心，从而加深对「局部最优」和「全局最优」的理解。<br>另见本题单的「**§3.1 字典序最小/最大**」。<br>",
+                            "summary": "对于无法排序的题目，尝试从左到右/从右到左贪心。思考第一个数/最后一个数的贪心策略，把 $n$ 个数的原问题转换成 $n-1$ 个数（或更少）的子问题。<br>读者可以对比下面的题目和 <a href=\"/list/dynamic_programming\">动态规划题单</a> 中的线性 DP、状态机 DP 的区别，思考什么情况下只能 DP 不能贪心，从而加深对「局部最优」和「全局最优」的理解。<br>另见本题单的「**§3.1 字典序最小/最大**」。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -1425,7 +1425,7 @@ export default{
                         },
                         {
                             "title": "§1.5 划分型贪心",
-                            "summary": "把数组/字符串划分成满足要求的若干段，最小化/最大化划分的段数。<br>思考方法同上，尝试从左到右/从右到左贪心。<br>读者可以对比下面的题目和 <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划题单</a> 中的划分型 DP 的区别，思考什么情况下只能 DP 不能贪心，从而加深对「局部最优」和「全局最优」的理解。<br>",
+                            "summary": "把数组/字符串划分成满足要求的若干段，最小化/最大化划分的段数。<br>思考方法同上，尝试从左到右/从右到左贪心。<br>读者可以对比下面的题目和 <a href=\"/list/dynamic_programming\">动态规划题单</a> 中的划分型 DP 的区别，思考什么情况下只能 DP 不能贪心，从而加深对「局部最优」和「全局最优」的理解。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -2173,7 +2173,7 @@ export default{
                     "nonLeafChild": [
                         {
                             "title": "§2.1 不相交区间",
-                            "summary": "**变形**：每个区间有各自的分数，从中选一些两两互不相交的区间，最大化得分之和。详见 <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划题单</a> 中的「§5.4 不相交区间」。<br>",
+                            "summary": "**变形**：每个区间有各自的分数，从中选一些两两互不相交的区间，最大化得分之和。详见 <a href=\"/list/dynamic_programming\">动态规划题单</a> 中的「§5.4 不相交区间」。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -3526,7 +3526,7 @@ export default{
                         },
                         {
                             "title": "§3.3 合法括号字符串",
-                            "summary": "见 <a href=\"/lc-rating/v0/list/data_structure\">数据结构题单</a> 中的「**§3.4 合法括号字符串**」。<br>",
+                            "summary": "见 <a href=\"/list/data_structure\">数据结构题单</a> 中的「**§3.4 合法括号字符串**」。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -6696,7 +6696,7 @@ export default{
                 },
                 {
                     "title": "算法题单",
-                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/lc-rating/v0/list/sliding_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/lc-rating/v0/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/lc-rating/v0/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/lc-rating/v0/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/lc-rating/v0/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/lc-rating/v0/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/lc-rating/v0/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/lc-rating/v0/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/lc-rating/v0/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/lc-rating/v0/list/trees\">链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）</a><br>12. <a href=\"/lc-rating/v0/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br><a href=\"https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md\">我的题解精选（已分类）</a><br>欢迎关注 <a href=\"https://space.bilibili.com/206214\">B站@灵茶山艾府</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
+                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/list/slide_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/list/trees\">链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）</a><br>12. <a href=\"/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br><a href=\"https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md\">我的题解精选（已分类）</a><br>欢迎关注 <a href=\"https://space.bilibili.com/206214\">B站@灵茶山艾府</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,

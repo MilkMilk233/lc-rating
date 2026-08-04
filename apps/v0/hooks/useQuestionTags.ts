@@ -8,7 +8,7 @@ export function useQuestionTags(filter: any) {
     queryKey: ["qtags"],
     queryFn: () => {
       return fetch(
-        "/lc-rating/v0/qtags.json?t=" + (new Date().getTime() / 100000).toFixed(0)
+        "/qtags.json?t=" + (new Date().getTime() / 100000).toFixed(0)
       )
         .then((res) => res.json())
         .then((result: QTags) => {

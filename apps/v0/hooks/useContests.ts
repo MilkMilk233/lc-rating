@@ -55,7 +55,7 @@ export function useContests() {
 
   useEffect(() => {
     fetch(
-      "/lc-rating/v0/contest.json?t=" + (new Date().getTime() / 100000).toFixed(0)
+      "/contest.json?t=" + (new Date().getTime() / 100000).toFixed(0)
     )
       .then((res) => res.json())
       .then((result: ContestsResponse) => {

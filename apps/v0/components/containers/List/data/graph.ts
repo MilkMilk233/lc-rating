@@ -545,7 +545,7 @@ export default{
             "nonLeafChild": [
                 {
                     "title": "§1.3 图论建模 + BFS 最短路",
-                    "summary": "把状态抽象成图上的点，用 BFS 遍历这张图，计算从初始状态到目标状态的最短路长度。<br>可以锻炼状态设计能力。<br>**专题：跳跃游戏**<br>注：关于**网格图**的 DFS 和 BFS，请看 <a href=\"/lc-rating/v0/list/grid\">网格图题单</a>。<br>",
+                    "summary": "把状态抽象成图上的点，用 BFS 遍历这张图，计算从初始状态到目标状态的最短路长度。<br>可以锻炼状态设计能力。<br>**专题：跳跃游戏**<br>注：关于**网格图**的 DFS 和 BFS，请看 <a href=\"/list/grid\">网格图题单</a>。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -2068,7 +2068,7 @@ export default{
             "nonLeafChild": [
                 {
                     "title": "返回是否合并成功",
-                    "summary": "涉及到 Kruskal 算法和 Prim 算法。前者一般用于稀疏图，后者一般用于稠密图。<br>> 注：如果要求最大生成树，把边权从大到小排序。<br>Kruskal 算法模板（用到了并查集，完整模板见 <a href=\"/lc-rating/v0/list/data_structure\">数据结构题单</a>）：<br>```py [sol-Python3]<br>class UnionFind:<br>def __init__(self, n: int):<br>self._fa = list(range(n))  # 代表元<br>self.cc = n  # 连通块个数<br>def find(self, x: int) -> int:<br>if self._fa[x] != x:<br>self._fa[x] = self.find(self._fa[x])  # fa 改成代表元<br>return self._fa[x]<br>def merge(self, from_: int, to: int) -> bool:<br>x, y = self.find(from_), self.find(to)<br>if x == y:  # from 和 to 在同一个集合，不做合并<br>return False<br>self._fa[x] = y  # 合并集合。修改后就可以认为 from 和 to 在同一个集合了<br>self.cc -= 1  # 成功合并，连通块个数减一<br>return True<br>",
+                    "summary": "涉及到 Kruskal 算法和 Prim 算法。前者一般用于稀疏图，后者一般用于稠密图。<br>> 注：如果要求最大生成树，把边权从大到小排序。<br>Kruskal 算法模板（用到了并查集，完整模板见 <a href=\"/list/data_structure\">数据结构题单</a>）：<br>```py [sol-Python3]<br>class UnionFind:<br>def __init__(self, n: int):<br>self._fa = list(range(n))  # 代表元<br>self.cc = n  # 连通块个数<br>def find(self, x: int) -> int:<br>if self._fa[x] != x:<br>self._fa[x] = self.find(self._fa[x])  # fa 改成代表元<br>return self._fa[x]<br>def merge(self, from_: int, to: int) -> bool:<br>x, y = self.find(from_), self.find(to)<br>if x == y:  # from 和 to 在同一个集合，不做合并<br>return False<br>self._fa[x] = y  # 合并集合。修改后就可以认为 from 和 to 在同一个集合了<br>self.cc -= 1  # 成功合并，连通块个数减一<br>return True<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -2986,7 +2986,7 @@ export default{
                 },
                 {
                     "title": "十、树上算法",
-                    "summary": "见 <a href=\"/lc-rating/v0/list/trees\">链表、树、回溯</a> 题单的第三章节。<br>",
+                    "summary": "见 <a href=\"/list/trees\">链表、树、回溯</a> 题单的第三章节。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -3000,7 +3000,7 @@ export default{
                 },
                 {
                     "title": "算法题单",
-                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/lc-rating/v0/list/sliding_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/lc-rating/v0/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/lc-rating/v0/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/lc-rating/v0/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/lc-rating/v0/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/lc-rating/v0/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/lc-rating/v0/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/lc-rating/v0/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/lc-rating/v0/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/lc-rating/v0/list/trees\">链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）</a><br>12. <a href=\"/lc-rating/v0/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
+                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/list/slide_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/list/trees\">链表、二叉树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA/一般树）</a><br>12. <a href=\"/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,

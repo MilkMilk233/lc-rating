@@ -3,16 +3,15 @@
   "version": "2.0.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "check-types": "turbo run check-types",
+    "dev": "pnpm --filter lc-rating-v0 dev",
+    "build": "pnpm --filter lc-rating-v0 build",
+    "start": "pnpm --filter lc-rating-v0 start",
+    "lint": "pnpm --filter lc-rating-v0 lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
     "prettier": "^3.6.0",
-    "prettier-plugin-tailwindcss": "^0.7.1",
-    "turbo": "^2.6.2"
+    "prettier-plugin-tailwindcss": "^0.7.1"
   },
   "packageManager": "pnpm@10.19.0",
   "engines": {

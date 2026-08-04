@@ -3,7 +3,7 @@ import debounce from "@utils/debounce";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Form } from "react-bootstrap";
 
-export default function SyncProgress() {
+export default function LocalProgress() {
   const [syncStatus, setSyncStatus] = useState<
     "idle" | "fetched" | "set" | "error"
   >("idle");
@@ -56,7 +56,7 @@ export default function SyncProgress() {
 
   return (
     <div>
-      <Button onClick={onFetchClick}>下载题目进度</Button>
+      <Button onClick={onFetchClick}>导出本地进度</Button>
       {syncStatus === "fetched" && (
         <div className="mt-3 position-relative">
           <Form.Control
@@ -77,7 +77,7 @@ export default function SyncProgress() {
         </div>
       )}
       <Form.Group className="mt-3">
-        <Form.Label>Input Progress Data:</Form.Label>
+        <Form.Label>导入进度数据:</Form.Label>
         <Form.Control
           as="textarea"
           rows={windowHeight / 100}
@@ -86,16 +86,16 @@ export default function SyncProgress() {
         />
       </Form.Group>
       <Button onClick={onSaveClick} className="mt-2">
-        上传题目进度
+        导入题目进度
       </Button>
       {syncStatus === "set" && (
         <Alert variant="success" className="mt-2">
-          题目进度上传成功
+          题目进度导入成功
         </Alert>
       )}
       {syncStatus === "error" && (
         <Alert variant="danger" className="mt-2">
-          题目进度上传失败
+          题目进度导入失败
         </Alert>
       )}
     </div>

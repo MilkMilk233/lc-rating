@@ -851,7 +851,7 @@ export default{
                         },
                         {
                             "title": "§0.3 遍历对角线",
-                            "summary": "**注**：有关**前后缀分解**的内容，见 <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划题单</a> 的「专题：前后缀分解」。<br>",
+                            "summary": "**注**：有关**前后缀分解**的内容，见 <a href=\"/list/dynamic_programming\">动态规划题单</a> 的「专题：前后缀分解」。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -3937,7 +3937,7 @@ export default{
                         },
                         {
                             "title": "§3.7 单调栈",
-                            "summary": "见 <a href=\"/lc-rating/v0/list/monotonic_stack\">单调栈题单</a>。<br>",
+                            "summary": "见 <a href=\"/list/monotonic_stack\">单调栈题单</a>。<br>",
                             "src": "",
                             "original_src": "",
                             "sort": 0,
@@ -3955,7 +3955,7 @@ export default{
                 },
                 {
                     "title": "四、队列",
-                    "summary": "队列常用在 BFS 中，见 <a href=\"/lc-rating/v0/list/grid\">网格图题单</a> 和 <a href=\"/lc-rating/v0/list/graph\">图论题单</a>。与此相比，栈常用在 DFS 中，但无需我们手动维护。<br>",
+                    "summary": "队列常用在 BFS 中，见 <a href=\"/list/grid\">网格图题单</a> 和 <a href=\"/list/graph\">图论题单</a>。与此相比，栈常用在 DFS 中，但无需我们手动维护。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -4271,7 +4271,7 @@ export default{
         },
         {
             "title": "由于队首到队尾单调递减，所以窗口最大值就在队首",
-            "summary": "def maxSlidingWindow(nums: List[int], k: int) -> List[int]:<br>ans = [0] * (len(nums) - k + 1)  # 窗口个数<br>q = deque()  # 双端队列<br>for i, x in enumerate(nums):<br>while q and nums[q[-1]] <= x:<br>q.pop()  # 维护 q 的单调性<br>q.append(i)  # 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>left = i - k + 1  # 窗口左端点<br>if q[0] < left:  # 队首离开窗口<br>q.popleft()<br>if left >= 0:<br>ans[left] = nums[q[0]]<br>return ans<br>```<br>```java [sol-Java]<br>class Solution {<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>private int[] maxSlidingWindow(int[] nums, int k) {<br>int n = nums.length;<br>int[] ans = new int[n - k + 1]; // 窗口个数<br>Deque<Integer> q = new ArrayDeque<>();<br>for (int i = 0; i < n; i++) {<br>// 1. 右边入<br>while (!q.isEmpty() && nums[q.getLast()] <= nums[i]) {<br>q.removeLast(); // 维护 q 的单调性<br>}<br>q.addLast(i); // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>int left = i - k + 1; // 窗口左端点<br>if (q.getFirst() < left) { // 队首离开窗口<br>q.removeFirst();<br>}<br>// 3. 在窗口左端点处记录答案<br>if (left >= 0) {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q.getFirst()];<br>}<br>}<br>return ans;<br>}<br>}<br>```<br>```cpp [sol-C++]<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>vector<int> maxSlidingWindow(const vector<int>& nums, int k) {<br>int n = nums.size();<br>vector<int> ans(n - k + 1); // 窗口个数<br>deque<int> q; // 双端队列<br>for (int i = 0; i < n; i++) {<br>// 1. 右边入<br>while (!q.empty() && nums[q.back()] <= nums[i]) {<br>q.pop_back(); // 维护 q 的单调性<br>}<br>q.push_back(i); // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>int left = i - k + 1; // 窗口左端点<br>if (q.front() < left) { // 队首离开窗口<br>q.pop_front();<br>}<br>// 3. 在窗口左端点处记录答案<br>if (left >= 0) {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q.front()];<br>}<br>}<br>return ans;<br>}<br>```<br>```go [sol-Go]<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>func maxSlidingWindow(nums []int, k int) []int {<br>ans := make([]int, len(nums)-k+1) // 窗口个数<br>q := []int{}<br>for i, x := range nums {<br>// 1. 右边入<br>for len(q) > 0 && nums[q[len(q)-1]] <= x {<br>q = q[:len(q)-1] // 维护 q 的单调性<br>}<br>q = append(q, i) // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>left := i - k + 1 // 窗口左端点<br>if q[0] < left {  // 队首离开窗口<br>q = q[1:] // Go 的切片是 O(1) 的<br>}<br>// 3. 在窗口左端点处记录答案<br>if left >= 0 {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q[0]]<br>}<br>}<br>return ans<br>}<br>```<br>关于单调队列优化 DP，见 <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划题单</a> 中的「§11.3 单调队列优化 DP」。<br>",
+            "summary": "def maxSlidingWindow(nums: List[int], k: int) -> List[int]:<br>ans = [0] * (len(nums) - k + 1)  # 窗口个数<br>q = deque()  # 双端队列<br>for i, x in enumerate(nums):<br>while q and nums[q[-1]] <= x:<br>q.pop()  # 维护 q 的单调性<br>q.append(i)  # 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>left = i - k + 1  # 窗口左端点<br>if q[0] < left:  # 队首离开窗口<br>q.popleft()<br>if left >= 0:<br>ans[left] = nums[q[0]]<br>return ans<br>```<br>```java [sol-Java]<br>class Solution {<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>private int[] maxSlidingWindow(int[] nums, int k) {<br>int n = nums.length;<br>int[] ans = new int[n - k + 1]; // 窗口个数<br>Deque<Integer> q = new ArrayDeque<>();<br>for (int i = 0; i < n; i++) {<br>// 1. 右边入<br>while (!q.isEmpty() && nums[q.getLast()] <= nums[i]) {<br>q.removeLast(); // 维护 q 的单调性<br>}<br>q.addLast(i); // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>int left = i - k + 1; // 窗口左端点<br>if (q.getFirst() < left) { // 队首离开窗口<br>q.removeFirst();<br>}<br>// 3. 在窗口左端点处记录答案<br>if (left >= 0) {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q.getFirst()];<br>}<br>}<br>return ans;<br>}<br>}<br>```<br>```cpp [sol-C++]<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>vector<int> maxSlidingWindow(const vector<int>& nums, int k) {<br>int n = nums.size();<br>vector<int> ans(n - k + 1); // 窗口个数<br>deque<int> q; // 双端队列<br>for (int i = 0; i < n; i++) {<br>// 1. 右边入<br>while (!q.empty() && nums[q.back()] <= nums[i]) {<br>q.pop_back(); // 维护 q 的单调性<br>}<br>q.push_back(i); // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>int left = i - k + 1; // 窗口左端点<br>if (q.front() < left) { // 队首离开窗口<br>q.pop_front();<br>}<br>// 3. 在窗口左端点处记录答案<br>if (left >= 0) {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q.front()];<br>}<br>}<br>return ans;<br>}<br>```<br>```go [sol-Go]<br>// 计算 nums 的每个长为 k 的窗口的最大值<br>// 时间复杂度 O(n)，其中 n 是 nums 的长度<br>func maxSlidingWindow(nums []int, k int) []int {<br>ans := make([]int, len(nums)-k+1) // 窗口个数<br>q := []int{}<br>for i, x := range nums {<br>// 1. 右边入<br>for len(q) > 0 && nums[q[len(q)-1]] <= x {<br>q = q[:len(q)-1] // 维护 q 的单调性<br>}<br>q = append(q, i) // 注意保存的是下标，这样下面可以判断队首是否离开窗口<br>// 2. 左边出<br>left := i - k + 1 // 窗口左端点<br>if q[0] < left {  // 队首离开窗口<br>q = q[1:] // Go 的切片是 O(1) 的<br>}<br>// 3. 在窗口左端点处记录答案<br>if left >= 0 {<br>// 由于队首到队尾单调递减，所以窗口最大值就在队首<br>ans[left] = nums[q[0]]<br>}<br>}<br>return ans<br>}<br>```<br>关于单调队列优化 DP，见 <a href=\"/list/dynamic_programming\">动态规划题单</a> 中的「§11.3 单调队列优化 DP」。<br>",
             "src": "",
             "original_src": "",
             "sort": 0,
@@ -5817,7 +5817,7 @@ export default{
             "nonLeafChild": [
                 {
                     "title": "§5.7 对顶堆（滑动窗口第 K 小/大）",
-                    "summary": "<a href=\"https://leetcode.cn/problems/find-median-from-data-stream/solutions/3015873/ru-he-zi-ran-yin-ru-da-xiao-dui-jian-ji-4v22k/\">讲解</a><br>部分题目需要结合懒删除堆。<br>另见 <a href=\"/lc-rating/v0/list/graph\">图论题单</a> 中的 Dijkstra 算法。<br>",
+                    "summary": "<a href=\"https://leetcode.cn/problems/find-median-from-data-stream/solutions/3015873/ru-he-zi-ran-yin-ru-da-xiao-dui-jian-ji-4v22k/\">讲解</a><br>部分题目需要结合懒删除堆。<br>另见 <a href=\"/list/graph\">图论题单</a> 中的 Dijkstra 算法。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -6664,7 +6664,7 @@ export default{
             "nonLeafChild": [
                 {
                     "title": "§7.1 基础",
-                    "summary": "更多基础题，见 <a href=\"/lc-rating/v0/list/grid\">网格图题单</a> 中的 DFS 和 <a href=\"/lc-rating/v0/list/graph\">图论题单</a> 中的 DFS，其中大部分题目也可以用并查集实现。<br>",
+                    "summary": "更多基础题，见 <a href=\"/list/grid\">网格图题单</a> 中的 DFS 和 <a href=\"/list/graph\">图论题单</a> 中的 DFS，其中大部分题目也可以用并查集实现。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -6791,7 +6791,7 @@ export default{
                 },
                 {
                     "title": "§7.2 进阶",
-                    "summary": "另见 <a href=\"/lc-rating/v0/list/graph\">图论题单</a> 中的最小生成树。<br>",
+                    "summary": "另见 <a href=\"/list/graph\">图论题单</a> 中的最小生成树。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,
@@ -9505,7 +9505,7 @@ export default{
                 },
                 {
                     "title": "算法题单",
-                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/lc-rating/v0/list/sliding_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/lc-rating/v0/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/lc-rating/v0/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/lc-rating/v0/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/lc-rating/v0/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/lc-rating/v0/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/lc-rating/v0/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/lc-rating/v0/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/lc-rating/v0/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/lc-rating/v0/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/lc-rating/v0/list/trees\">链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）</a><br>12. <a href=\"/lc-rating/v0/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br><a href=\"https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md\">我的题解精选（已分类）</a><br>欢迎关注 <a href=\"https://space.bilibili.com/206214\">B站@灵茶山艾府</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
+                    "summary": "<a href=\"https://leetcode.cn/circle/discuss/RvFUtj/\">如何科学刷题？</a><br>1. <a href=\"/list/slide_window\">滑动窗口与双指针（定长/不定长/单序列/双序列/三指针/分组循环）</a><br>2. <a href=\"/list/binary_search\">二分算法（二分答案/最小化最大值/最大化最小值/第K小）</a><br>3. <a href=\"/list/monotonic_stack\">单调栈（基础/矩形面积/贡献法/最小字典序）</a><br>4. <a href=\"/list/grid\">网格图（DFS/BFS/综合应用）</a><br>5. <a href=\"/list/bitwise_operations\">位运算（基础/性质/拆位/试填/恒等式/思维）</a><br>6. <a href=\"/list/graph\">图论算法（DFS/BFS/拓扑排序/基环树/最短路/最小生成树/网络流）</a><br>7. <a href=\"/list/dynamic_programming\">动态规划（入门/背包/划分/状态机/区间/状压/数位/数据结构优化/树形/博弈/概率期望）</a><br>8. <a href=\"/list/data_structure\">常用数据结构（前缀和/差分/栈/队列/堆/字典树/并查集/树状数组/线段树）</a><br>9. <a href=\"/list/math\">数学算法（数论/组合/概率期望/博弈/计算几何/随机算法）</a><br>10. <a href=\"/list/greedy\">贪心与思维（基本贪心策略/反悔/区间/字典序/数学/思维/脑筋急转弯/构造）</a><br>11. <a href=\"/list/trees\">链表、树与回溯（前后指针/快慢指针/DFS/BFS/直径/LCA）</a><br>12. <a href=\"/list/string\">字符串（KMP/Z函数/Manacher/字符串哈希/AC自动机/后缀数组/子序列自动机）</a><br><a href=\"https://github.com/EndlessCheng/codeforces-go/blob/master/leetcode/SOLUTIONS.md\">我的题解精选（已分类）</a><br>欢迎关注 <a href=\"https://space.bilibili.com/206214\">B站@灵茶山艾府</a><br>如果你发现有题目可以补充进来，欢迎评论反馈。<br>",
                     "src": "",
                     "original_src": "",
                     "sort": 0,

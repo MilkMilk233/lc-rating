@@ -7,7 +7,7 @@ const MainLayout = dynamic(() => import("@components/layouts/MainLayout"), {
 
 export const metadata: Metadata = {
   title: "LC-Rating & Training",
-  icons: "/lc-rating/v0/favico.svg",
+  icons: "/favico.svg",
 };
 
 export default function RootLayout({

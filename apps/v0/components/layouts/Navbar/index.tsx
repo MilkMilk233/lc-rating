@@ -1,10 +1,9 @@
 "use client";
 
-import { GithubBasicBadge as GithubBadge } from "@components/GithubBadge";
 import SettingsPanel from "@components/SettingsPanel";
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
 import { useTheme } from "@hooks/useTheme";
-import Link from "next/dist/client/link";
+import Link from "next/link";
 import { useState } from "react";
 import { Button, Container, Dropdown, Nav, Navbar } from "react-bootstrap";
 
@@ -86,12 +85,6 @@ export default function () {
           >
             <ThemeSwitchButton height={24} width={24} theme={theme} />
           </span>
-          <Link
-            href="https://github.com/huxulm/lc-rating"
-            className="btn d-flex p-1 ms-2 rounded-circle"
-          >
-            {/* <GithubProfile width={24} height={24} classname="p-1" /> */}
-          </Link>
         </div>
         <Navbar.Toggle aria-controls="responsive-navbar-nav" />
         <Navbar.Collapse
@@ -188,18 +181,6 @@ export default function () {
                 </div>
               </Dropdown.Menu>
             </Dropdown>
-
-            <Link
-              href="../contest/"
-              className="nav-link"
-              style={{
-                width: "fit-content",
-              }}
-            >
-              <Button id="nav-tr" className="fw-bold fs-6 p-1">
-                {`👉新版🎉`}
-              </Button>
-            </Link>
           </Nav>
           <span className="navbar-brand fs-6 fw-semibold">
             题解来自{" "}
@@ -220,20 +201,6 @@ export default function () {
           >
             <ThemeSwitchButton height={24} width={24} theme={theme} />
           </span>
-          <Link
-            href="https://github.com/huxulm/lc-rating"
-            target="_blank"
-            className="d-flex p-1 ms-2 d-none d-lg-block d-xl-block d-sm-none"
-            rel="noreferrer"
-          >
-            {/* @ts-ignore */}
-            <GithubBadge
-              url="https://github.com/huxulm/lc-rating"
-              theme="system"
-              text=""
-              icon="octocat"
-            />
-          </Link>
         </Navbar.Collapse>
       </Container>
     </Navbar>

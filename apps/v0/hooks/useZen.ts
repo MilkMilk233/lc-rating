@@ -18,7 +18,7 @@ export function useZen() {
   const { data, isFetching } = useSuspenseQuery({
     queryKey: [],
     queryFn: () =>
-      fetch("/lc-rating/v0/zenk.json")
+      fetch("/zenk.json")
         .then((res) => res.json())
         .then((result: ConstQuestion[]) => {
           return result;
