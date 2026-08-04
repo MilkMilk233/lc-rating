@@ -1,18 +1,17 @@
 "use client";
 
-import SettingsPanel from "@components/SettingsPanel";
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useTheme } from "@hooks/useTheme";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Button, Container, Dropdown, Nav, Navbar } from "react-bootstrap";
+import { Container, Dropdown, Nav, Navbar } from "react-bootstrap";
 import {
   LuBookOpen,
   LuListChecks,
+  LuMedal,
   LuSearch,
-  LuSettings,
   LuTarget,
   LuTrophy,
 } from "react-icons/lu";
@@ -74,15 +73,7 @@ export default function () {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage } = useLeetCodeLanguage();
   const pathname = usePathname();
-  const [showModal, setShowModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-
-  const handleOpenModal = () => {
-    setShowModal(true);
-  };
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
 
   const navItems = [
     { href: "/", label: "竞赛列表", icon: LuTrophy },
@@ -129,18 +120,6 @@ export default function () {
               </Link>
             ))}
 
-            <span className="nav-action-button">
-              <Button
-                className="nav-action"
-                variant="link"
-                onClick={handleOpenModal}
-              >
-                <LuSettings aria-hidden size={17} />
-                站点设置
-              </Button>
-            </span>
-            <SettingsPanel show={showModal} onHide={handleCloseModal} />
-
             <Dropdown
               className="study-plan-menu"
               show={showDropdown}
@@ -169,16 +148,15 @@ export default function () {
               </Dropdown.Menu>
             </Dropdown>
           </Nav>
-          <span className="source-credit">
-            题解：
-            <Link
-              href="https://space.bilibili.com/206214/"
-              target="_blank"
-              className="link fw-semibold"
-            >
-              灵茶山艾府
-            </Link>
-          </span>
+          <Link
+            href="/profile"
+            prefetch={false}
+            className={`profile-badge ${pathname === "/profile" ? "active" : ""}`}
+            aria-label="打开个人进度"
+            title="个人进度"
+          >
+            <LuMedal aria-hidden size={18} />
+          </Link>
           <button
             className="language-toggle"
             onClick={toggleLanguage}
