@@ -1,3 +1,4 @@
+// Navbar medal link (used outside the profile page)
 .profile-badge {
   display: inline-grid;
   place-items: center;
@@ -17,428 +18,518 @@
   color: var(--app-text);
 }
 
+// ---------------------------------------------------------------------------
+// Profile page: chunky, playful, Duolingo-inspired design language.
+// Flat surfaces, thick borders, saturated accent palette, tactile buttons.
+// ---------------------------------------------------------------------------
+
 .profile {
-  width: min(100%, 1180px);
-}
+  --duo-green: #58cc02;
+  --duo-green-dark: #46a302;
+  --duo-green-soft: #dcf7c4;
+  --duo-blue: #1cb0f6;
+  --duo-blue-dark: #1899d6;
+  --duo-blue-soft: #ddf4ff;
+  --duo-gold: #ffc800;
+  --duo-gold-dark: #dda200;
+  --duo-gold-soft: #fff0b3;
+  --duo-orange: #ff9600;
+  --duo-orange-dark: #dd8500;
+  --duo-orange-soft: #ffe9c7;
+  --duo-purple: #ce82ff;
+  --duo-purple-dark: #b35ce8;
+  --duo-purple-soft: #f3e2ff;
+  --duo-radius: 16px;
 
-.profile-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: 1rem;
-  align-items: stretch;
-  margin-bottom: 1rem;
+  gap: .9rem;
+  align-content: start;
 }
 
-.hero-copy,
-.level-card,
-.profile-card {
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
+[data-bs-theme="dark"] .profile {
+  --duo-green-soft: rgba(88, 204, 2, .18);
+  --duo-blue-soft: rgba(28, 176, 246, .18);
+  --duo-gold-soft: rgba(255, 200, 0, .16);
+  --duo-orange-soft: rgba(255, 150, 0, .18);
+  --duo-purple-soft: rgba(206, 130, 255, .16);
+}
+
+.profile.page-shell {
+  width: min(100%, 780px);
+}
+
+// ----- shared building blocks ---------------------------------------------
+
+.duo-card {
+  border: 2px solid var(--app-border);
+  border-radius: var(--duo-radius);
   background: var(--app-surface);
-  box-shadow: var(--app-shadow);
 }
 
-.hero-copy {
-  position: relative;
-  overflow: hidden;
-  padding: 1.25rem;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(251, 191, 36, .18), transparent 34%),
-    linear-gradient(135deg, color-mix(in srgb, var(--app-accent-soft) 82%, var(--app-surface)), var(--app-surface));
-}
-
-.hero-copy::after {
-  content: "";
-  position: absolute;
-  right: 1.2rem;
-  bottom: 1rem;
-  width: 116px;
-  height: 116px;
-  border: 1px solid color-mix(in srgb, var(--app-accent) 24%, transparent);
-  border-radius: 50%;
-  background:
-    linear-gradient(var(--app-surface), var(--app-surface)) padding-box,
-    conic-gradient(from 25deg, var(--app-accent), #fbbf24, #60a5fa, var(--app-accent)) border-box;
-  opacity: .28;
-}
-
-.hero-copy h1 {
-  position: relative;
-  margin: 0;
-  max-width: 720px;
-  color: var(--app-text);
-  font-size: clamp(1.8rem, 1.4rem + 1.8vw, 3rem);
-  font-weight: 900;
-  letter-spacing: 0;
-}
-
-.hero-copy p:not(.eyebrow) {
-  position: relative;
-  max-width: 680px;
-  margin: .55rem 0 0;
-  color: var(--app-muted);
-  font-size: 1rem;
-}
-
-.hero-actions {
-  position: relative;
+.duo-card-head {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .75rem;
-  margin-top: 1.15rem;
-}
-
-.primary-quest {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  min-height: 42px;
-  padding: .55rem .85rem;
-  border: 1px solid color-mix(in srgb, var(--app-accent) 55%, var(--app-border));
-  border-radius: var(--app-radius);
-  background: var(--app-accent);
-  color: #ffffff;
-  font-weight: 850;
-  text-decoration: none;
-}
-
-.primary-quest:hover {
-  color: #ffffff;
-  background: var(--app-accent-strong);
-}
-
-.quest-note {
-  color: var(--app-muted);
-  font-weight: 750;
-}
-
-.quest-note strong {
-  color: var(--app-text);
-}
-
-.level-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  justify-content: space-between;
   gap: 1rem;
-  align-items: center;
-  padding: 1rem;
+  padding: 1.05rem 1.25rem .3rem;
 }
 
-.level-orb {
+.duo-card-head h2 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 1.18rem;
+  font-weight: 900;
+}
+
+.duo-card-head .meta {
+  color: var(--app-muted);
+  font-size: .85rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+// Colored icon chips: muted grey by default, saturated when a tone is set.
+.duo-chip {
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
-  border: 1px solid color-mix(in srgb, #fbbf24 40%, var(--app-border));
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 34% 28%, #fff7cc, #fbbf24 52%, #f59e0b);
-  color: #1f2937;
-}
-
-.level-orb span {
-  margin-bottom: -1.15rem;
-  font-size: .72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.level-orb strong {
-  font-size: 2.2rem;
-  line-height: 1;
-}
-
-.level-copy span {
-  display: block;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--app-surface-muted);
   color: var(--app-muted);
-  font-size: .8rem;
-  font-weight: 850;
-  text-transform: uppercase;
 }
 
-.level-copy strong {
-  display: block;
-  color: var(--app-text);
-  font-size: 1.55rem;
+.duo-chip.green { background: var(--duo-green-soft); color: var(--duo-green-dark); }
+.duo-chip.blue { background: var(--duo-blue-soft); color: var(--duo-blue-dark); }
+.duo-chip.gold { background: var(--duo-gold-soft); color: var(--duo-gold-dark); }
+.duo-chip.orange { background: var(--duo-orange-soft); color: var(--duo-orange-dark); }
+.duo-chip.purple { background: var(--duo-purple-soft); color: var(--duo-purple-dark); }
+
+[data-bs-theme="dark"] .profile .duo-chip.green { color: var(--duo-green); }
+[data-bs-theme="dark"] .profile .duo-chip.blue { color: var(--duo-blue); }
+[data-bs-theme="dark"] .profile .duo-chip.gold { color: var(--duo-gold); }
+[data-bs-theme="dark"] .profile .duo-chip.orange { color: var(--duo-orange); }
+[data-bs-theme="dark"] .profile .duo-chip.purple { color: var(--duo-purple); }
+
+// The signature chunky "3D" button: thick bottom edge that presses in.
+.duo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .7rem 1.2rem;
+  border: 2px solid var(--duo-green-dark);
+  border-bottom-width: 5px;
+  border-radius: 14px;
+  background: var(--duo-green);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    transform .08s ease,
+    border-bottom-width .08s ease,
+    filter .15s ease;
 }
 
-.level-track {
-  width: 100%;
-  height: 12px;
-  margin-top: .55rem;
+.duo-btn:hover {
+  color: #ffffff;
+  filter: brightness(1.07);
+}
+
+.duo-btn:active {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+}
+
+.duo-btn:focus-visible {
+  outline: 3px solid var(--duo-blue);
+  outline-offset: 2px;
+}
+
+// Chunky pill progress bar.
+.duo-bar {
+  height: 16px;
   border-radius: 999px;
   background: var(--app-surface-muted);
   overflow: hidden;
 }
 
-.level-track span {
+.duo-bar > span {
   display: block;
   height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--app-accent), #fbbf24);
+  border-radius: 999px;
+  background: var(--duo-green);
+  transition: width .7s cubic-bezier(.22, 1, .36, 1);
 }
 
-.profile-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .75rem;
-  margin-bottom: 1rem;
+.duo-bar.gold > span {
+  background: var(--duo-gold);
 }
 
-.metric-card {
+.duo-bar.slim {
+  height: 12px;
+}
+
+// ----- streak hero ----------------------------------------------------------
+
+.duo-hero {
+  padding: 1.25rem 1.25rem 1.35rem;
+}
+
+.duo-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.duo-hero-copy {
+  flex: 1;
+  min-width: 200px;
+}
+
+.duo-hero-copy h1 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: clamp(1.7rem, 1.4rem + 1.6vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.duo-hero-copy p {
+  margin: .35rem 0 0;
+  color: var(--app-muted);
+  font-weight: 650;
+}
+
+.flame-chip {
   display: grid;
-  gap: .35rem;
-  min-height: 132px;
-  padding: .95rem;
-  overflow: hidden;
+  place-items: center;
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border: 2px solid var(--app-border);
+  border-bottom-width: 6px;
+  border-radius: 26px;
+  background: var(--app-surface-muted);
   color: var(--app-muted);
 }
 
-.metric-card svg {
-  color: var(--metric-color, var(--app-accent));
+.flame-chip.lit {
+  border-color: color-mix(in srgb, var(--duo-orange) 40%, var(--app-border));
+  background: var(--duo-orange-soft);
+  color: var(--duo-orange);
+  animation: duo-pop .5s cubic-bezier(.2, 1.4, .4, 1) both;
 }
 
-.metric-card span {
-  font-size: .84rem;
+// A streak that still needs today's practice gently asks for attention.
+.flame-chip.hungry {
+  animation: duo-pulse 1.8s ease-in-out infinite;
+}
+
+.duo-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: .35rem;
+  margin-top: 1.15rem;
+  padding-top: 1.15rem;
+  border-top: 2px dashed var(--app-border);
+}
+
+.duo-day {
+  display: grid;
+  justify-items: center;
+  gap: .35rem;
+}
+
+.duo-day-dot {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--app-surface-muted);
+  color: #ffffff;
+}
+
+.duo-day.active .duo-day-dot {
+  border-color: var(--duo-orange-dark);
+  background: var(--duo-orange);
+}
+
+.duo-day.today:not(.active) .duo-day-dot {
+  border-color: var(--duo-orange);
+  border-style: dashed;
+  background: transparent;
+  animation: duo-pulse 1.8s ease-in-out infinite;
+}
+
+.duo-day.future .duo-day-dot {
+  opacity: .45;
+}
+
+.duo-day-label {
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.duo-day.today .duo-day-label {
+  color: var(--duo-orange-dark);
+}
+
+[data-bs-theme="dark"] .profile .duo-day.today .duo-day-label {
+  color: var(--duo-orange);
+}
+
+// ----- level bar ------------------------------------------------------------
+
+.duo-level {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.level-badge {
+  flex: none;
+  padding: .55rem .95rem;
+  border: 2px solid var(--duo-gold-dark);
+  border-bottom-width: 5px;
+  border-radius: 14px;
+  background: var(--duo-gold);
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.level-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: .5rem;
+}
+
+.level-labels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .15rem .75rem;
+  color: var(--app-text);
+  font-size: .88rem;
   font-weight: 850;
 }
 
-.metric-card strong {
-  color: var(--app-text);
-  font-size: 2rem;
-  line-height: 1;
+.level-labels .muted {
+  color: var(--app-muted);
+  font-weight: 700;
 }
 
-.metric-card.solved {
-  --metric-color: #22c55e;
-}
+// ----- stat chips -----------------------------------------------------------
 
-.metric-card.active {
-  --metric-color: #f97316;
-}
-
-.metric-card.streak {
-  --metric-color: #60a5fa;
-}
-
-.metric-card.today {
-  --metric-color: #a855f7;
-}
-
-.profile-main,
-.profile-lower {
+.duo-stats {
   display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .75rem;
 }
 
-.profile-main {
-  grid-template-columns: minmax(0, 1.45fr) minmax(280px, .85fr);
-}
-
-.profile-lower {
-  grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr);
-}
-
-.profile-card {
-  overflow: hidden;
-}
-
-.profile-card-header {
+.duo-stat {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: .95rem 1rem;
-  border-bottom: 1px solid var(--app-border);
+  gap: .8rem;
+  padding: .85rem 1rem;
 }
 
-.profile-card-header h2 {
-  margin: 0;
+.duo-stat strong {
+  display: block;
   color: var(--app-text);
-  font-size: 1rem;
+  font-size: 1.45rem;
   font-weight: 900;
+  line-height: 1.05;
 }
 
-.profile-card-header svg {
-  color: var(--app-accent);
+.duo-stat div > span {
+  color: var(--app-muted);
+  font-size: .82rem;
+  font-weight: 750;
 }
 
-.trend-chart {
+// ----- activity chart -------------------------------------------------------
+
+.duo-chart {
   display: grid;
-  grid-template-columns: repeat(14, minmax(28px, 1fr));
-  gap: .5rem;
-  min-height: 254px;
-  padding: 1rem;
-  overflow-x: auto;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: .4rem;
+  height: 200px;
+  padding: .6rem 1.25rem 1rem;
 }
 
-.trend-bar-item {
+.duo-chart-col {
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   justify-items: center;
-  gap: .35rem;
-  min-width: 32px;
+  gap: .3rem;
+  min-width: 0;
 }
 
-.trend-bar-track {
+.duo-chart-val {
+  color: var(--app-muted);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.duo-chart-col.today .duo-chart-val {
+  color: var(--app-text);
+}
+
+.duo-chart-track {
   display: flex;
   align-items: flex-end;
   width: 100%;
-  min-height: 168px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface-muted);
-  overflow: hidden;
+  min-height: 0;
 }
 
-.trend-bar {
+.duo-chart-bar {
   display: block;
   width: 100%;
-  border-radius: var(--app-radius) var(--app-radius) 0 0;
-  background: linear-gradient(180deg, #34d399, #0f766e);
+  border-radius: 999px;
+  background: var(--duo-green);
+  transition: height .7s cubic-bezier(.22, 1, .36, 1);
 }
 
-.trend-value {
-  color: var(--app-text);
-  font-size: .82rem;
-  font-weight: 850;
+.duo-chart-bar.gold {
+  background: var(--duo-gold);
 }
 
-.trend-date {
+.duo-chart-day {
   color: var(--app-muted);
   font-size: .72rem;
   font-weight: 750;
 }
 
-.empty-state {
-  grid-column: 1 / -1;
-  display: grid;
-  place-items: center;
-  color: var(--app-muted);
-}
-
-.milestone-path {
-  display: grid;
-  gap: .7rem;
-  padding: 1rem;
-}
-
-.milestone {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: .75rem;
-  align-items: center;
-  padding: .65rem;
-  border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface-muted);
-  color: var(--app-muted);
-}
-
-.milestone.done {
-  border-style: solid;
-  border-color: color-mix(in srgb, var(--app-accent) 44%, var(--app-border));
-  background: var(--app-accent-soft);
+.duo-chart-col.today .duo-chart-day {
   color: var(--app-text);
+  font-weight: 850;
 }
 
-.milestone-icon {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--app-radius);
-  background: var(--app-surface);
-  color: var(--app-accent);
-}
-
-.milestone strong,
-.milestone span {
-  display: block;
-}
-
-.milestone strong {
-  color: var(--app-text);
-  font-weight: 900;
-}
-
-.milestone div > span {
-  font-size: .82rem;
+.duo-empty {
+  padding: 2rem 1.25rem 2.2rem;
+  color: var(--app-muted);
   font-weight: 700;
+  text-align: center;
 }
 
-.status-list {
+// ----- achievements ---------------------------------------------------------
+
+.duo-achievements {
   display: grid;
-  gap: .5rem;
-  padding: 1rem;
+  padding: .4rem 1.25rem .8rem;
 }
 
-.status-row {
+.duo-achievement {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: .6rem;
-  min-height: 40px;
-  padding: .5rem .6rem;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface-muted);
+  gap: .9rem;
+  padding: .7rem 0;
+}
+
+.duo-achievement + .duo-achievement {
+  border-top: 2px solid var(--app-surface-muted);
+}
+
+.duo-achievement-body {
+  display: grid;
+  gap: .45rem;
+  min-width: 0;
+}
+
+.duo-achievement-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .1rem .55rem;
+}
+
+.duo-achievement-text strong {
   color: var(--app-text);
+  font-weight: 850;
+}
+
+.duo-achievement-text span {
+  color: var(--app-muted);
+  font-size: .83rem;
+  font-weight: 700;
+}
+
+.duo-achievement-count {
+  min-width: 2.6rem;
+  color: var(--app-muted);
+  font-size: .88rem;
+  font-weight: 850;
+  text-align: right;
+}
+
+.duo-achievement.unlocked .duo-achievement-count {
+  color: var(--duo-green-dark);
+}
+
+[data-bs-theme="dark"] .profile .duo-achievement.unlocked .duo-achievement-count {
+  color: var(--duo-green);
+}
+
+// ----- practice-pool stacked bar ---------------------------------------------
+
+.duo-stack {
+  display: flex;
+  height: 22px;
+  margin: .55rem 1.25rem 0;
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+  overflow: hidden;
+}
+
+.duo-stack-seg {
+  display: block;
+  height: 100%;
+  transition: width .7s cubic-bezier(.22, 1, .36, 1);
+}
+
+.duo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem 1rem;
+  padding: .85rem 1.25rem 1.15rem;
+}
+
+.duo-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  color: var(--app-muted);
+  font-size: .86rem;
   font-weight: 750;
 }
 
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-}
-
-.progress-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1rem;
-  align-items: center;
-  padding: 1rem;
-}
-
-.progress-card h2 {
-  margin: 0;
+.duo-legend-item strong {
   color: var(--app-text);
-  font-size: 1.55rem;
-  font-weight: 900;
+  font-weight: 850;
 }
 
-.progress-card p:not(.eyebrow) {
-  margin: .3rem 0 0;
-  color: var(--app-muted);
-  font-weight: 650;
+.duo-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--app-border);
 }
 
-.progress-ring {
-  display: grid;
-  place-items: center;
-  width: 82px;
-  height: 82px;
-  border-radius: 50%;
-  position: relative;
-}
-
-.progress-ring::after {
-  content: "";
-  position: absolute;
-  inset: 9px;
-  border-radius: 50%;
-  background: var(--app-surface);
-}
-
-.progress-ring span {
-  position: relative;
-  z-index: 1;
-  color: var(--app-text);
-  font-weight: 900;
-}
+// ----- settings ---------------------------------------------------------------
 
 .settings-dashboard {
   overflow: hidden;
@@ -446,9 +537,9 @@
 
 .settings-layout {
   display: grid;
-  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: .6rem 1.25rem 1.25rem;
 }
 
 .settings-sidebar .nav {
@@ -458,25 +549,29 @@
 }
 
 .settings-sidebar .nav-link {
-  border: 1px solid transparent;
-  border-radius: var(--app-radius);
+  border: 2px solid transparent;
+  border-radius: 12px;
   color: var(--app-muted);
   font-weight: 800;
 }
 
-.settings-sidebar .nav-link.active,
 .settings-sidebar .nav-link:hover {
-  border-color: var(--app-border);
-  background: var(--app-accent-soft);
+  background: var(--app-surface-muted);
   color: var(--app-text);
+}
+
+.settings-sidebar .nav-link.active {
+  border-color: var(--duo-blue);
+  background: var(--duo-blue-soft);
+  color: var(--duo-blue-dark);
+}
+
+[data-bs-theme="dark"] .profile .settings-sidebar .nav-link.active {
+  color: var(--duo-blue);
 }
 
 .settings-content {
   min-width: 0;
-  padding: 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface-muted);
 }
 
 .settings-content textarea {
@@ -484,26 +579,79 @@
   font-size: .82rem;
 }
 
-@include media-breakpoint-down(lg) {
-  .profile-hero,
-  .profile-main,
-  .profile-lower {
-    grid-template-columns: 1fr;
+// ----- motion -------------------------------------------------------------------
+
+@keyframes duo-pop {
+  0% { transform: scale(.55); }
+  70% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes duo-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile .duo-btn,
+  .profile .duo-bar > span,
+  .profile .duo-chart-bar,
+  .profile .duo-stack-seg {
+    transition: none;
   }
 
-  .profile-grid {
+  .profile .flame-chip,
+  .profile .duo-day-dot {
+    animation: none !important;
+  }
+}
+
+// ----- responsive -----------------------------------------------------------------
+
+@include media-breakpoint-down(lg) {
+  .duo-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @include media-breakpoint-down(md) {
-  .profile-grid,
-  .settings-layout,
-  .progress-card {
+  .settings-layout {
     grid-template-columns: 1fr;
   }
 
   .settings-sidebar .nav {
     position: static;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+  }
+
+  .settings-sidebar .nav-link {
+    white-space: nowrap;
+  }
+}
+
+@include media-breakpoint-down(sm) {
+  .duo-hero-top {
+    flex-wrap: wrap;
+  }
+
+  .duo-btn {
+    width: 100%;
+  }
+
+  .duo-chart {
+    gap: .25rem;
+    height: 170px;
+  }
+
+  .duo-chart-val {
+    display: none;
+  }
+
+  .level-badge {
+    padding: .45rem .7rem;
+    font-size: .95rem;
   }
 }

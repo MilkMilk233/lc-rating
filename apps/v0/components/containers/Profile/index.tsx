@@ -9,21 +9,24 @@ import {
 } from "@hooks/useProgress";
 import useStorage from "@hooks/useStorage";
 import { useZen } from "@hooks/useZen";
+import clsx from "clsx";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
+import type { IconType } from "react-icons";
 import {
   LuArrowRight,
   LuBadgeCheck,
+  LuBookOpen,
   LuCalendarCheck,
-  LuChartNoAxesColumnIncreasing,
+  LuCheck,
   LuCrown,
   LuFlame,
+  LuFootprints,
   LuGem,
-  LuGift,
-  LuSettings,
   LuSparkles,
-  LuTarget,
+  LuStar,
+  LuSwords,
   LuZap,
 } from "react-icons/lu";
 
@@ -37,6 +40,8 @@ type ProgressHistoryEntry = {
 };
 
 const HISTORY_KEY = "lc-rating-progress-history";
+const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
+const XP_PER_LEVEL = 120;
 
 const formatDay = (date: Date) => {
   const year = date.getFullYear();
@@ -71,18 +76,35 @@ const diffDays = (a: string, b: string) => {
   return Math.round((end - start) / 86400000);
 };
 
-const computeStreak = (entries: ProgressHistoryEntry[]) => {
-  if (entries.length === 0) return 0;
+const countsChanged = (
+  prev: ProgressHistoryEntry,
+  next: ProgressHistoryEntry,
+) => {
+  return (
+    prev.marked !== next.marked ||
+    prev.ac !== next.ac ||
+    prev.working !== next.working ||
+    prev.review !== next.review ||
+    prev.hard !== next.hard
+  );
+};
 
-  let streak = 1;
-  for (let i = entries.length - 1; i > 0; i -= 1) {
-    if (diffDays(entries[i - 1].date, entries[i].date) === 1) {
-      streak += 1;
-    } else {
-      break;
-    }
-  }
-  return streak;
+// A day only counts as "active" when progress actually changed that day,
+// so the streak measures real practice instead of page visits.
+const isActiveDay = (entries: ProgressHistoryEntry[], index: number) => {
+  if (index === 0) return entries[0].marked > 0;
+  return countsChanged(entries[index - 1], entries[index]);
+};
+
+type Tone = "green" | "blue" | "orange" | "gold" | "purple";
+
+type Achievement = {
+  icon: IconType;
+  tone: Tone;
+  name: string;
+  desc: string;
+  goal: number;
+  value: number;
 };
 
 export default function Profile() {
@@ -143,32 +165,172 @@ export default function Profile() {
   )?.component;
 
   const totalPool = Math.max(zen.length, snapshot.marked, 1);
-  const solvedPercent = Math.round((snapshot.ac / totalPool) * 100);
   const startedPercent = Math.round((snapshot.marked / totalPool) * 100);
-  const recentHistory = history.slice(-14);
-  const maxMarked = Math.max(...recentHistory.map((item) => item.marked), 1);
+
+  const activeDates = useMemo(() => {
+    const dates = new Set<string>();
+    history.forEach((entry, index) => {
+      if (isActiveDay(history, index)) dates.add(entry.date);
+    });
+    return dates;
+  }, [history]);
+
+  const todayActive = activeDates.has(snapshot.date);
+
+  const streak = useMemo(() => {
+    if (history.length === 0) return 0;
+
+    let end = history.length - 1;
+    // Today still counts as "pending": judge the streak from yesterday
+    // until practice actually happens today.
+    if (history[end].date === snapshot.date && !todayActive) {
+      end -= 1;
+    }
+
+    let count = 0;
+    for (let i = end; i >= 0; i -= 1) {
+      if (!activeDates.has(history[i].date)) break;
+      count += 1;
+      if (i > 0 && diffDays(history[i - 1].date, history[i].date) !== 1) break;
+    }
+    return count;
+  }, [history, activeDates, snapshot.date, todayActive]);
+
+  const weekDays = useMemo(() => {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+
+    return WEEK_LABELS.map((label, index) => {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + index);
+      const key = formatDay(day);
+      return {
+        key,
+        label,
+        active: activeDates.has(key),
+        isToday: key === snapshot.date,
+        isFuture: diffDays(snapshot.date, key) > 0,
+      };
+    });
+  }, [activeDates, snapshot.date]);
+
   const xp = snapshot.ac * 10 + snapshot.working * 3 + snapshot.review * 2;
-  const level = Math.max(1, Math.floor(xp / 120) + 1);
-  const levelStart = (level - 1) * 120;
-  const levelProgress = Math.min(100, Math.round(((xp - levelStart) / 120) * 100));
-  const nextSolvedGoal = Math.max(5, Math.ceil((snapshot.ac + 1) / 5) * 5);
-  const solvedToGoal = Math.max(0, nextSolvedGoal - snapshot.ac);
-  const todayEntry = history[history.length - 1];
-  const previousEntry =
-    todayEntry?.date === snapshot.date ? history[history.length - 2] : todayEntry;
+  const level = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
+  const levelStart = (level - 1) * XP_PER_LEVEL;
+  const xpToNext = levelStart + XP_PER_LEVEL - xp;
+  const levelProgress = Math.min(
+    100,
+    Math.round(((xp - levelStart) / XP_PER_LEVEL) * 100),
+  );
+
+  const lastEntry = history[history.length - 1];
+  const todayEntry = lastEntry?.date === snapshot.date ? lastEntry : undefined;
+  const previousEntry = todayEntry ? history[history.length - 2] : lastEntry;
   const todayGain = Math.max(
     0,
     snapshot.ac - (previousEntry?.ac ?? snapshot.ac),
   );
-  const streak = computeStreak(history);
-  const nextActionLabel =
-    snapshot.working > 0
-      ? "继续攻略中的题目"
-      : snapshot.review > 0
-        ? "先复习一题"
-        : "开始一题新挑战";
 
-  const statusRows = optionKeys
+  const heroTitle =
+    streak > 0 ? `${streak} 天连胜` : todayActive ? "今日已打卡" : "点燃小火苗";
+  const heroMessage = todayActive
+    ? "今天的目标已经达成，小火苗烧得正旺。"
+    : streak > 0
+      ? "今天还没刷题，别让连胜的小火苗熄灭哦。"
+      : snapshot.marked > 0
+        ? "今天完成一道题，重新开始你的连胜。"
+        : "标记或 AC 一道题，从今天开始记录。";
+  const heroCta = todayActive
+    ? "再刷一题"
+    : snapshot.marked === 0
+      ? "去刷第一题"
+      : "去刷一题";
+
+  const stats: { icon: IconType; tone: Tone; label: string; value: number }[] =
+    [
+      { icon: LuBadgeCheck, tone: "green", label: "已通过", value: snapshot.ac },
+      { icon: LuSwords, tone: "blue", label: "攻略中", value: snapshot.working },
+      { icon: LuBookOpen, tone: "orange", label: "待复习", value: snapshot.review },
+      { icon: LuSparkles, tone: "gold", label: "今日新增", value: todayGain },
+    ];
+
+  const achievements: Achievement[] = [
+    {
+      icon: LuFootprints,
+      tone: "blue",
+      name: "迈出第一步",
+      desc: "标记第 1 道题",
+      goal: 1,
+      value: snapshot.marked,
+    },
+    {
+      icon: LuBadgeCheck,
+      tone: "green",
+      name: "首开纪录",
+      desc: "AC 第 1 道题",
+      goal: 1,
+      value: snapshot.ac,
+    },
+    {
+      icon: LuZap,
+      tone: "green",
+      name: "五题斩",
+      desc: "累计 AC 5 道题",
+      goal: 5,
+      value: snapshot.ac,
+    },
+    {
+      icon: LuFlame,
+      tone: "orange",
+      name: "三日小火苗",
+      desc: "连续刷题 3 天",
+      goal: 3,
+      value: streak,
+    },
+    {
+      icon: LuCalendarCheck,
+      tone: "purple",
+      name: "七日之约",
+      desc: "连续刷题 7 天",
+      goal: 7,
+      value: streak,
+    },
+    {
+      icon: LuStar,
+      tone: "gold",
+      name: "渐入佳境",
+      desc: "累计 AC 25 道题",
+      goal: 25,
+      value: snapshot.ac,
+    },
+    {
+      icon: LuGem,
+      tone: "blue",
+      name: "半百俱乐部",
+      desc: "累计 AC 50 道题",
+      goal: 50,
+      value: snapshot.ac,
+    },
+    {
+      icon: LuCrown,
+      tone: "gold",
+      name: "百题斩",
+      desc: "累计 AC 100 道题",
+      goal: 100,
+      value: snapshot.ac,
+    },
+  ];
+  const unlockedCount = achievements.filter(
+    (item) => item.value >= item.goal,
+  ).length;
+
+  const preferredOrder = ["AC", "WORKING", "REVIEW_NEEDED", "TOO_HARD", "TODO"];
+  const orderedKeys = [
+    ...preferredOrder.filter((key) => optionKeys.includes(key)),
+    ...optionKeys.filter((key) => !preferredOrder.includes(key)),
+  ];
+  const segments = orderedKeys
     .map((key) => {
       const option = getOption(key as ProgressKeyType);
       return {
@@ -178,200 +340,210 @@ export default function Profile() {
         count: counts[key] || 0,
       };
     })
-    .filter((item) => item.key !== "TODO" || item.count > 0);
+    .filter((item) => item.count > 0);
+  const unstarted = Math.max(0, totalPool - snapshot.marked);
 
-  const milestones = [
-    {
-      title: "First AC",
-      text: "完成第一题",
-      done: snapshot.ac >= 1,
-      icon: LuSparkles,
-    },
-    {
-      title: "5 Wins",
-      text: "过 5 题",
-      done: snapshot.ac >= 5,
-      icon: LuGift,
-    },
-    {
-      title: "25 Wins",
-      text: "进入节奏",
-      done: snapshot.ac >= 25,
-      icon: LuGem,
-    },
-    {
-      title: "100 Wins",
-      text: "稳定刷题",
-      done: snapshot.ac >= 100,
-      icon: LuCrown,
-    },
-  ];
+  const recentHistory = history.slice(-14);
+  const maxMarked = Math.max(...recentHistory.map((item) => item.marked), 1);
 
   return (
     <Container fluid className="profile page-shell">
-      <section className="profile-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">Practice streak</p>
-          <h1>今天也推进一点点</h1>
-          <p>
-            本页只读取当前浏览器里的本地进度。把目标拆小一点，看到数字上涨，会更容易坚持。
-          </p>
-          <div className="hero-actions">
-            <Link href="/zen" className="primary-quest">
+      <section className="duo-card duo-hero">
+        <div className="duo-hero-top">
+          <div
+            className={clsx("flame-chip", {
+              lit: streak > 0,
+              hungry: streak > 0 && !todayActive,
+            })}
+          >
+            <LuFlame aria-hidden size={46} />
+          </div>
+          <div className="duo-hero-copy">
+            <h1>{heroTitle}</h1>
+            <p>{heroMessage}</p>
+          </div>
+          <Link href="/zen" className="duo-btn">
+            {todayActive ? (
               <LuZap aria-hidden size={18} />
-              <span>{nextActionLabel}</span>
+            ) : (
               <LuArrowRight aria-hidden size={18} />
-            </Link>
-            <span className="quest-note">
-              距离 {nextSolvedGoal} 题还差 <strong>{solvedToGoal}</strong> 题
+            )}
+            <span>{heroCta}</span>
+          </Link>
+        </div>
+        <div className="duo-week" aria-label="本周打卡">
+          {weekDays.map((day) => (
+            <div
+              className={clsx("duo-day", {
+                active: day.active,
+                today: day.isToday,
+                future: day.isFuture,
+              })}
+              key={day.key}
+            >
+              <span className="duo-day-dot">
+                {day.active ? <LuFlame aria-hidden size={15} /> : null}
+              </span>
+              <span className="duo-day-label">{day.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="duo-card duo-level">
+        <div className="level-badge">Lv.{level}</div>
+        <div className="level-body">
+          <div className="level-labels">
+            <span>{xp} XP</span>
+            <span className="muted">
+              再得 {xpToNext} XP 升到 Lv.{level + 1}
             </span>
           </div>
-        </div>
-
-        <div className="level-card">
-          <div className="level-orb">
-            <span>Lv</span>
-            <strong>{level}</strong>
-          </div>
-          <div className="level-copy">
-            <span>Training XP</span>
-            <strong>{xp}</strong>
-            <div className="level-track" aria-label={`Level ${levelProgress}%`}>
-              <span style={{ width: `${levelProgress}%` }} />
-            </div>
+          <div
+            className="duo-bar gold"
+            role="progressbar"
+            aria-valuenow={levelProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <span style={{ width: `${levelProgress}%` }} />
           </div>
         </div>
       </section>
 
-      <section className="profile-grid">
-        <div className="profile-card metric-card solved">
-          <LuBadgeCheck aria-hidden size={22} />
-          <span>已通过</span>
-          <strong>{snapshot.ac}</strong>
-        </div>
-        <div className="profile-card metric-card active">
-          <LuFlame aria-hidden size={22} />
-          <span>攻略中</span>
-          <strong>{snapshot.working}</strong>
-        </div>
-        <div className="profile-card metric-card streak">
-          <LuCalendarCheck aria-hidden size={22} />
-          <span>连续记录</span>
-          <strong>{streak}</strong>
-        </div>
-        <div className="profile-card metric-card today">
-          <LuTarget aria-hidden size={22} />
-          <span>今日新增 AC</span>
-          <strong>{todayGain}</strong>
-        </div>
-      </section>
-
-      <section className="profile-main">
-        <div className="profile-card trend-card">
-          <div className="profile-card-header">
+      <section className="duo-stats">
+        {stats.map(({ icon: Icon, tone, label, value }) => (
+          <div className="duo-card duo-stat" key={label}>
+            <span className={`duo-chip ${tone}`}>
+              <Icon aria-hidden size={22} />
+            </span>
             <div>
-              <p className="eyebrow">Momentum</p>
-              <h2>每日累计</h2>
+              <strong>{value}</strong>
+              <span>{label}</span>
             </div>
-            <LuChartNoAxesColumnIncreasing aria-hidden size={22} />
           </div>
-          <div className="trend-chart">
-            {recentHistory.length === 0 ? (
-              <div className="empty-state">今天会生成第一条进度快照。</div>
-            ) : (
-              recentHistory.map((item) => (
-                <div className="trend-bar-item" key={item.date}>
-                  <div className="trend-bar-track">
+        ))}
+      </section>
+
+      <section className="duo-card">
+        <header className="duo-card-head">
+          <h2>最近 14 天</h2>
+          <span className="meta">累计标记题数</span>
+        </header>
+        {recentHistory.length === 0 ? (
+          <div className="duo-empty">
+            完成一道题，这里就会长出第一根柱子。
+          </div>
+        ) : (
+          <div className="duo-chart">
+            {recentHistory.map((item) => {
+              const isToday = item.date === snapshot.date;
+              return (
+                <div
+                  className={clsx("duo-chart-col", { today: isToday })}
+                  key={item.date}
+                  title={`${item.date} · 累计标记 ${item.marked} 题`}
+                >
+                  <span className="duo-chart-val">{item.marked}</span>
+                  <div className="duo-chart-track">
                     <span
-                      className="trend-bar"
+                      className={clsx("duo-chart-bar", {
+                        gold: isToday && todayActive,
+                      })}
                       style={{
-                        height: `${Math.max(8, (item.marked / maxMarked) * 100)}%`,
+                        height: `${Math.max(6, (item.marked / maxMarked) * 100)}%`,
                       }}
                     />
                   </div>
-                  <span className="trend-value">{item.marked}</span>
-                  <span className="trend-date">{item.date.slice(5)}</span>
+                  <span className="duo-chart-day">{item.date.slice(8)}</span>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
-        </div>
+        )}
+      </section>
 
-        <div className="profile-card quest-card">
-          <div className="profile-card-header">
-            <div>
-              <p className="eyebrow">Quest map</p>
-              <h2>小成就</h2>
-            </div>
-          </div>
-          <div className="milestone-path">
-            {milestones.map(({ title, text, done, icon: Icon }) => (
-              <div className={`milestone ${done ? "done" : ""}`} key={title}>
-                <span className="milestone-icon">
-                  <Icon aria-hidden size={20} />
+      <section className="duo-card">
+        <header className="duo-card-head">
+          <h2>成就</h2>
+          <span className="meta">
+            已解锁 {unlockedCount} / {achievements.length}
+          </span>
+        </header>
+        <div className="duo-achievements">
+          {achievements.map(({ icon: Icon, tone, name, desc, goal, value }) => {
+            const done = value >= goal;
+            const percent = Math.min(100, Math.round((value / goal) * 100));
+            return (
+              <div
+                className={clsx("duo-achievement", { unlocked: done })}
+                key={name}
+              >
+                <span className={clsx("duo-chip", done && tone)}>
+                  <Icon aria-hidden size={24} />
                 </span>
-                <div>
-                  <strong>{title}</strong>
-                  <span>{text}</span>
+                <div className="duo-achievement-body">
+                  <div className="duo-achievement-text">
+                    <strong>{name}</strong>
+                    <span>{desc}</span>
+                  </div>
+                  <div className="duo-bar gold slim">
+                    <span style={{ width: `${percent}%` }} />
+                  </div>
                 </div>
+                <span className="duo-achievement-count">
+                  {done ? (
+                    <LuCheck aria-hidden size={20} />
+                  ) : (
+                    `${Math.min(value, goal)}/${goal}`
+                  )}
+                </span>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </section>
 
-      <section className="profile-lower">
-        <div className="profile-card status-card">
-          <div className="profile-card-header">
-            <div>
-              <p className="eyebrow">Status</p>
-              <h2>进度分布</h2>
-            </div>
-          </div>
-          <div className="status-list">
-            {statusRows.map((item) => (
-              <div className="status-row" key={item.key}>
-                <span
-                  className="status-dot"
-                  style={{ background: item.color }}
-                />
-                <span>{item.label}</span>
-                <strong>{item.count}</strong>
-              </div>
-            ))}
-          </div>
+      <section className="duo-card">
+        <header className="duo-card-head">
+          <h2>练习池进度</h2>
+          <span className="meta">
+            {snapshot.marked} / {totalPool} · 已启动 {startedPercent}%
+          </span>
+        </header>
+        <div className="duo-stack" role="img" aria-label="练习池进度分布">
+          {segments.map((item) => (
+            <span
+              className="duo-stack-seg"
+              key={item.key}
+              style={{
+                width: `${(item.count / totalPool) * 100}%`,
+                background: item.color,
+              }}
+              title={`${item.label} ${item.count}`}
+            />
+          ))}
         </div>
-
-        <div className="profile-card progress-card">
-          <div
-            className="progress-ring"
-            style={{
-              background: `conic-gradient(var(--app-accent) ${solvedPercent * 3.6}deg, var(--app-surface-muted) 0deg)`,
-            }}
-            aria-label={`Solved ${solvedPercent}%`}
-          >
-            <span>{solvedPercent}%</span>
-          </div>
-          <div>
-            <p className="eyebrow">Total progress</p>
-            <h2>
-              {snapshot.ac} / {totalPool}
-            </h2>
-            <p>
-              已启动 {startedPercent}% 的练习池。保持每天一题，曲线会越来越好看。
-            </p>
-          </div>
+        <div className="duo-legend">
+          {segments.map((item) => (
+            <span className="duo-legend-item" key={item.key}>
+              <span className="duo-dot" style={{ background: item.color }} />
+              {item.label}
+              <strong>{item.count}</strong>
+            </span>
+          ))}
+          <span className="duo-legend-item">
+            <span className="duo-dot muted" />
+            未开始
+            <strong>{unstarted}</strong>
+          </span>
         </div>
       </section>
 
-      <section className="profile-card settings-dashboard">
-        <div className="profile-card-header">
-          <div>
-            <p className="eyebrow">Settings</p>
-            <h2>站点设置</h2>
-          </div>
-          <LuSettings aria-hidden size={22} />
-        </div>
+      <section className="duo-card settings-dashboard">
+        <header className="duo-card-head">
+          <h2>站点设置</h2>
+        </header>
         <div className="settings-layout">
           <aside className="settings-sidebar">
             <Sidebar
