@@ -4,6 +4,11 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useProgressStore } from "@hooks/useProgressStore";
+import {
+  MIN_TOTAL_WEIGHT,
+  estimateAbility,
+  targetForTags,
+} from "@hooks/useProgressStore/ability";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { DAY_MS, applyAttempt, overdueDays } from "@hooks/useProgressStore/srs";
 import type { AttemptEvent } from "@hooks/useProgressStore/types";
@@ -13,10 +18,10 @@ import {
   leetCodeContestUrl,
   leetCodeProblemUrl,
 } from "@utils/leetcodeLinks";
-import { bandFor, estimateStrength, xpForAttempt } from "@utils/practice";
+import { bandFor, xpForAttempt } from "@utils/practice";
 import clsx from "clsx";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
   LuArrowUpRight,
@@ -46,6 +51,13 @@ export default function Recommend() {
     text: string;
     solved: boolean;
   } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Refresh due state while the page stays open.
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: string };
@@ -53,7 +65,6 @@ export default function Recommend() {
   // The recommendation engine. Everything derives from the practice pool, the
   // event log, and topic tags — no extra storage needed.
   const { queue, target, solvedCount } = useMemo(() => {
-    const now = Date.now();
     const byId = new Map<string, ZenQuestion>();
     zen.forEach((question) => byId.set(String(question.question_id), question));
 
@@ -61,17 +72,15 @@ export default function Recommend() {
       questionTags[String(question._hash)]?.[1] ?? [];
     const ratingOf = (qid: string): number | undefined =>
       byId.get(qid)?.rating;
+    const tagsOfQid = (qid: string): string[] => {
+      const question = byId.get(qid);
+      return question ? tagsOf(question) : [];
+    };
 
-    // Capability estimate from solo solves only; editorial-assisted solves say
-    // little about what the user can do alone.
-    const soloRatings: number[] = [];
-    derived.currentSolved.forEach((attempt) => {
-      if (attempt.independence !== "solo") return;
-      const rating = ratingOf(attempt.qid);
-      if (rating != null) soloRatings.push(rating);
-    });
-    const strength = estimateStrength(soloRatings);
-    const targetRating = strength || 1300;
+    // Capability estimate: per-tag and global, weighted by independence, felt
+    // difficulty and recency, with recent "no idea" attempts capping it.
+    const ability = estimateAbility(derived.events, ratingOf, tagsOfQid, now);
+    const targetRating = ability.global;
 
     // 1. Due questions first, most overdue first. Anything not yet due stays
     //    out of the queue, so marking a problem never makes it bounce straight
@@ -99,8 +108,8 @@ export default function Recommend() {
       return (sa?.dueAt ?? 0) - (sb?.dueAt ?? 0);
     });
 
-    // 2. Fresh problems: closest difficulty to the target wins, with a novelty
-    //    bonus for rarely-practiced tags to encourage coverage.
+    // 2. Fresh problems, each scored against its own per-tag target: closest
+    //    difficulty wins, with a novelty bonus for rarely-practiced tags.
     const tagSolved = new Map<string, number>();
     derived.currentSolved.forEach((attempt) => {
       const question = byId.get(attempt.qid);
@@ -115,47 +124,58 @@ export default function Recommend() {
         !derived.currentByQid.has(String(question.question_id)) &&
         !question.paid_only,
     );
-    const windowed = fresh.filter(
-      (question) =>
-        question.rating >= targetRating - 100 &&
-        question.rating <= targetRating + 250,
-    );
-    const scored = (windowed.length > 0 ? windowed : fresh)
-      .map((question) => ({
-        question,
-        score:
-          -Math.abs(question.rating - targetRating) +
-          20 *
-            tagsOf(question).reduce(
-              (sum, tag) => sum + 1 / (1 + (tagSolved.get(tag) || 0)),
-              0,
-            ),
-      }))
-      .sort((a, b) => b.score - a.score)
-      .map((entry) => entry.question);
 
-    const reasonForNew = (question: ZenQuestion) => {
-      if (soloRatings.length < 3) return "从基础题开始，先把地基打牢";
+    const scored = fresh
+      .map((question) => {
+        const tags = tagsOf(question);
+        const questionTarget = targetForTags(tags, ability);
+        return {
+          question,
+          target: questionTarget,
+          score:
+            -Math.abs(question.rating - questionTarget) +
+            20 *
+              tags.reduce(
+                (sum, tag) => sum + 1 / (1 + (tagSolved.get(tag) || 0)),
+                0,
+              ),
+        };
+      })
+      // Never serve something far beyond the demonstrated level.
+      .filter((entry) => entry.question.rating <= entry.target + 350)
+      .sort((a, b) => b.score - a.score);
+
+    const reasonForNew = (question: ZenQuestion, questionTarget: number) => {
+      if (ability.totalWeight < MIN_TOTAL_WEIGHT) {
+        return "从基础题开始，先把地基打牢";
+      }
       const novel = tagsOf(question).find((tag) => !tagSolved.has(tag));
       if (novel) return `新题型：${novel}`;
-      return `难度贴合你当前的水平 ≈${targetRating}`;
+      return `难度贴合你当前的水平 ≈${questionTarget}`;
     };
 
-    const items: RecItem[] = [
-      ...dueItems,
-      ...scored.map((question) => ({
-        question,
-        pool: "new" as Pool,
-        reason: reasonForNew(question),
-      })),
-    ];
+    // 3. Interleave reviews and fresh problems so a backlog of due items never
+    //    blocks new material.
+    const reviews: RecItem[] = [...dueItems];
+    const newItems: RecItem[] = scored.map((entry) => ({
+      question: entry.question,
+      pool: "new" as Pool,
+      reason: reasonForNew(entry.question, entry.target),
+    }));
+
+    const items: RecItem[] = [];
+    const max = Math.max(reviews.length, newItems.length);
+    for (let i = 0; i < max; i += 1) {
+      if (i < reviews.length) items.push(reviews[i]);
+      if (i < newItems.length) items.push(newItems[i]);
+    }
 
     return {
       queue: items,
       target: targetRating,
       solvedCount: derived.totals.solved,
     };
-  }, [zen, derived, questionTags]);
+  }, [zen, derived, questionTags, now]);
 
   const visible = queue.filter(
     (item) => !skipped.has(String(item.question.question_id)),
@@ -287,7 +307,7 @@ export default function Recommend() {
         {currentAttempt && (
           <div className="rec-last">
             上次：{attemptLabel(currentAttempt)} ·{" "}
-            {Math.floor((Date.now() - currentAttempt.at) / DAY_MS)} 天前
+            {Math.floor((now - currentAttempt.at) / DAY_MS)} 天前
           </div>
         )}
 

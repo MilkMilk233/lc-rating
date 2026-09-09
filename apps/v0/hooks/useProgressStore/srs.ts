@@ -1,37 +1,53 @@
-// Spaced-repetition scheduling (Anki-style progressive intervals).
+// Spaced-repetition scheduling (v3).
+//
+// Two forces are balanced here:
+//   1. recall risk  — the harder a problem felt, the more it needs revisiting;
+//   2. review cost  — a 45-minute problem costs far more to review than a
+//      3-minute one, and re-serving it the next day is exhausting.
+//
+// So the FIRST interval grows with effort (recovery room), while the growth
+// rate shrinks with effort (hard problems still end up reviewed more often over
+// time, just not tomorrow).
 //
 // Pure functions only: no storage, no React, no Date.now(). Callers pass the
-// events (and, when needed, the current time), which keeps the rules easy to
-// unit test and lets the rest of the app stay declarative.
+// events (and, when needed, the current time).
 
 import type { AttemptEvent, EffortBand } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** Progressive review intervals, in days. Index = step. */
-export const LADDER_DAYS: readonly number[] = [1, 3, 7, 15, 30, 60, 120];
+/** Never schedule further out than a year. */
+export const MAX_INTERVAL_DAYS = 365;
 
-export const MAX_STEP = LADDER_DAYS.length - 1;
-
-/**
- * A "no idea" attempt is a knowledge gap, not a near miss: give it a longer
- * cooldown than the default 1 day so the user is nudged toward easier material
- * first instead of bouncing off the same wall tomorrow.
- */
-export const NO_IDEA_COOLDOWN_DAYS = 7;
-
-/** How many ladder steps a successful solo solve advances. */
-const STEP_DELTA: Record<EffortBand, number> = {
-  LE5: 2,
-  L5_15: 1,
-  L15_30: 1,
-  L30_60: 0,
-  GT60: 0,
+/** First interval after a solve, in days. Effort buys recovery time. */
+export const BASE_DAYS: Record<EffortBand, number> = {
+  LE5: 7,
+  L5_15: 5,
+  L15_30: 7,
+  L30_60: 9,
+  GT60: 12,
 };
 
+/** Growth factor for consecutive successes. Harder problems grow slower. */
+export const EASE: Record<EffortBand, number> = {
+  LE5: 3.0,
+  L5_15: 2.6,
+  L15_30: 2.0,
+  L30_60: 1.7,
+  GT60: 1.5,
+};
+
+/** Leaning on the editorial means it was not really retrieved. */
+export const SOLUTION_FACTOR = 0.6;
+
+export const GAVEUP_COOLDOWN_DAYS = {
+  idea_tedious: 2,
+  no_idea: 7,
+} as const;
+
 export interface ScheduleState {
-  /** Index into LADDER_DAYS. */
-  step: number;
+  /** Days until the next review. */
+  intervalDays: number;
   /** Epoch ms when this question should resurface. */
   dueAt: number;
   /** Timestamp of the attempt that produced this schedule. */
@@ -39,37 +55,37 @@ export interface ScheduleState {
   lastOutcome: AttemptEvent["outcome"];
 }
 
-export function clampStep(step: number): number {
-  if (!Number.isFinite(step)) return 0;
-  return Math.min(Math.max(Math.round(step), 0), MAX_STEP);
-}
-
-export function intervalDaysForStep(step: number): number {
-  return LADDER_DAYS[clampStep(step)];
+function clampInterval(days: number): number {
+  if (!Number.isFinite(days)) return 1;
+  return Math.min(Math.max(Math.round(days), 1), MAX_INTERVAL_DAYS);
 }
 
 /**
- * The step after an attempt. `prevStep` is undefined for a first attempt,
- * which starts from the bottom of the ladder.
+ * Interval after an attempt. `prev` is undefined for a first attempt, and the
+ * ladder restarts after a give-up (you did not retrieve it at all).
  */
-export function nextStep(
-  prevStep: number | undefined,
+export function nextIntervalDays(
+  prev: ScheduleState | undefined,
   event: AttemptEvent,
 ): number {
-  const base = clampStep(prevStep ?? 0);
-
-  if (event.outcome === "gaveup") return 0;
-  // Leaning on the editorial means the problem was not really recalled.
-  if (event.independence === "solution") return 0;
-
-  return clampStep(base + STEP_DELTA[event.band]);
-}
-
-function daysUntilDue(event: AttemptEvent, step: number): number {
   if (event.outcome === "gaveup") {
-    return event.reason === "no_idea" ? NO_IDEA_COOLDOWN_DAYS : LADDER_DAYS[0];
+    return GAVEUP_COOLDOWN_DAYS[event.reason];
   }
-  return intervalDaysForStep(step);
+
+  const base = BASE_DAYS[event.band];
+
+  if (event.independence === "solution") {
+    return clampInterval(base * SOLUTION_FACTOR);
+  }
+
+  if (!prev || prev.lastOutcome === "gaveup") {
+    return clampInterval(base);
+  }
+
+  // Always advance at least one day so slow solves still move forward.
+  return clampInterval(
+    Math.max(prev.intervalDays + 1, prev.intervalDays * EASE[event.band]),
+  );
 }
 
 /** Fold one attempt into a schedule, producing the next schedule. */
@@ -77,10 +93,10 @@ export function applyAttempt(
   prev: ScheduleState | undefined,
   event: AttemptEvent,
 ): ScheduleState {
-  const step = nextStep(prev?.step, event);
+  const intervalDays = nextIntervalDays(prev, event);
   return {
-    step,
-    dueAt: event.at + daysUntilDue(event, step) * DAY_MS,
+    intervalDays,
+    dueAt: event.at + intervalDays * DAY_MS,
     lastAt: event.at,
     lastOutcome: event.outcome,
   };

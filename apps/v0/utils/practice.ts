@@ -17,17 +17,6 @@ export const bandFor = (rating: number) =>
   RATING_BANDS.find((band) => rating >= band.min && rating < band.max) ??
   RATING_BANDS[0];
 
-// Capability estimate: average of the user's top-quartile solved ratings,
-// nudged slightly upward so practice stays in the zone of proximal
-// development. Returns 0 when there is not enough data (< 3 solves).
-export const estimateStrength = (solvedRatings: number[]) => {
-  if (solvedRatings.length < 3) return 0;
-  const sorted = [...solvedRatings].sort((a, b) => b - a);
-  const top = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 4)));
-  const estimate = top.reduce((sum, rating) => sum + rating, 0) / top.length;
-  return Math.round((estimate + 100) / 50) * 50;
-};
-
 // ---------------------------------------------------------------------------
 // XP economy (minimal first pass; numbers get tuned once real data exists).
 //

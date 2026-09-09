@@ -4,6 +4,7 @@ import { ColorRating } from "@components/RatingCircle";
 import Sidebar from "@components/SettingsPanel/Sidebar";
 import { setting_tabs } from "@components/SettingsPanel/config";
 import { useProgressStore } from "@hooks/useProgressStore";
+import { estimateAbility } from "@hooks/useProgressStore/ability";
 import {
   activeDates,
   dayKey,
@@ -13,11 +14,7 @@ import {
 import { isDue } from "@hooks/useProgressStore/srs";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
-import {
-  RATING_BANDS,
-  estimateStrength,
-  xpForAttempt,
-} from "@utils/practice";
+import { RATING_BANDS, xpForAttempt } from "@utils/practice";
 import clsx from "clsx";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -142,11 +139,20 @@ export default function Profile() {
     Math.round(((xp - levelStart) / XP_PER_LEVEL) * 100),
   );
 
-  // Capability estimate: average of the user's top-quartile solo solves.
+  // Capability estimate (per-tag weighted, shared with the recommender).
   // Used only for guidance ("which band fits you"), never to reduce XP.
   const suggestedRating = useMemo(
-    () => estimateStrength(soloRatings),
-    [soloRatings],
+    () =>
+      estimateAbility(
+        events,
+        (qid) => zenById.get(qid)?.rating,
+        (qid) => {
+          const hash = zenById.get(qid)?.hash;
+          return hash ? questionTags[hash]?.[1] ?? [] : [];
+        },
+        Date.now(),
+      ).global,
+    [events, zenById, questionTags],
   );
 
   const bandStats = useMemo(() => {
