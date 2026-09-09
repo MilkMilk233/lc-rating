@@ -28,6 +28,8 @@ export const LEGACY_PROGRESS_PREFIX = "lc-rating-zen-progress-";
 export const LEGACY_PROGRESS_KEYS = [
   "lc-rating-progress-history",
   "lc-rating-progress-config",
+  // v1 zen filter settings, superseded by lc-rating-zen-settings-v2.
+  "lc-rating-zen-settings",
 ];
 
 const isBrowser = () => typeof window !== "undefined";
