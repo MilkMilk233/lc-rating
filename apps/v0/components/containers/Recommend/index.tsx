@@ -4,13 +4,14 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useProgressStore } from "@hooks/useProgressStore";
-import {
-  MIN_TOTAL_WEIGHT,
-  estimateAbility,
-  targetForTags,
-} from "@hooks/useProgressStore/ability";
+import { estimateAbility } from "@hooks/useProgressStore/ability";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
-import { DAY_MS, applyAttempt, overdueDays } from "@hooks/useProgressStore/srs";
+import { buildRecommendationQueue } from "@hooks/useProgressStore/recommend";
+import type {
+  Candidate,
+  QueuePool,
+} from "@hooks/useProgressStore/recommend";
+import { DAY_MS, applyAttempt } from "@hooks/useProgressStore/srs";
 import type { AttemptEvent } from "@hooks/useProgressStore/types";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
@@ -32,11 +33,12 @@ import {
   LuShuffle,
 } from "react-icons/lu";
 
-type Pool = "review" | "revive" | "new";
+type Pool = QueuePool;
 
 const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
   review: { label: "到期复习", tone: "orange" },
   revive: { label: "复活挑战", tone: "purple" },
+  prerequisite: { label: "先垫一题", tone: "blue" },
   new: { label: "今日推荐", tone: "blue" },
 };
 
@@ -65,114 +67,50 @@ export default function Recommend() {
   // The recommendation engine. Everything derives from the practice pool, the
   // event log, and topic tags — no extra storage needed.
   const { queue, target, solvedCount } = useMemo(() => {
-    const byId = new Map<string, ZenQuestion>();
-    zen.forEach((question) => byId.set(String(question.question_id), question));
+    const questionByQid = new Map<string, ZenQuestion>();
+    const byQid = new Map<string, Candidate>();
+    const candidates: Candidate[] = [];
 
-    const tagsOf = (question: ZenQuestion): string[] =>
-      questionTags[String(question._hash)]?.[1] ?? [];
-    const ratingOf = (qid: string): number | undefined =>
-      byId.get(qid)?.rating;
-    const tagsOfQid = (qid: string): string[] => {
-      const question = byId.get(qid);
-      return question ? tagsOf(question) : [];
-    };
+    zen.forEach((question) => {
+      const qid = String(question.question_id);
+      const candidate: Candidate = {
+        qid,
+        rating: question.rating,
+        paidOnly: question.paid_only,
+        tags: questionTags[String(question._hash)]?.[1] ?? [],
+      };
+      questionByQid.set(qid, question);
+      byQid.set(qid, candidate);
+      candidates.push(candidate);
+    });
 
     // Capability estimate: per-tag and global, weighted by independence, felt
     // difficulty and recency, with recent "no idea" attempts capping it.
-    const ability = estimateAbility(derived.events, ratingOf, tagsOfQid, now);
-    const targetRating = ability.global;
-
-    // 1. Due questions first, most overdue first. Anything not yet due stays
-    //    out of the queue, so marking a problem never makes it bounce straight
-    //    back on the next refresh.
-    const dueItems: RecItem[] = [];
-    derived.scheduleByQid.forEach((schedule, qid) => {
-      if (now < schedule.dueAt) return;
-      const question = byId.get(qid);
-      if (!question || question.paid_only) return;
-
-      const current = derived.currentByQid.get(qid);
-      const overdue = overdueDays(schedule, now);
-      dueItems.push({
-        question,
-        pool: current?.outcome === "gaveup" ? "revive" : "review",
-        reason:
-          overdue > 0
-            ? `逾期 ${overdue} 天，先把它复习掉`
-            : "今天到期，趁热复习一遍",
-      });
-    });
-    dueItems.sort((a, b) => {
-      const sa = derived.scheduleByQid.get(String(a.question.question_id));
-      const sb = derived.scheduleByQid.get(String(b.question.question_id));
-      return (sa?.dueAt ?? 0) - (sb?.dueAt ?? 0);
-    });
-
-    // 2. Fresh problems, each scored against its own per-tag target: closest
-    //    difficulty wins, with a novelty bonus for rarely-practiced tags.
-    const tagSolved = new Map<string, number>();
-    derived.currentSolved.forEach((attempt) => {
-      const question = byId.get(attempt.qid);
-      if (!question) return;
-      tagsOf(question).forEach((tag) =>
-        tagSolved.set(tag, (tagSolved.get(tag) || 0) + 1),
-      );
-    });
-
-    const fresh = zen.filter(
-      (question) =>
-        !derived.currentByQid.has(String(question.question_id)) &&
-        !question.paid_only,
+    const ability = estimateAbility(
+      derived.events,
+      (qid) => byQid.get(qid)?.rating,
+      (qid) => byQid.get(qid)?.tags ?? [],
+      now,
     );
 
-    const scored = fresh
-      .map((question) => {
-        const tags = tagsOf(question);
-        const questionTarget = targetForTags(tags, ability);
-        return {
-          question,
-          target: questionTarget,
-          score:
-            -Math.abs(question.rating - questionTarget) +
-            20 *
-              tags.reduce(
-                (sum, tag) => sum + 1 / (1 + (tagSolved.get(tag) || 0)),
-                0,
-              ),
-        };
-      })
-      // Never serve something far beyond the demonstrated level.
-      .filter((entry) => entry.question.rating <= entry.target + 350)
-      .sort((a, b) => b.score - a.score);
-
-    const reasonForNew = (question: ZenQuestion, questionTarget: number) => {
-      if (ability.totalWeight < MIN_TOTAL_WEIGHT) {
-        return "从基础题开始，先把地基打牢";
-      }
-      const novel = tagsOf(question).find((tag) => !tagSolved.has(tag));
-      if (novel) return `新题型：${novel}`;
-      return `难度贴合你当前的水平 ≈${questionTarget}`;
-    };
-
-    // 3. Interleave reviews and fresh problems so a backlog of due items never
-    //    blocks new material.
-    const reviews: RecItem[] = [...dueItems];
-    const newItems: RecItem[] = scored.map((entry) => ({
-      question: entry.question,
-      pool: "new" as Pool,
-      reason: reasonForNew(entry.question, entry.target),
-    }));
-
     const items: RecItem[] = [];
-    const max = Math.max(reviews.length, newItems.length);
-    for (let i = 0; i < max; i += 1) {
-      if (i < reviews.length) items.push(reviews[i]);
-      if (i < newItems.length) items.push(newItems[i]);
+    const plan = buildRecommendationQueue({
+      candidates,
+      byQid,
+      derived,
+      ability,
+      now,
+    });
+    for (const item of plan) {
+      const question = questionByQid.get(item.qid);
+      if (question) {
+        items.push({ question, pool: item.pool, reason: item.reason });
+      }
     }
 
     return {
       queue: items,
-      target: targetRating,
+      target: ability.global,
       solvedCount: derived.totals.solved,
     };
   }, [zen, derived, questionTags, now]);

@@ -45,6 +45,12 @@ export const GAVEUP_COOLDOWN_DAYS = {
   no_idea: 7,
 } as const;
 
+/** Consecutive give-ups before a problem is parked as a "leech". */
+export const LEECH_THRESHOLD = 3;
+
+/** Parked problems come back after this many days, not tomorrow. */
+export const LEECH_COOLDOWN_DAYS = 30;
+
 export interface ScheduleState {
   /** Days until the next review. */
   intervalDays: number;
@@ -53,6 +59,8 @@ export interface ScheduleState {
   /** Timestamp of the attempt that produced this schedule. */
   lastAt: number;
   lastOutcome: AttemptEvent["outcome"];
+  /** Consecutive give-ups; reset by any solve. */
+  failCount: number;
 }
 
 function clampInterval(days: number): number {
@@ -69,7 +77,10 @@ export function nextIntervalDays(
   event: AttemptEvent,
 ): number {
   if (event.outcome === "gaveup") {
-    return GAVEUP_COOLDOWN_DAYS[event.reason];
+    const fails = (prev?.failCount ?? 0) + 1;
+    return fails >= LEECH_THRESHOLD
+      ? LEECH_COOLDOWN_DAYS
+      : GAVEUP_COOLDOWN_DAYS[event.reason];
   }
 
   const base = BASE_DAYS[event.band];
@@ -99,7 +110,17 @@ export function applyAttempt(
     dueAt: event.at + intervalDays * DAY_MS,
     lastAt: event.at,
     lastOutcome: event.outcome,
+    failCount: event.outcome === "gaveup" ? (prev?.failCount ?? 0) + 1 : 0,
   };
+}
+
+/** A problem that keeps being given up on: park it instead of nagging. */
+export function isLeech(schedule: ScheduleState | undefined): boolean {
+  return (
+    !!schedule &&
+    schedule.failCount >= LEECH_THRESHOLD &&
+    schedule.lastOutcome === "gaveup"
+  );
 }
 
 /** Replay a question's attempts (ascending by `at`) into its current schedule. */
