@@ -2,10 +2,10 @@
 
 ## Project Structure & Module Organization
 - `apps/v0/` is the only application. It is the old LC-Rating UI and is deployed at the website root.
-- `apps/v0/app/` contains Next.js App Router routes for the contest list, difficulty practice, search, algorithm templates, and topic lists.
+- `apps/v0/app/` contains Next.js App Router routes for the contest list, difficulty practice, recommendations, algorithm templates, and topic lists.
 - `apps/v0/components/` contains UI components and page containers.
 - `apps/v0/hooks/` contains local browser storage, theme, progress, and static-data hooks.
-- `apps/v0/public/` contains frozen static data loaded at runtime, including `contest.json`, `solutions.json`, `tags.json`, `qtags.json`, `ratings.json`, and `zenk.json`.
+- `apps/v0/public/` contains frozen static data loaded at runtime, including `contest.json`, `tags.json`, `qtags.json`, `ratings.json`, and `zenk.json`.
 - `apps/v0/components/containers/List/data/` contains frozen topic-list content.
 
 ## Build, Test, and Development Commands

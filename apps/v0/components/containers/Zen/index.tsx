@@ -17,14 +17,12 @@ import {
   LeetCodeLanguage,
   useLeetCodeLanguage,
 } from "@hooks/useLeetCodeLanguage";
-import { SolutionType, useSolutions } from "@hooks/useSolutions";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
 import { useZen } from "@hooks/useZen";
 import {
   leetCodeContestUrl,
   leetCodeProblemUrl,
-  leetCodeSolutionUrl,
 } from "@utils/leetcodeLinks";
 
 import {
@@ -315,7 +313,6 @@ export default function Zenk() {
   // State and hooks
   const { zen: data, isPending: progressLoading } = useZen();
   const { language, isCn } = useLeetCodeLanguage();
-  const { solutions } = useSolutions();
 
   const { tags, isPending: tagsLoading } = useQuestionTags(null);
   const { tags: qtags } = useTags();
@@ -437,9 +434,6 @@ export default function Zenk() {
         <ZenTableComp
           optionKeys={optionKeys}
           getOption={getOption}
-          querySolution={(id: string) => {
-            return solutions[id];
-          }}
           language={language}
           tagLanguage={isCn ? "zh" : "en"}
           columnVisibility={settings.columnVisibility}
@@ -461,7 +455,6 @@ interface ZenTableCompProps {
   columnVisibility: VisibilityState;
   queryTags: (id: string) => QTag;
   data: ConstQuestion[];
-  querySolution: (id: string) => SolutionType;
   language: LeetCodeLanguage;
   tagLanguage: "zh" | "en";
   quest2progress: (v: ConstQuestion) => ProgressKeyType;
@@ -477,7 +470,6 @@ const ZenTableComp = React.memo(
     language,
     tagLanguage,
     columnVisibility,
-    querySolution,
     quest2progress,
     handleProgressSelectChange,
   }: ZenTableCompProps) => {
@@ -514,10 +506,6 @@ const ZenTableComp = React.memo(
           },
           cell: (info) => {
             const item = info.row.original;
-            const soln = querySolution(item._hash.toString());
-            let link = soln
-              ? leetCodeSolutionUrl(soln.questSlug, soln.solnSlug, language)
-              : null;
             return (
               <div className="d-flex justify-content-between align-items-center">
                 {!!item.paid_only && <span>👑</span>}
@@ -539,15 +527,6 @@ const ZenTableComp = React.memo(
                     >
                       <ShareIcon height={16} width={16} />
                     </a>
-                  )}
-                </div>
-                <div>
-                  {link && (
-                    <span className="zen-ans">
-                      <a href={link} target="_blank" rel="noreferrer">
-                        🎈
-                      </a>
-                    </span>
                   )}
                 </div>
               </div>

@@ -1,31 +1,21 @@
 import RatingCircle, { COLORS } from "@components/RatingCircle";
 import { QuestionType } from "@hooks/useContests";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
-import { SolutionType } from "@hooks/useSolutions";
-import { leetCodeProblemUrl, leetCodeSolutionUrl } from "@utils/leetcodeLinks";
+import { leetCodeProblemUrl } from "@utils/leetcodeLinks";
 import clsx from "clsx";
-import React, { useEffect, useState } from "react";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Popover from "react-bootstrap/Popover";
-import Spinner from "react-bootstrap/Spinner";
 
 interface ProblemCellProps {
   question: QuestionType;
-  solution: SolutionType;
 }
 
-function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
+function ProblemCell({ question: que }: ProblemCellProps) {
   const { language } = useLeetCodeLanguage();
   let link = leetCodeProblemUrl(que.title_slug, language);
   let rating = que.rating;
   let idx = COLORS.findIndex((v) => rating >= v.l && rating <= v.r);
   let placement = `${rating}`;
-
-  const [display, setDisplay] = useState(true);
-
-  useEffect(() => {
-    setTimeout(() => setDisplay(false), 5000);
-  });
 
   return (
     <div>
@@ -58,43 +48,6 @@ function ProblemCell({ question: que, solution: soln }: ProblemCellProps) {
       >
         {que.question_id}.{que.title}
       </a>
-      {soln && (
-        <div className="fr-wrapper">
-          <OverlayTrigger
-            trigger={["hover", "focus"]}
-            key={placement}
-            placement={"bottom"}
-            overlay={
-              <Popover id={`popover-positioned-${placement}`}>
-                <Popover.Body
-                  className={clsx(`rating-color-${idx}`, "ff-st")}
-                  style={{ fontSize: "1rem" }}
-                >
-                  {soln.solnTitle}
-                </Popover.Body>
-              </Popover>
-            }
-          >
-            <a
-              className="fr ans"
-              href={leetCodeSolutionUrl(
-                soln.questSlug,
-                soln.solnSlug,
-                language,
-              )}
-              target="_blank"
-              rel="noreferrer"
-            >
-              🎈
-            </a>
-          </OverlayTrigger>
-        </div>
-      )}
-      {!soln && display && (
-        <div className="fr-wrapper zen-spinner-td">
-          <Spinner animation="border" size="sm" role="status" />
-        </div>
-      )}
     </div>
   );
 }

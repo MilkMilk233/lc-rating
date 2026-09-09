@@ -8,12 +8,10 @@ import {
   useQuestProgress,
 } from "@hooks/useProgress";
 import { useQuestionTags } from "@hooks/useQuestionTags";
-import { useSolutions } from "@hooks/useSolutions";
 import { useZen } from "@hooks/useZen";
 import {
   leetCodeContestUrl,
   leetCodeProblemUrl,
-  leetCodeSolutionUrl,
 } from "@utils/leetcodeLinks";
 import {
   STATUS_XP,
@@ -27,7 +25,6 @@ import { CSSProperties, useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
   LuArrowUpRight,
-  LuBookOpen,
   LuCheck,
   LuLightbulb,
   LuPartyPopper,
@@ -46,7 +43,6 @@ const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
 export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
-  const { solutions } = useSolutions();
   const { language } = useLeetCodeLanguage();
   const { allProgress, updateProgress, removeProgress } = useQuestProgress();
   const { optionKeys, getOption } = useProgressOptions();
@@ -255,10 +251,6 @@ export default function Recommend() {
     const question = current.question;
     const badge = POOL_BADGE[current.pool];
     const tags = questionTags[String(question._hash)]?.[1] ?? [];
-    const solution = solutions[String(question._hash)];
-    const solutionUrl = solution
-      ? leetCodeSolutionUrl(solution.questSlug, solution.solnSlug, language)
-      : null;
 
     return (
       <section
@@ -320,17 +312,6 @@ export default function Recommend() {
             <span>去做题</span>
             <LuArrowUpRight aria-hidden size={18} />
           </a>
-          {solutionUrl && (
-            <a
-              className="duo-btn-outline"
-              href={solutionUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <LuBookOpen aria-hidden size={18} />
-              <span>看 0x3f 题解</span>
-            </a>
-          )}
           <button type="button" className="duo-btn-ghost" onClick={handleSkip}>
             <LuShuffle aria-hidden size={17} />
             <span>换一道</span>

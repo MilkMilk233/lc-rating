@@ -83,9 +83,6 @@ a:hover {
 #nav-tr {
   color: #513ff7;
 }
-#nav-0x3f {
-  color: #a41eae;
-}
 #nav-pg {
   color: #ffa246;
 }
@@ -93,7 +90,7 @@ a:hover {
   color:#EA3323;
 }
 
-#nav-cl,#nav-tr,#nav-0x3f,#nav-pg,#nav-pl {
+#nav-cl,#nav-tr,#nav-pg,#nav-pl {
   font-weight: 700;
   background: white;
 }
@@ -207,32 +204,8 @@ td,
   white-space: nowrap;
   text-overflow: ellipsis;
   position: relative;
-
-  .fr-wrapper {
-    top: .5rem;
-    right: 0.5rem;
-    position: absolute;
-  }
-
-  .fr {
-    position: relative;
-    right: 0;
-    color: rgb(49, 200, 49);
-    font-weight: 900;
-    font-family: 'Courier New', Courier, monospace;
-  }
 }
 
-
-.ans {
-  color: black!important;
-  font-size: 1.5rem!important;
-  font-weight: normal;
-  text-decoration: none;
-  &:hover {
-    transform: scale(1.2);
-  }
-}
 
 .link {
   text-decoration: underline!important;

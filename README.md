@@ -8,7 +8,6 @@ This fork keeps the older Bootstrap-style interface and removes the newer app, c
 
 - Contest list with Q1-Q4 problem ratings.
 - Difficulty practice page at `/zen`.
-- 0x3F solution search at `/search`.
 - Topic study lists under `/list/*`.
 - Local progress labels and customizable progress options.
 - Manual local progress export/import in site settings.
@@ -61,7 +60,7 @@ pnpm --filter lc-rating-v0 build
 
 Deploy the repository root. `vercel.json` runs `pnpm build` and publishes `apps/v0/out`.
 
-The site is served at `/`, so static files are loaded from root paths such as `/contest.json` and `/solutions.json`.
+The site is served at `/`, so static files are loaded from root paths such as `/contest.json`.
 
 ## Data Policy
 

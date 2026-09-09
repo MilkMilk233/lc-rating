@@ -6,7 +6,6 @@ This is the only app in the fork. It preserves the older LC-Rating UI and runs a
 
 - `/` contest list
 - `/zen` difficulty practice
-- `/search` 0x3F solution search
 - `/list/slide_window`
 - `/list/binary_search`
 - `/list/monotonic_stack`

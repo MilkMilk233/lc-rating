@@ -4,8 +4,6 @@ import ThemeSwitchButton from "@components/ThemeSwitchButton";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { loadContests } from "@hooks/useContests";
 import { loadQuestionTags } from "@hooks/useQuestionTags";
-import { loadSolutions } from "@hooks/useSolutions";
-import { loadTags } from "@hooks/useTags";
 import { useTheme } from "@hooks/useTheme";
 import { loadZen } from "@hooks/useZen";
 import Link from "next/link";
@@ -16,7 +14,6 @@ import {
   LuBookOpen,
   LuListChecks,
   LuMedal,
-  LuSearch,
   LuSparkles,
   LuTarget,
   LuTrophy,
@@ -87,18 +84,11 @@ export default function () {
       router.prefetch(href);
       if (href === "/") {
         void loadContests();
-        void loadSolutions();
-      } else if (href === "/search") {
-        void loadSolutions();
-        void loadTags();
-        void loadQuestionTags();
       } else if (href === "/zen") {
         void loadZen();
-        void loadSolutions();
         void loadQuestionTags();
       } else if (href === "/recommend") {
         void loadZen();
-        void loadSolutions();
         void loadQuestionTags();
       } else if (href === "/profile") {
         void loadZen();
@@ -117,7 +107,6 @@ export default function () {
     { href: "/", label: "竞赛列表", icon: LuTrophy },
     { href: "/zen", label: "难度练习", icon: LuTarget },
     { href: "/recommend", label: "推荐刷题", icon: LuSparkles },
-    { href: "/search", label: "题解搜索", icon: LuSearch },
   ];
 
   return (

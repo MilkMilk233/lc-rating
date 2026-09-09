@@ -31,23 +31,6 @@
     vertical-align: middle;
     text-align: left;
   }
-
-  .zen-spinner-td {
-    text-align: center;
-  }
-
-  .zen-ans {
-    a {
-      color: var(--app-accent-strong) !important;
-      font-size: 1.2rem !important;
-      font-weight: normal;
-      text-decoration: none;
-
-      &:hover {
-        color: var(--app-accent);
-      }
-    }
-  }
 }
 
 .zen-filter-dialog {

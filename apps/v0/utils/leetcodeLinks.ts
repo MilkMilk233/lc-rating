@@ -17,17 +17,6 @@ export function leetCodeContestUrl(slug: string, language: LeetCodeLanguage) {
   return `${leetCodeHost(language)}/contest/${slug}`;
 }
 
-export function leetCodeSolutionUrl(
-  problemSlug: string,
-  solutionSlug: string | undefined,
-  language: LeetCodeLanguage
-) {
-  if (language === "cn" && solutionSlug) {
-    return `${leetCodeHost(language)}/problems/${problemSlug}/solution/${solutionSlug}`;
-  }
-  return leetCodeProblemUrl(problemSlug, language);
-}
-
 export function translateLeetCodeUrl(
   url: string | undefined,
   language: LeetCodeLanguage

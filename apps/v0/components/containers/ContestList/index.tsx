@@ -33,7 +33,6 @@ import {
 import { rankItem } from "@tanstack/match-sorter-utils";
 
 import { Contest, useContests } from "@hooks/useContests";
-import { useSolutions } from "@hooks/useSolutions";
 import useStorage from "@hooks/useStorage";
 
 import Container from "react-bootstrap/esm/Container";
@@ -67,8 +66,6 @@ const fuzzyFilter: FilterFn<Contest> = (row, columnId, value, addMeta) => {
 };
 
 function ContestList() {
-  const { solutions } = useSolutions();
-
   const { contests, isPending: loading } = useContests();
 
   const [size, setSize] = useStorage<string>("__size", {
@@ -111,12 +108,7 @@ function ContestList() {
       size: 365,
       cell: (info) => {
         const question = info.row.original[id];
-        return (
-          <ProblemCell
-            question={question}
-            solution={solutions[question._hash]}
-          />
-        );
+        return <ProblemCell question={question} />;
       },
       footer: (info) => info.column.id,
     });
@@ -260,7 +252,7 @@ function ContestList() {
           <p className="eyebrow">Contest archive</p>
           <h1 className="page-title">竞赛题目评级</h1>
           <p className="page-description">
-            冻结的本地题库，按周赛/双周赛浏览 A-D 题的难度和题解。
+            冻结的本地题库，按周赛/双周赛浏览 A-D 题的难度。
           </p>
         </div>
         <div className="metric-strip">
