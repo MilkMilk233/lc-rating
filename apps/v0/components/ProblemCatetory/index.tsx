@@ -1,6 +1,5 @@
 import { hashCode } from "@utils/hash";
 import ProblemCategoryList from "./ProblemCategoryList";
-import { useProgressOptions, useQuestProgress } from "@hooks/useProgress";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { translateLeetCodeHtml } from "@utils/leetcodeLinks";
 
@@ -41,8 +40,6 @@ function ProblemCategory({
   showPremium,
 }: ProblemCategoryProps) {
   const { language } = useLeetCodeLanguage();
-  const { optionKeys, getOption } = useProgressOptions();
-  const { allProgress, updateProgress, removeProgress } = useQuestProgress();
 
   return (
     <div className={`pb-container level-${level}` + className}>
@@ -68,11 +65,6 @@ function ProblemCategory({
               <div key={hashCode(item.title || "") + "head"}>
                 {item.leafChild.length > 0 ? (
                   <ProblemCategoryList
-                  optionKeys={optionKeys}
-                  getOption={getOption}
-                  allProgress={allProgress}
-                  updateProgress={updateProgress}
-                  removeProgress={removeProgress}
                   showEn={showEn}
                   showRating={showRating}
                   showPremium={showPremium}

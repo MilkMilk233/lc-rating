@@ -33,6 +33,21 @@
   }
 }
 
+.zen-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.zen-due {
+  padding: .05rem .35rem;
+  border-radius: 999px;
+  background: var(--app-warn);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 850;
+}
+
 .zen-filter-dialog {
   margin-top: 5% !important;
 

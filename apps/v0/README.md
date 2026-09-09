@@ -25,7 +25,7 @@ Static JSON data lives in `public/` and is loaded from root paths such as `/cont
 
 ## Local Progress
 
-Progress is stored in browser localStorage. The settings modal includes a local backup/import page for manually copying progress JSON. There is no login, backend, or cloud sync.
+Progress is stored in browser localStorage as an append-only attempt log (v2). Each attempt records the outcome, felt-difficulty band, independence, and a timestamp; review dates, streaks and statistics are derived from it. The settings modal includes a local backup/import page for manually copying the log JSON. There is no login, backend, or cloud sync.
 
 ## Commands
 

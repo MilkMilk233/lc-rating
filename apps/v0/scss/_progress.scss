@@ -1,0 +1,306 @@
+// Progress record panel (components/ProgressRecordPanel).
+// Used inside the recommendation card and the Zen row popover.
+
+.prp {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+}
+
+.prp-head {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  margin-bottom: .5rem;
+}
+
+.prp-kicker {
+  color: var(--app-muted);
+  font-size: .72rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.prp-title {
+  overflow: hidden;
+  color: var(--app-text);
+  font-size: .9rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.prp-question {
+  margin: 0 0 .6rem;
+  color: var(--app-text);
+  font-size: .98rem;
+  font-weight: 850;
+}
+
+.prp-required {
+  margin-left: .4rem;
+  color: var(--app-muted);
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.prp-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+
+  &.column {
+    flex-direction: column;
+  }
+}
+
+.prp-choice {
+  display: inline-flex;
+  flex: 1 1 10rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .8rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  font-size: .95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .08s ease, border-color .15s ease, background .15s ease;
+
+  &:hover {
+    border-color: var(--app-accent);
+  }
+
+  &:active {
+    transform: translateY(2px);
+  }
+
+  &.primary {
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+  }
+}
+
+.prp-bands {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: .5rem;
+}
+
+.prp-band {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .15rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  cursor: pointer;
+  transition: transform .08s ease, border-color .15s ease, background .15s ease;
+
+  &:hover {
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+  }
+
+  &:active {
+    transform: translateY(2px);
+  }
+}
+
+.prp-band-label {
+  font-size: .9rem;
+  font-weight: 850;
+}
+
+.prp-band-hint {
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.prp-independence {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  margin-top: .7rem;
+}
+
+.prp-toggle {
+  padding: .3rem .7rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--app-muted);
+  font-size: .82rem;
+  font-weight: 800;
+  cursor: pointer;
+
+  &.active {
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+    color: var(--app-text);
+  }
+}
+
+.prp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-top: .85rem;
+}
+
+.prp-back {
+  padding: .25rem .5rem;
+  border: 0;
+  background: transparent;
+  color: var(--app-muted);
+  font-size: .82rem;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--app-text);
+  }
+}
+
+.prp-note {
+  color: var(--app-muted);
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.prp kbd {
+  padding: .05rem .35rem;
+  border: 1px solid var(--app-border);
+  border-radius: 5px;
+  background: var(--app-surface);
+  color: var(--app-muted);
+  font-family: inherit;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+// Topic-list rows (ProblemCategoryList): current-state chip + inline panel.
+.pc-item {
+  flex-direction: column;
+  align-items: stretch;
+  padding: .15rem 0;
+}
+
+.pc-state {
+  padding: .15rem .5rem;
+  border: 1px dashed var(--app-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--app-muted);
+  font-size: .75rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--app-accent);
+    color: var(--app-text);
+  }
+
+  &.recorded {
+    border-style: solid;
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+    color: var(--app-text);
+  }
+
+  &.open {
+    border-color: var(--app-accent);
+  }
+}
+
+.pc-panel {
+  margin: .5rem 0 .6rem;
+}
+
+// Record manager modal (Profile > 记录管理).
+.history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  margin-bottom: .75rem;
+}
+
+.history-search {
+  flex: 1 1 14rem;
+}
+
+.history-select {
+  flex: 0 1 12rem;
+}
+
+.history-all {
+  white-space: nowrap;
+}
+
+.history-list {
+  max-height: 60vh;
+  overflow: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: 2.2rem 9.5rem 4.5rem minmax(8rem, 1fr) minmax(9rem, 1.2fr) 4.5rem;
+  gap: .5rem;
+  align-items: center;
+  padding: .4rem .6rem;
+  border-bottom: 1px solid var(--app-border);
+  font-size: .85rem;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &.selected {
+    background: var(--app-accent-soft);
+  }
+}
+
+.history-time {
+  color: var(--app-muted);
+  white-space: nowrap;
+}
+
+.history-qid {
+  font-weight: 850;
+}
+
+.history-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-state {
+  color: var(--app-muted);
+  white-space: nowrap;
+}
+
+.history-src {
+  color: var(--app-muted);
+  font-size: .75rem;
+}
+
+.history-count {
+  margin-right: auto;
+  color: var(--app-muted);
+  font-size: .85rem;
+}

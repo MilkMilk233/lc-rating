@@ -35,6 +35,7 @@ Run from the repo root unless noted.
 
 ## Progress Storage
 - User progress must remain local-only in browser `localStorage`.
+- Progress is an append-only attempt log; review dates, streaks, XP and statistics are derived at read time and must not be persisted separately.
 - Do not add login, auth tokens, cloud sync, or backend progress APIs.
 - Manual export/import of progress JSON in settings is acceptable because it stays user-controlled and local.
 

@@ -1,102 +1,103 @@
-import { ProgressKeyType, useQuestProgress } from "@hooks/useProgress";
-import debounce from "@utils/debounce";
-import React, { useEffect, useMemo, useState } from "react";
+import { useProgressStore } from "@hooks/useProgressStore";
+import { useMemo, useState } from "react";
 import { Alert, Button, Form } from "react-bootstrap";
 
+type Status =
+  | { kind: "idle" }
+  | { kind: "ok"; text: string }
+  | { kind: "error"; text: string };
+
 export default function LocalProgress() {
-  const [syncStatus, setSyncStatus] = useState<
-    "idle" | "fetched" | "set" | "error"
-  >("idle");
+  const { store, exportData, importData } = useProgressStore();
   const [inputData, setInputData] = useState("");
-  const { allProgress, setAllProgress } = useQuestProgress();
+  const [status, setStatus] = useState<Status>({ kind: "idle" });
 
-  const allProgressStr = useMemo(
-    () => JSON.stringify(allProgress, null, 2),
-    [allProgress],
-  );
+  const summary = useMemo(() => {
+    const solved = store.events.filter(
+      (event) => event.type === "attempt" && event.outcome === "solved",
+    ).length;
+    const gaveup = store.events.filter(
+      (event) => event.type === "attempt" && event.outcome === "gaveup",
+    ).length;
+    return `共 ${store.events.length} 条记录（做出来 ${solved} · 没做出来 ${gaveup}）`;
+  }, [store]);
 
-  const onFetchClick = () => {
-    setInputData(allProgressStr);
-    setSyncStatus("fetched");
+  const onExport = () => {
+    setInputData(exportData());
+    setStatus({ kind: "idle" });
   };
 
-  const onSaveClick = () => {
-    try {
-      const parsedData = JSON.parse(inputData) as Record<
-        string,
-        ProgressKeyType
-      >;
-      setAllProgress(parsedData);
-      setSyncStatus("set");
-    } catch (error) {
-      console.error(
-        `Error handling Set AllProgress: ` +
-          (error instanceof Error ? error.message : error),
-      );
-      setSyncStatus("error");
+  const onCopy = () => {
+    navigator.clipboard.writeText(inputData || exportData());
+  };
+
+  const onDownload = () => {
+    const blob = new Blob([exportData()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lc-rating-progress-${new Date()
+      .toISOString()
+      .slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const onImport = () => {
+    const result = importData(inputData);
+    if (!result.ok) {
+      setStatus({ kind: "error", text: result.error ?? "导入失败" });
+      return;
     }
+    const parts = [`新增 ${result.imported} 条`];
+    if (result.duplicates > 0) parts.push(`跳过重复 ${result.duplicates} 条`);
+    if (result.invalid > 0) parts.push(`忽略无效 ${result.invalid} 条`);
+    setStatus({ kind: "ok", text: `导入完成：${parts.join("，")}` });
   };
-
-  const onCopyClick = () => {
-    navigator.clipboard.writeText(allProgressStr);
-  };
-
-  const [windowHeight, setWindowHeight] = useState(720);
-
-  useEffect(() => {
-    setWindowHeight(window.innerHeight);
-    const onResize = debounce(() => {
-      setWindowHeight(window.innerHeight);
-    }, 100);
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      window.removeEventListener("resize", onResize);
-    };
-  }, []);
 
   return (
     <div>
-      <Button onClick={onFetchClick}>导出本地进度</Button>
-      {syncStatus === "fetched" && (
-        <div className="mt-3 position-relative">
-          <Form.Control
-            as="textarea"
-            rows={windowHeight / 100}
-            value={allProgressStr}
-            readOnly
-            disabled
-          />
-          <Button
-            variant="link"
-            className="position-absolute top-0 end-0 p-2"
-            onClick={onCopyClick}
-            title="Copy to clipboard"
-          >
-            📋
-          </Button>
-        </div>
-      )}
-      <Form.Group className="mt-3">
-        <Form.Label>导入进度数据:</Form.Label>
+      <p className="text-muted mb-3" style={{ fontSize: ".9rem" }}>
+        {summary}
+      </p>
+
+      <div className="d-flex flex-wrap gap-2">
+        <Button onClick={onExport}>导出到文本框</Button>
+        <Button variant="outline-secondary" onClick={onDownload}>
+          下载 JSON 文件
+        </Button>
+        <Button
+          variant="outline-secondary"
+          onClick={onCopy}
+          disabled={!inputData}
+        >
+          复制到剪贴板
+        </Button>
+      </div>
+
+      <Form.Group className="mt-3 position-relative">
+        <Form.Label>进度数据（可复制到另一台设备）</Form.Label>
         <Form.Control
           as="textarea"
-          rows={windowHeight / 100}
+          rows={10}
           value={inputData}
-          onChange={(e) => setInputData(e.target.value)}
+          onChange={(event) => setInputData(event.target.value)}
+          placeholder="点击上方按钮导出，或粘贴另一台设备导出的 JSON 后点「导入」"
         />
       </Form.Group>
-      <Button onClick={onSaveClick} className="mt-2">
-        导入题目进度
+
+      <Button onClick={onImport} className="mt-2" disabled={!inputData.trim()}>
+        导入
       </Button>
-      {syncStatus === "set" && (
+
+      {status.kind === "ok" && (
         <Alert variant="success" className="mt-2">
-          题目进度导入成功
+          {status.text}
         </Alert>
       )}
-      {syncStatus === "error" && (
+      {status.kind === "error" && (
         <Alert variant="danger" className="mt-2">
-          题目进度导入失败
+          {status.text}
         </Alert>
       )}
     </div>

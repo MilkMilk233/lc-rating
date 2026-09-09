@@ -1,6 +1,4 @@
-import { BiSolidCustomize } from "react-icons/bi";
 import { LuArrowUpDown } from "react-icons/lu";
-import CustomizeOptions from "./settingPages/CustomizeOptions";
 import LocalProgress from "./settingPages/LocalProgress";
 
 export type SettingTabType = {
@@ -16,11 +14,5 @@ export const setting_tabs: SettingTabType[] = [
     title: "备份与导入进度",
     icon: <LuArrowUpDown />,
     component: <LocalProgress />,
-  },
-  {
-    key: "CustomizeOptions",
-    title: "自定义进度选项",
-    icon: <BiSolidCustomize />,
-    component: <CustomizeOptions />,
   },
 ];

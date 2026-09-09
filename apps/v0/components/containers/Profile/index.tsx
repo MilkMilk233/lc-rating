@@ -3,24 +3,24 @@
 import { ColorRating } from "@components/RatingCircle";
 import Sidebar from "@components/SettingsPanel/Sidebar";
 import { setting_tabs } from "@components/SettingsPanel/config";
+import { useProgressStore } from "@hooks/useProgressStore";
 import {
-  ProgressKeyType,
-  useProgressOptions,
-  useQuestProgress,
-} from "@hooks/useProgress";
+  activeDates,
+  dayKey,
+  lastNDays,
+  streakDays,
+} from "@hooks/useProgressStore/derive";
+import { isDue } from "@hooks/useProgressStore/srs";
 import { useQuestionTags } from "@hooks/useQuestionTags";
-import useStorage from "@hooks/useStorage";
 import { useZen } from "@hooks/useZen";
 import {
   RATING_BANDS,
-  STATUS_XP,
-  bandFor,
-  displayOptionLabel,
   estimateStrength,
+  xpForAttempt,
 } from "@utils/practice";
 import clsx from "clsx";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Container, Modal } from "react-bootstrap";
 import type { IconType } from "react-icons";
 import {
@@ -45,65 +45,15 @@ import {
   LuTrophy,
   LuZap,
 } from "react-icons/lu";
+import HistoryModal from "./HistoryModal";
 
-type ProgressHistoryEntry = {
-  date: string;
-  marked: number;
-  ac: number;
-  working: number;
-  review: number;
-  hard: number;
-};
-
-const HISTORY_KEY = "lc-rating-progress-history";
 const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
 const XP_PER_LEVEL = 120;
-
-const formatDay = (date: Date) => {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const sameSnapshot = (
-  entry: ProgressHistoryEntry | undefined,
-  snapshot: ProgressHistoryEntry,
-) => {
-  return (
-    entry?.date === snapshot.date &&
-    entry.marked === snapshot.marked &&
-    entry.ac === snapshot.ac &&
-    entry.working === snapshot.working &&
-    entry.review === snapshot.review &&
-    entry.hard === snapshot.hard
-  );
-};
 
 const diffDays = (a: string, b: string) => {
   const start = new Date(`${a}T00:00:00`).getTime();
   const end = new Date(`${b}T00:00:00`).getTime();
   return Math.round((end - start) / 86400000);
-};
-
-const countsChanged = (
-  prev: ProgressHistoryEntry,
-  next: ProgressHistoryEntry,
-) => {
-  return (
-    prev.marked !== next.marked ||
-    prev.ac !== next.ac ||
-    prev.working !== next.working ||
-    prev.review !== next.review ||
-    prev.hard !== next.hard
-  );
-};
-
-// A day only counts as "active" when progress actually changed that day,
-// so the streak measures real practice instead of page visits.
-const isActiveDay = (entries: ProgressHistoryEntry[], index: number) => {
-  if (index === 0) return entries[0].marked > 0;
-  return countsChanged(entries[index - 1], entries[index]);
 };
 
 type Tone = "green" | "blue" | "orange" | "gold" | "purple" | "red";
@@ -120,66 +70,24 @@ type Achievement = {
 export default function Profile() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
-  const { allProgress } = useQuestProgress();
-  const { optionKeys, getOption } = useProgressOptions();
+  const { derived } = useProgressStore();
   const [activeTab, setActiveTab] = useState(setting_tabs[0].key);
   const [showTagBoard, setShowTagBoard] = useState(false);
-  const [history = [], setHistory] = useStorage<ProgressHistoryEntry[]>(
-    HISTORY_KEY,
-    {
-      defaultValue: [],
-    },
-  );
-
-  const counts = useMemo(() => {
-    const base = optionKeys.reduce<Record<string, number>>((acc, key) => {
-      acc[key] = 0;
-      return acc;
-    }, {});
-
-    Object.values(allProgress).forEach((progress) => {
-      base[progress] = (base[progress] || 0) + 1;
-    });
-
-    return base;
-  }, [allProgress, optionKeys]);
-
-  const snapshot = useMemo<ProgressHistoryEntry>(() => {
-    return {
-      date: formatDay(new Date()),
-      marked: Object.keys(allProgress).length,
-      ac: counts.AC || 0,
-      working: counts.WORKING || 0,
-      review: counts.REVIEW_NEEDED || 0,
-      hard: counts.TOO_HARD || 0,
-    };
-  }, [allProgress, counts]);
-
-  useEffect(() => {
-    setHistory((current = []) => {
-      const existing = current || [];
-      const last = existing[existing.length - 1];
-
-      if (sameSnapshot(last, snapshot)) {
-        return current;
-      }
-
-      if (last?.date === snapshot.date) {
-        return [...existing.slice(0, -1), snapshot];
-      }
-
-      return [...existing, snapshot].slice(-90);
-    });
-  }, [snapshot, setHistory]);
+  const [showHistory, setShowHistory] = useState(false);
 
   const ActiveSettings = setting_tabs.find(
     (tab) => tab.key === activeTab,
   )?.component;
 
-  const totalPool = Math.max(zen.length, snapshot.marked, 1);
-  const startedPercent = Math.round((snapshot.marked / totalPool) * 100);
+  const { daily, totals, currentByQid, currentSolved, events, scheduleByQid } =
+    derived;
 
-  // question_id -> { rating, hash }, used to join progress with difficulty
+  const today = dayKey(Date.now());
+  const activeSet = useMemo(() => activeDates(daily), [daily]);
+  const streak = useMemo(() => streakDays(daily, today), [daily, today]);
+  const todayActive = activeSet.has(today);
+
+  // question_id -> { rating, hash }, used to join attempts with difficulty
   // and topic tags.
   const zenById = useMemo(() => {
     const map = new Map<string, { rating: number; hash: string }>();
@@ -192,32 +100,39 @@ export default function Profile() {
     return map;
   }, [zen]);
 
-  // XP is re-derived from the full progress map, so it is monotonic:
-  // new marks only ever add XP, and levels never drop.
-  const { xp, acRatings } = useMemo(() => {
+  const questionById = useMemo(() => {
+    const map = new Map<string, { title: string; rating: number }>();
+    zen.forEach((question) => {
+      map.set(String(question.question_id), {
+        title: question.title,
+        rating: question.rating,
+      });
+    });
+    return map;
+  }, [zen]);
+
+  // XP accumulates over the whole log, so honest effort always earns something.
+  const { xp, soloRatings, maxSolvedRating } = useMemo(() => {
     let total = 0;
     const ratings: number[] = [];
-    Object.entries(allProgress).forEach(([questID, status]) => {
-      if (status === "AC") {
-        const rating = zenById.get(questID)?.rating;
-        if (rating == null) {
-          total += RATING_BANDS[0].xp;
-        } else {
-          total += bandFor(rating).xp;
-          ratings.push(rating);
-        }
-      } else if (status === "WORKING") {
-        total += STATUS_XP.WORKING;
-      } else if (status === "REVIEW_NEEDED") {
-        total += STATUS_XP.REVIEW_NEEDED;
-      } else if (status === "TOO_HARD") {
-        total += STATUS_XP.TOO_HARD;
-      } else {
-        total += STATUS_XP.CUSTOM;
-      }
+
+    events.forEach((event) => {
+      if (event.type !== "attempt") return;
+      total += xpForAttempt(event, zenById.get(event.qid)?.rating);
     });
-    return { xp: total, acRatings: ratings };
-  }, [allProgress, zenById]);
+
+    currentSolved.forEach((attempt) => {
+      if (attempt.independence !== "solo") return;
+      const rating = zenById.get(attempt.qid)?.rating;
+      if (rating != null) ratings.push(rating);
+    });
+
+    return {
+      xp: total,
+      soloRatings: ratings,
+      maxSolvedRating: ratings.length > 0 ? Math.max(...ratings) : 0,
+    };
+  }, [events, currentSolved, zenById]);
 
   const level = Math.max(1, Math.floor(xp / XP_PER_LEVEL) + 1);
   const levelStart = (level - 1) * XP_PER_LEVEL;
@@ -227,56 +142,60 @@ export default function Profile() {
     Math.round(((xp - levelStart) / XP_PER_LEVEL) * 100),
   );
 
-  const maxAcRating = acRatings.length > 0 ? Math.max(...acRatings) : 0;
-
-  // Capability estimate: average of the user's top-quartile AC ratings.
+  // Capability estimate: average of the user's top-quartile solo solves.
   // Used only for guidance ("which band fits you"), never to reduce XP.
-  const suggestedRating = useMemo(() => estimateStrength(acRatings), [acRatings]);
+  const suggestedRating = useMemo(
+    () => estimateStrength(soloRatings),
+    [soloRatings],
+  );
 
   const bandStats = useMemo(() => {
-    const stats = RATING_BANDS.map((band) => ({ ...band, ac: 0, total: 0 }));
+    const stats = RATING_BANDS.map((band) => ({ ...band, solved: 0, total: 0 }));
     zen.forEach((question) => {
       const band = stats.find(
         (item) => question.rating >= item.min && question.rating < item.max,
       );
       if (band) band.total += 1;
     });
-    acRatings.forEach((rating) => {
+    currentSolved.forEach((attempt) => {
+      const rating = zenById.get(attempt.qid)?.rating;
+      if (rating == null) return;
       const band = stats.find(
         (item) => rating >= item.min && rating < item.max,
       );
-      if (band) band.ac += 1;
+      if (band) band.solved += 1;
     });
     return stats.filter((band) => band.total > 0);
-  }, [zen, acRatings]);
+  }, [zen, currentSolved, zenById]);
 
-  // Weekly output: last 7 recorded days vs the 7 before that.
+  // Weekly output: last 7 calendar days vs the 7 before that.
   const weekly = useMemo(() => {
-    if (history.length < 2) return null;
-    const gains = history.map((entry, index) =>
-      index === 0 ? entry.ac : Math.max(0, entry.ac - history[index - 1].ac),
-    );
-    const last7 = gains.slice(-7).reduce((sum, gain) => sum + gain, 0);
-    const prev7 = gains.slice(-14, -7).reduce((sum, gain) => sum + gain, 0);
+    const days = lastNDays(daily, 14, today);
+    const last7 = days
+      .slice(7)
+      .reduce((sum, entry) => sum + entry.solved, 0);
+    const prev7 = days
+      .slice(0, 7)
+      .reduce((sum, entry) => sum + entry.solved, 0);
     return { last7, prev7 };
-  }, [history]);
+  }, [daily, today]);
 
-  // Topic radar: count ACs and struggles per Chinese tag name.
+  // Topic radar: count solves and struggles per Chinese tag name.
   const tagRadar = useMemo(() => {
     const strength = new Map<string, number>();
     const struggle = new Map<string, number>();
 
-    Object.entries(allProgress).forEach(([questID, status]) => {
-      const hash = zenById.get(questID)?.hash;
+    currentByQid.forEach((attempt, qid) => {
+      const hash = zenById.get(qid)?.hash;
       if (!hash) return;
       const zhTags = questionTags[hash]?.[1];
       if (!zhTags) return;
 
-      if (status === "AC") {
+      if (attempt.outcome === "solved") {
         zhTags.forEach((tag) =>
           strength.set(tag, (strength.get(tag) || 0) + 1),
         );
-      } else if (status === "TOO_HARD" || status === "REVIEW_NEEDED") {
+      } else {
         zhTags.forEach((tag) =>
           struggle.set(tag, (struggle.get(tag) || 0) + 1),
         );
@@ -294,56 +213,35 @@ export default function Profile() {
       struggles: top(struggle, 2, 10),
       preview: top(strength, 2, 3),
     };
-  }, [allProgress, zenById, questionTags]);
+  }, [currentByQid, zenById, questionTags]);
 
-  // One nudge at a time: unfinished business first, then the next frontier.
+  const dueCount = useMemo(() => {
+    const now = Date.now();
+    let count = 0;
+    scheduleByQid.forEach((schedule) => {
+      if (isDue(schedule, now)) count += 1;
+    });
+    return count;
+  }, [scheduleByQid]);
+
+  // One nudge at a time: due reviews first, then unfinished business.
   const nudge = useMemo(() => {
-    const hard = counts.TOO_HARD || 0;
-    const review = counts.REVIEW_NEEDED || 0;
-    if (hard > 0 && review > 0) {
-      return `有 ${hard} 道「太难了」、${review} 道「回头复习」——今天挑一道回炉？`;
+    if (dueCount > 0) {
+      return `有 ${dueCount} 道题今天到期，先复习再开新题？`;
     }
-    if (review > 0) return `有 ${review} 道题在等你回头复习，今天挑一道？`;
-    if (hard > 0) return `有 ${hard} 道题标记了「太难了」，换个思路再战一次？`;
-    if (snapshot.ac > 0) {
-      const next = bandStats.find((band) => band.ac < band.total);
+    if (totals.gaveup > 0) {
+      return `有 ${totals.gaveup} 道题还没拿下，换个思路再战一次？`;
+    }
+    if (totals.solved > 0) {
+      const next = bandStats.find((band) => band.solved < band.total);
       if (next) {
         return `状态不错！下一关：「${next.label} ${next.range}」，还剩 ${
-          next.total - next.ac
+          next.total - next.solved
         } 道等你征服。`;
       }
     }
     return null;
-  }, [counts, snapshot.ac, bandStats]);
-
-  const activeDates = useMemo(() => {
-    const dates = new Set<string>();
-    history.forEach((entry, index) => {
-      if (isActiveDay(history, index)) dates.add(entry.date);
-    });
-    return dates;
-  }, [history]);
-
-  const todayActive = activeDates.has(snapshot.date);
-
-  const streak = useMemo(() => {
-    if (history.length === 0) return 0;
-
-    let end = history.length - 1;
-    // Today still counts as "pending": judge the streak from yesterday
-    // until practice actually happens today.
-    if (history[end].date === snapshot.date && !todayActive) {
-      end -= 1;
-    }
-
-    let count = 0;
-    for (let i = end; i >= 0; i -= 1) {
-      if (!activeDates.has(history[i].date)) break;
-      count += 1;
-      if (i > 0 && diffDays(history[i - 1].date, history[i].date) !== 1) break;
-    }
-    return count;
-  }, [history, activeDates, snapshot.date, todayActive]);
+  }, [dueCount, totals.gaveup, totals.solved, bandStats]);
 
   const weekDays = useMemo(() => {
     const now = new Date();
@@ -353,24 +251,18 @@ export default function Profile() {
     return WEEK_LABELS.map((label, index) => {
       const day = new Date(monday);
       day.setDate(monday.getDate() + index);
-      const key = formatDay(day);
+      const key = dayKey(day.getTime());
       return {
         key,
         label,
-        active: activeDates.has(key),
-        isToday: key === snapshot.date,
-        isFuture: diffDays(snapshot.date, key) > 0,
+        active: activeSet.has(key),
+        isToday: key === today,
+        isFuture: diffDays(today, key) > 0,
       };
     });
-  }, [activeDates, snapshot.date]);
+  }, [activeSet, today]);
 
-  const lastEntry = history[history.length - 1];
-  const todayEntry = lastEntry?.date === snapshot.date ? lastEntry : undefined;
-  const previousEntry = todayEntry ? history[history.length - 2] : lastEntry;
-  const todayGain = Math.max(
-    0,
-    snapshot.ac - (previousEntry?.ac ?? snapshot.ac),
-  );
+  const todayGain = daily.get(today)?.solved ?? 0;
 
   const heroTitle =
     streak > 0 ? `${streak} 天连胜` : todayActive ? "今日已打卡" : "点燃小火苗";
@@ -378,24 +270,24 @@ export default function Profile() {
     ? "今天的目标已经达成，小火苗烧得正旺。"
     : streak > 0
       ? "今天还没刷题，别让连胜的小火苗熄灭哦。"
-      : snapshot.marked > 0
+      : totals.marked > 0
         ? "今天完成一道题，重新开始你的连胜。"
-        : "标记或 AC 一道题，从今天开始记录。";
+        : "记录一道题，从今天开始积累。";
   const heroCta = todayActive
     ? "再刷一题"
-    : snapshot.marked === 0
+    : totals.marked === 0
       ? "去刷第一题"
       : "去刷一题";
 
   const stats: { icon: IconType; tone: Tone; label: string; value: number }[] =
     [
-      { icon: LuBadgeCheck, tone: "green", label: "已通过", value: snapshot.ac },
-      { icon: LuSwords, tone: "blue", label: "攻略中", value: snapshot.working },
+      { icon: LuBadgeCheck, tone: "green", label: "已解决", value: totals.solved },
+      { icon: LuSwords, tone: "blue", label: "没做出来", value: totals.gaveup },
       {
         icon: LuBookOpen,
         tone: "orange",
-        label: "待复习",
-        value: snapshot.review,
+        label: "今天到期",
+        value: dueCount,
       },
       { icon: LuSparkles, tone: "gold", label: "今日新增", value: todayGain },
     ];
@@ -405,33 +297,33 @@ export default function Profile() {
       icon: LuFootprints,
       tone: "blue",
       name: "迈出第一步",
-      desc: "标记第 1 道题",
+      desc: "记录第 1 道题",
       goal: 1,
-      value: snapshot.marked,
+      value: totals.marked,
     },
     {
       icon: LuBadgeCheck,
       tone: "green",
       name: "首开纪录",
-      desc: "AC 第 1 道题",
+      desc: "解决第 1 道题",
       goal: 1,
-      value: snapshot.ac,
+      value: totals.solved,
     },
     {
       icon: LuZap,
       tone: "green",
       name: "五题斩",
-      desc: "累计 AC 5 道题",
+      desc: "累计解决 5 道题",
       goal: 5,
-      value: snapshot.ac,
+      value: totals.solved,
     },
     {
       icon: LuMountain,
       tone: "purple",
       name: "挑战自我",
-      desc: "AC 一道 1600+ 的题",
+      desc: "解决一道 1600+ 的题",
       goal: 1,
-      value: maxAcRating >= 1600 ? 1 : 0,
+      value: maxSolvedRating >= 1600 ? 1 : 0,
     },
     {
       icon: LuFlame,
@@ -453,68 +345,69 @@ export default function Profile() {
       icon: LuStar,
       tone: "gold",
       name: "渐入佳境",
-      desc: "累计 AC 25 道题",
+      desc: "累计解决 25 道题",
       goal: 25,
-      value: snapshot.ac,
+      value: totals.solved,
     },
     {
       icon: LuGem,
       tone: "blue",
       name: "半百俱乐部",
-      desc: "累计 AC 50 道题",
+      desc: "累计解决 50 道题",
       goal: 50,
-      value: snapshot.ac,
+      value: totals.solved,
     },
     {
       icon: LuRocket,
       tone: "red",
       name: "登峰造极",
-      desc: "AC 一道 2100+ 的题",
+      desc: "解决一道 2100+ 的题",
       goal: 1,
-      value: maxAcRating >= 2100 ? 1 : 0,
+      value: maxSolvedRating >= 2100 ? 1 : 0,
     },
     {
       icon: LuCrown,
       tone: "gold",
       name: "百题斩",
-      desc: "累计 AC 100 道题",
+      desc: "累计解决 100 道题",
       goal: 100,
-      value: snapshot.ac,
+      value: totals.solved,
     },
   ];
   const unlockedCount = achievements.filter(
     (item) => item.value >= item.goal,
   ).length;
 
-  const preferredOrder = ["AC", "WORKING", "REVIEW_NEEDED", "TOO_HARD", "TODO"];
-  const orderedKeys = [
-    ...preferredOrder.filter((key) => optionKeys.includes(key)),
-    ...optionKeys.filter((key) => !preferredOrder.includes(key)),
-  ];
-  const segments = orderedKeys
-    .map((key) => {
-      const option = getOption(key as ProgressKeyType);
-      return {
-        key,
-        label: displayOptionLabel(key, option.label),
-        color: option.color,
-        count: counts[key] || 0,
-      };
-    })
-    .filter((item) => item.count > 0);
-  const unstarted = Math.max(0, totalPool - snapshot.marked);
+  const segments = [
+    {
+      key: "solved",
+      label: "已解决",
+      color: "var(--duo-green)",
+      count: totals.solved,
+    },
+    {
+      key: "gaveup",
+      label: "没做出来",
+      color: "var(--duo-orange)",
+      count: totals.gaveup,
+    },
+  ].filter((item) => item.count > 0);
+  const totalPool = Math.max(zen.length, totals.marked, 1);
+  const startedPercent = Math.round((totals.marked / totalPool) * 100);
+  const unstarted = Math.max(0, totalPool - totals.marked);
 
-  const recentHistory = history.slice(-14);
-  const maxMarked = Math.max(...recentHistory.map((item) => item.marked), 1);
+  const recentDays = useMemo(
+    () => lastNDays(daily, 14, today),
+    [daily, today],
+  );
+  const maxDaily = Math.max(...recentDays.map((item) => item.solved), 1);
 
   const weeklyTrend =
-    weekly == null
-      ? null
-      : weekly.last7 > weekly.prev7
-        ? { icon: LuTrendingUp, tone: "green" as Tone }
-        : weekly.last7 < weekly.prev7
-          ? { icon: LuTrendingDown, tone: "orange" as Tone }
-          : { icon: LuMinus, tone: "blue" as Tone };
+    weekly.last7 > weekly.prev7
+      ? { icon: LuTrendingUp, tone: "green" as Tone }
+      : weekly.last7 < weekly.prev7
+        ? { icon: LuTrendingDown, tone: "orange" as Tone }
+        : { icon: LuMinus, tone: "blue" as Tone };
 
   const maxTagStrength = Math.max(
     ...tagRadar.strengths.map(([, count]) => count),
@@ -607,28 +500,31 @@ export default function Profile() {
       <section className="duo-card">
         <header className="duo-card-head">
           <h2>最近 14 天</h2>
-          <span className="meta">累计标记题数</span>
+          <span className="meta">每天解决的题数</span>
         </header>
-        {recentHistory.length === 0 ? (
+        {recentDays.every((item) => item.solved === 0) ? (
           <div className="duo-empty">完成一道题，这里就会长出第一根柱子。</div>
         ) : (
           <div className="duo-chart">
-            {recentHistory.map((item) => {
-              const isToday = item.date === snapshot.date;
+            {recentDays.map((item) => {
+              const isToday = item.date === today;
               return (
                 <div
                   className={clsx("duo-chart-col", { today: isToday })}
                   key={item.date}
-                  title={`${item.date} · 累计标记 ${item.marked} 题`}
+                  title={`${item.date} · 解决 ${item.solved} 题`}
                 >
-                  <span className="duo-chart-val">{item.marked}</span>
+                  <span className="duo-chart-val">{item.solved}</span>
                   <div className="duo-chart-track">
                     <span
                       className={clsx("duo-chart-bar", {
                         gold: isToday && todayActive,
                       })}
                       style={{
-                        height: `${Math.max(6, (item.marked / maxMarked) * 100)}%`,
+                        height: `${Math.max(
+                          6,
+                          (item.solved / maxDaily) * 100,
+                        )}%`,
                       }}
                     />
                   </div>
@@ -644,7 +540,7 @@ export default function Profile() {
         <header className="duo-card-head">
           <h2>练习池进度</h2>
           <span className="meta">
-            {snapshot.marked} / {totalPool} · 已启动 {startedPercent}%
+            {totals.marked} / {totalPool} · 已启动 {startedPercent}%
           </span>
         </header>
         <div className="duo-stack" role="img" aria-label="练习池进度分布">
@@ -676,7 +572,7 @@ export default function Profile() {
         </div>
 
         <div className="duo-analytics">
-          {snapshot.ac > 0 ? (
+          {totals.solved > 0 ? (
             <div className="duo-bands">
               <div className="duo-subhead">
                 难度攻克
@@ -699,8 +595,8 @@ export default function Profile() {
                       <span
                         style={{
                           width: `${Math.max(
-                            band.ac > 0 ? 4 : 0,
-                            (band.ac / band.total) * 100,
+                            band.solved > 0 ? 4 : 0,
+                            (band.solved / band.total) * 100,
                           )}%`,
                           background: band.color,
                         }}
@@ -708,7 +604,7 @@ export default function Profile() {
                     </div>
                     <div className="duo-band-meta">
                       <span>
-                        <strong>{band.ac}</strong>/{band.total}
+                        <strong>{band.solved}</strong>/{band.total}
                       </span>
                       <span className="duo-band-xp">+{band.xp} XP/题</span>
                     </div>
@@ -718,28 +614,28 @@ export default function Profile() {
             </div>
           ) : (
             <div className="duo-teaser">
-              AC 第一道题，这里会画出你的难度攻克图。
+              解决第一道题，这里会画出你的难度攻克图。
             </div>
           )}
 
-          {maxAcRating > 0 || (weekly && weekly.last7 > 0) ? (
+          {maxSolvedRating > 0 || weekly.last7 > 0 ? (
             <div className="duo-records">
-              {maxAcRating > 0 && (
+              {maxSolvedRating > 0 && (
                 <div className="duo-record">
                   <span className="duo-chip gold">
                     <LuTrophy aria-hidden size={20} />
                   </span>
                   <div>
                     <strong>
-                      <ColorRating rating={maxAcRating}>
-                        {Math.round(maxAcRating)}
+                      <ColorRating rating={maxSolvedRating}>
+                        {Math.round(maxSolvedRating)}
                       </ColorRating>
                     </strong>
                     <span>最高攻破</span>
                   </div>
                 </div>
               )}
-              {weekly && weekly.last7 > 0 && weeklyTrend && (
+              {weekly.last7 > 0 && (
                 <div className="duo-record">
                   <span className={`duo-chip ${weeklyTrend.tone}`}>
                     <weeklyTrend.icon aria-hidden size={20} />
@@ -836,7 +732,7 @@ export default function Profile() {
         <Modal.Body>
           <div className="duo-subhead green">最擅长</div>
           {tagRadar.strengths.length === 0 ? (
-            <div className="duo-teaser">再 AC 几道题，这里会生成你的强项。</div>
+            <div className="duo-teaser">再解决几道题，这里会生成你的强项。</div>
           ) : (
             tagRadar.strengths.map(([name, count], index) => (
               <div className="tag-rank" key={name}>
@@ -878,9 +774,22 @@ export default function Profile() {
         </Modal.Body>
       </Modal>
 
+      <HistoryModal
+        show={showHistory}
+        onHide={() => setShowHistory(false)}
+        questionById={questionById}
+      />
+
       <section className="duo-card settings-dashboard">
         <header className="duo-card-head">
           <h2>站点设置</h2>
+          <button
+            type="button"
+            className="duo-text-btn"
+            onClick={() => setShowHistory(true)}
+          >
+            记录管理
+          </button>
         </header>
         <div className="settings-layout">
           <aside className="settings-sidebar">

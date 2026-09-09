@@ -278,3 +278,15 @@
   color: var(--app-muted);
   font-weight: 700;
 }
+
+// Last-attempt summary + inline record panel on the card.
+.rec-last {
+  margin-top: .5rem;
+  color: var(--app-muted);
+  font-size: .82rem;
+  font-weight: 750;
+}
+
+.rec-record {
+  margin-top: .85rem;
+}

@@ -1,16 +1,14 @@
+"use client";
+
 import { ShareIcon } from "@components/icons";
+import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
-import {
-  OptionEntry,
-  ProgressKeyType,
-  useProgressOptions,
-  useQuestProgress,
-} from "@hooks/useProgress";
-import useStorage from "@hooks/useStorage";
+import { useProgressStore } from "@hooks/useProgressStore";
+import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { hashCode } from "@utils/hash";
 import { leetCodeProblemUrl, translateLeetCodeHtml } from "@utils/leetcodeLinks";
-import Form from "react-bootstrap/esm/Form";
+import { useState } from "react";
 
 const getCols = (l: number) => {
   if (l < 12) {
@@ -43,11 +41,6 @@ interface ProblemCategory {
 }
 
 interface ProblemCategoryListProps {
-  optionKeys: ProgressKeyType[];
-  getOption: (key?: ProgressKeyType) => OptionEntry;
-  allProgress: Record<string, ProgressKeyType>;
-  updateProgress: (questID: string, progress: ProgressKeyType) => void;
-  removeProgress: (questID: string) => void;
   data: ProblemCategory;
   showEn?: boolean;
   showRating?: boolean;
@@ -55,32 +48,17 @@ interface ProblemCategoryListProps {
 }
 
 function ProblemCategoryList({
-  optionKeys,
-  getOption,
-  allProgress,
-  updateProgress,
-  removeProgress,
   data,
   showEn,
   showRating,
   showPremium,
 }: ProblemCategoryListProps) {
   const { language } = useLeetCodeLanguage();
-
-  // Event handlers
-  const handleProgressSelectChange = (
-    questID: string,
-    progress: ProgressKeyType
-  ) => {
-    if (progress === getOption().key) {
-      removeProgress(questID);
-    } else {
-      updateProgress(questID, progress);
-    }
-  };
+  const { derived } = useProgressStore();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const filteredChild = (data.leafChild || []).filter(
-    (item) => !item.isPremium || showPremium
+    (item) => !item.isPremium || showPremium,
   );
 
   return (
@@ -100,77 +78,71 @@ function ProblemCategoryList({
         {filteredChild &&
           filteredChild.map((item) => {
             const id = title2id(item.title);
-            const progressKey = allProgress[id];
-            const option = getOption(progressKey);
+            const current = derived.currentByQid.get(id);
             const rating = Number(item.score);
+            const open = openId === id;
 
             return (
               <li
-                data-todo={option.key === getOption().key}
-                className="d-flex justify-content-between"
+                data-todo={!current}
+                className="pc-item"
                 key={hashCode(item.title || "")}
               >
-                <div>
-                  <a
-                    href={leetCodeProblemUrl(
-                      (item.src || "").replaceAll("/", ""),
-                      language,
-                    )}
-                    target="_blank"
-                  >
-                    {item.title + (item.isPremium ? " (会员题)" : "")}
-                  </a>
-                  {showEn && (
+                <div className="d-flex justify-content-between">
+                  <div>
                     <a
-                      className="ms-2"
                       href={leetCodeProblemUrl(
                         (item.src || "").replaceAll("/", ""),
-                        language === "cn" ? "en" : "cn",
+                        language,
                       )}
                       target="_blank"
                     >
-                      <ShareIcon height={16} width={16} />
+                      {item.title + (item.isPremium ? " (会员题)" : "")}
                     </a>
-                  )}
-                </div>
-                {item.score && showRating ? (
-                  <div className="ms-2 text-nowrap d-flex justify-content-center align-items-center pb-rating-bg">
-                    <RatingCircle rating={rating} />
-                    <ColorRating className="rating-text" rating={rating}>
-                      {rating.toFixed(0)}
-                    </ColorRating>
-                  </div>
-                ) : null}
-                <div className="d-flex align-items-center ms-2">
-                  <Form.Select
-                    style={{
-                      color: option.color,
-                    }}
-                    value={option.key}
-                    onChange={(e) =>
-                      handleProgressSelectChange(id, e.target.value)
-                    }
-                  >
-                    {optionKeys.map((p) => (
-                      <option
-                        key={p}
-                        value={p}
-                        style={{ color: getOption(p).color }}
+                    {showEn && (
+                      <a
+                        className="ms-2"
+                        href={leetCodeProblemUrl(
+                          (item.src || "").replaceAll("/", ""),
+                          language === "cn" ? "en" : "cn",
+                        )}
+                        target="_blank"
                       >
-                        {getOption(p).label}
-                      </option>
-                    ))}
-                    {optionKeys.indexOf(option.key) == -1 && (
-                      <option
-                        key={option.key}
-                        value={option.key}
-                        style={{ color: option.color }}
-                      >
-                        {option.label}
-                      </option>
+                        <ShareIcon height={16} width={16} />
+                      </a>
                     )}
-                  </Form.Select>
+                  </div>
+                  {item.score && showRating ? (
+                    <div className="ms-2 text-nowrap d-flex justify-content-center align-items-center pb-rating-bg">
+                      <RatingCircle rating={rating} />
+                      <ColorRating className="rating-text" rating={rating}>
+                        {rating.toFixed(0)}
+                      </ColorRating>
+                    </div>
+                  ) : null}
+                  <div className="d-flex align-items-center ms-2">
+                    <button
+                      type="button"
+                      className={`pc-state${current ? " recorded" : ""}${
+                        open ? " open" : ""
+                      }`}
+                      onClick={() => setOpenId(open ? null : id)}
+                      title={current ? "重新记录" : "记录这次练习"}
+                    >
+                      {attemptLabel(current)}
+                    </button>
+                  </div>
                 </div>
+                {open && (
+                  <ProgressRecordPanel
+                    qid={id}
+                    questionTitle={item.title}
+                    source="zen"
+                    className="pc-panel"
+                    onRecorded={() => setOpenId(null)}
+                    onCancel={() => setOpenId(null)}
+                  />
+                )}
               </li>
             );
           })}

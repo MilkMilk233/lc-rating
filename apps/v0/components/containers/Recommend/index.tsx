@@ -1,27 +1,22 @@
 "use client";
 
+import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
-import {
-  ProgressKeyType,
-  useProgressOptions,
-  useQuestProgress,
-} from "@hooks/useProgress";
+import { useProgressStore } from "@hooks/useProgressStore";
+import { attemptLabel } from "@hooks/useProgressStore/bands";
+import { DAY_MS, applyAttempt, overdueDays } from "@hooks/useProgressStore/srs";
+import type { AttemptEvent } from "@hooks/useProgressStore/types";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
 import {
   leetCodeContestUrl,
   leetCodeProblemUrl,
 } from "@utils/leetcodeLinks";
-import {
-  STATUS_XP,
-  bandFor,
-  displayOptionLabel,
-  estimateStrength,
-} from "@utils/practice";
+import { bandFor, estimateStrength, xpForAttempt } from "@utils/practice";
 import clsx from "clsx";
 import Link from "next/link";
-import { CSSProperties, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
   LuArrowUpRight,
@@ -35,7 +30,7 @@ import {
 type Pool = "review" | "revive" | "new";
 
 const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
-  review: { label: "回炉复习", tone: "orange" },
+  review: { label: "到期复习", tone: "orange" },
   revive: { label: "复活挑战", tone: "purple" },
   new: { label: "今日推荐", tone: "blue" },
 };
@@ -44,67 +39,81 @@ export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
   const { language } = useLeetCodeLanguage();
-  const { allProgress, updateProgress, removeProgress } = useQuestProgress();
-  const { optionKeys, getOption } = useProgressOptions();
+  const { derived } = useProgressStore();
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  const [showRecord, setShowRecord] = useState(false);
   const [lastResult, setLastResult] = useState<{
     text: string;
-    ac: boolean;
+    solved: boolean;
   } | null>(null);
 
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: string };
 
-  // The recommendation engine. Everything derives from the practice pool,
-  // local progress, and topic tags — no extra storage needed.
-  const { queue, target, acCount } = useMemo(() => {
-    const tagsOf = (question: ZenQuestion): string[] =>
-      questionTags[String(question._hash)]?.[1] ?? [];
-
+  // The recommendation engine. Everything derives from the practice pool, the
+  // event log, and topic tags — no extra storage needed.
+  const { queue, target, solvedCount } = useMemo(() => {
+    const now = Date.now();
     const byId = new Map<string, ZenQuestion>();
     zen.forEach((question) => byId.set(String(question.question_id), question));
 
-    const acRatings: number[] = [];
-    const tagAc = new Map<string, number>();
-    const reviewPool: ZenQuestion[] = [];
-    const hardPool: ZenQuestion[] = [];
+    const tagsOf = (question: ZenQuestion): string[] =>
+      questionTags[String(question._hash)]?.[1] ?? [];
+    const ratingOf = (qid: string): number | undefined =>
+      byId.get(qid)?.rating;
 
-    Object.entries(allProgress).forEach(([questID, status]) => {
-      const question = byId.get(questID);
-      if (!question) return;
-      if (status === "AC") {
-        acRatings.push(question.rating);
-        tagsOf(question).forEach((tag) =>
-          tagAc.set(tag, (tagAc.get(tag) || 0) + 1),
-        );
-      } else if (status === "REVIEW_NEEDED") {
-        reviewPool.push(question);
-      } else if (status === "TOO_HARD") {
-        hardPool.push(question);
-      }
+    // Capability estimate from solo solves only; editorial-assisted solves say
+    // little about what the user can do alone.
+    const soloRatings: number[] = [];
+    derived.currentSolved.forEach((attempt) => {
+      if (attempt.independence !== "solo") return;
+      const rating = ratingOf(attempt.qid);
+      if (rating != null) soloRatings.push(rating);
     });
-
-    // Practice target: slightly above the current capability estimate.
-    // Beginners start from solid ground (1300).
-    const strength = estimateStrength(acRatings);
+    const strength = estimateStrength(soloRatings);
     const targetRating = strength || 1300;
 
-    const byDistance = (a: ZenQuestion, b: ZenQuestion) =>
-      Math.abs(a.rating - targetRating) - Math.abs(b.rating - targetRating);
+    // 1. Due questions first, most overdue first. Anything not yet due stays
+    //    out of the queue, so marking a problem never makes it bounce straight
+    //    back on the next refresh.
+    const dueItems: RecItem[] = [];
+    derived.scheduleByQid.forEach((schedule, qid) => {
+      if (now < schedule.dueAt) return;
+      const question = byId.get(qid);
+      if (!question || question.paid_only) return;
 
-    // 1. Spaced repetition first: review items closest to the target.
-    reviewPool.sort(byDistance);
+      const current = derived.currentByQid.get(qid);
+      const overdue = overdueDays(schedule, now);
+      dueItems.push({
+        question,
+        pool: current?.outcome === "gaveup" ? "revive" : "review",
+        reason:
+          overdue > 0
+            ? `逾期 ${overdue} 天，先把它复习掉`
+            : "今天到期，趁热复习一遍",
+      });
+    });
+    dueItems.sort((a, b) => {
+      const sa = derived.scheduleByQid.get(String(a.question.question_id));
+      const sb = derived.scheduleByQid.get(String(b.question.question_id));
+      return (sa?.dueAt ?? 0) - (sb?.dueAt ?? 0);
+    });
 
-    // 2. Revive "too hard" problems once the target has caught up with them.
-    const revivePool = hardPool
-      .filter((question) => question.rating <= targetRating + 50)
-      .sort(byDistance);
+    // 2. Fresh problems: closest difficulty to the target wins, with a novelty
+    //    bonus for rarely-practiced tags to encourage coverage.
+    const tagSolved = new Map<string, number>();
+    derived.currentSolved.forEach((attempt) => {
+      const question = byId.get(attempt.qid);
+      if (!question) return;
+      tagsOf(question).forEach((tag) =>
+        tagSolved.set(tag, (tagSolved.get(tag) || 0) + 1),
+      );
+    });
 
-    // 3. Fresh problems: closest difficulty to the target wins, with a
-    // novelty bonus for rarely-practiced tags to encourage coverage.
     const fresh = zen.filter(
       (question) =>
-        !allProgress[String(question.question_id)] && !question.paid_only,
+        !derived.currentByQid.has(String(question.question_id)) &&
+        !question.paid_only,
     );
     const windowed = fresh.filter(
       (question) =>
@@ -118,7 +127,7 @@ export default function Recommend() {
           -Math.abs(question.rating - targetRating) +
           20 *
             tagsOf(question).reduce(
-              (sum, tag) => sum + 1 / (1 + (tagAc.get(tag) || 0)),
+              (sum, tag) => sum + 1 / (1 + (tagSolved.get(tag) || 0)),
               0,
             ),
       }))
@@ -126,23 +135,14 @@ export default function Recommend() {
       .map((entry) => entry.question);
 
     const reasonForNew = (question: ZenQuestion) => {
-      if (acRatings.length < 3) return "从基础题开始，先把地基打牢";
-      const novel = tagsOf(question).find((tag) => !tagAc.has(tag));
+      if (soloRatings.length < 3) return "从基础题开始，先把地基打牢";
+      const novel = tagsOf(question).find((tag) => !tagSolved.has(tag));
       if (novel) return `新题型：${novel}`;
       return `难度贴合你当前的水平 ≈${targetRating}`;
     };
 
     const items: RecItem[] = [
-      ...reviewPool.map((question) => ({
-        question,
-        pool: "review" as Pool,
-        reason: "这道题在等你复习，趁热打铁",
-      })),
-      ...revivePool.map((question) => ({
-        question,
-        pool: "revive" as Pool,
-        reason: "曾经太难，现在的你也许能拿下",
-      })),
+      ...dueItems,
       ...scored.map((question) => ({
         question,
         pool: "new" as Pool,
@@ -150,8 +150,12 @@ export default function Recommend() {
       })),
     ];
 
-    return { queue: items, target: targetRating, acCount: acRatings.length };
-  }, [zen, allProgress, questionTags]);
+    return {
+      queue: items,
+      target: targetRating,
+      solvedCount: derived.totals.solved,
+    };
+  }, [zen, derived, questionTags]);
 
   const visible = queue.filter(
     (item) => !skipped.has(String(item.question.question_id)),
@@ -160,51 +164,10 @@ export default function Recommend() {
 
   const handleSkip = () => {
     if (!current) return;
-    setSkipped((prev) => new Set(prev).add(String(current.question.question_id)));
-  };
-
-  const handleMark = (key: ProgressKeyType) => {
-    if (!current) return;
-    const question = current.question;
-    const questID = String(question.question_id);
-    const option = getOption(key);
-    const label = displayOptionLabel(key, option.label);
-
-    if (key === "TODO") {
-      removeProgress(questID);
-    } else {
-      updateProgress(questID, key);
-    }
-
-    const xpGain =
-      key === "AC"
-        ? bandFor(question.rating).xp
-        : key === "WORKING"
-          ? STATUS_XP.WORKING
-          : key === "REVIEW_NEEDED"
-            ? STATUS_XP.REVIEW_NEEDED
-            : key === "TOO_HARD"
-              ? STATUS_XP.TOO_HARD
-              : key === "TODO"
-                ? 0
-                : STATUS_XP.CUSTOM;
-
-    const text =
-      key === "AC"
-        ? `漂亮！「${question.title}」到手，+${xpGain} XP`
-        : key === "WORKING"
-          ? `「${question.title}」继续攻克，+${xpGain} XP`
-          : key === "REVIEW_NEEDED"
-            ? `「${question.title}」已加入复习清单，+${xpGain} XP`
-            : key === "TOO_HARD"
-              ? `「${question.title}」先放一放，+${xpGain} XP，以后再战`
-              : key === "TODO"
-                ? `已移除「${question.title}」的标记`
-                : `「${question.title}」已标记为「${label}」`;
-
-    setLastResult({ text, ac: key === "AC" });
-    // Move past this card for the session; a refresh restores the natural order.
-    setSkipped((prev) => new Set(prev).add(questID));
+    setShowRecord(false);
+    setSkipped((prev) =>
+      new Set(Array.from(prev)).add(String(current.question.question_id)),
+    );
   };
 
   const renderBody = () => {
@@ -249,17 +212,36 @@ export default function Recommend() {
     }
 
     const question = current.question;
+    const qid = String(question.question_id);
     const badge = POOL_BADGE[current.pool];
     const tags = questionTags[String(question._hash)]?.[1] ?? [];
+    const currentAttempt = derived.currentByQid.get(qid);
+    const schedule = derived.scheduleByQid.get(qid);
+    const baseXp = bandFor(question.rating).xp;
+
+    const handleRecorded = (event: AttemptEvent) => {
+      setShowRecord(false);
+      setSkipped((prev) => new Set(Array.from(prev)).add(qid));
+
+      const next = applyAttempt(schedule, event);
+      const days = Math.max(1, Math.round((next.dueAt - event.at) / DAY_MS));
+      const xp = xpForAttempt(event, question.rating);
+      setLastResult({
+        solved: event.outcome === "solved",
+        text:
+          event.outcome === "solved"
+            ? `「${question.title}」+${xp} XP，${days} 天后再见`
+            : `「${question.title}」已记录，${days} 天后回来再战`,
+      });
+    };
 
     return (
-      <section
-        className="duo-card rec-card"
-        key={String(question.question_id)}
-      >
+      <section className="duo-card rec-card" key={qid}>
         <div className="rec-kicker">
           <span className={`rec-badge ${badge.tone}`}>{badge.label}</span>
-          <span className="rec-xp">AC 可得 +{bandFor(question.rating).xp} XP</span>
+          <span className="rec-xp">
+            做出来可得 +{baseXp}~{Math.round(baseXp * 1.75)} XP
+          </span>
         </div>
 
         <a
@@ -302,6 +284,13 @@ export default function Recommend() {
           <span>{current.reason}</span>
         </div>
 
+        {currentAttempt && (
+          <div className="rec-last">
+            上次：{attemptLabel(currentAttempt)} ·{" "}
+            {Math.floor((Date.now() - currentAttempt.at) / DAY_MS)} 天前
+          </div>
+        )}
+
         <div className="rec-actions">
           <a
             className="duo-btn"
@@ -312,33 +301,30 @@ export default function Recommend() {
             <span>去做题</span>
             <LuArrowUpRight aria-hidden size={18} />
           </a>
+          <button
+            type="button"
+            className="duo-btn-outline"
+            onClick={() => setShowRecord((open) => !open)}
+          >
+            <span>{showRecord ? "收起记录" : "记录结果"}</span>
+          </button>
           <button type="button" className="duo-btn-ghost" onClick={handleSkip}>
             <LuShuffle aria-hidden size={17} />
             <span>换一道</span>
           </button>
         </div>
 
-        <div className="rec-mark">
-          <span className="rec-mark-label">完成后标记进度</span>
-          <div className="rec-status-row">
-            {optionKeys.map((key) => {
-              const option = getOption(key as ProgressKeyType);
-              return (
-                <button
-                  type="button"
-                  className="rec-status-btn"
-                  key={key}
-                  style={
-                    { "--status-color": option.color } as CSSProperties
-                  }
-                  onClick={() => handleMark(key as ProgressKeyType)}
-                >
-                  {displayOptionLabel(key, option.label)}
-                </button>
-              );
-            })}
+        {showRecord && (
+          <div className="rec-record">
+            <ProgressRecordPanel
+              qid={qid}
+              questionTitle={question.title}
+              source="recommend"
+              onRecorded={handleRecorded}
+              onCancel={() => setShowRecord(false)}
+            />
           </div>
-        </div>
+        )}
       </section>
     );
   };
@@ -348,14 +334,14 @@ export default function Recommend() {
       <div className="rec-head">
         <h1>推荐刷题</h1>
         <span className="meta">
-          已 AC {acCount} 道
-          {acCount >= 3 ? ` · 当前目标 ≈${target}` : ""}
+          已解决 {solvedCount} 道
+          {solvedCount >= 3 ? ` · 当前目标 ≈${target}` : ""}
         </span>
       </div>
 
       {lastResult && (
-        <div className={clsx("rec-banner", { ac: lastResult.ac })}>
-          {lastResult.ac ? (
+        <div className={clsx("rec-banner", { ac: lastResult.solved })}>
+          {lastResult.solved ? (
             <LuPartyPopper aria-hidden size={18} />
           ) : (
             <LuCheck aria-hidden size={18} />

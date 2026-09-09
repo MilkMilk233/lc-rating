@@ -3,15 +3,18 @@
 // Custom components
 import { FilterIcon, ShareIcon } from "@components/icons";
 import Loading from "@components/Loading";
+import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 
 // hooks
-import {
-  OptionEntry,
-  ProgressKeyType,
-  useProgressOptions,
-  useQuestProgress,
-} from "@hooks/useProgress";
+import { useProgressStore } from "@hooks/useProgressStore";
+import { EFFORT_BANDS, attemptLabel } from "@hooks/useProgressStore/bands";
+import { isDue } from "@hooks/useProgressStore/srs";
+import type { ScheduleState } from "@hooks/useProgressStore/srs";
+import type {
+  AttemptEvent,
+  EffortBand,
+} from "@hooks/useProgressStore/types";
 import { QTag, useQuestionTags } from "@hooks/useQuestionTags";
 import {
   LeetCodeLanguage,
@@ -40,7 +43,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Button,
   ButtonGroup,
@@ -54,7 +57,7 @@ import {
 
 // Constants and Enums
 const LC_RATING_ZEN_LAST_USED_FILTER_KEY = `lc-rating-zen-last-used-filter`;
-const LC_RATING_ZEN_SETTINGS_KEY = `lc-rating-zen-settings`;
+const LC_RATING_ZEN_SETTINGS_KEY = `lc-rating-zen-settings-v2`;
 
 // Question Data Type
 interface ConstQuestion {
@@ -129,21 +132,43 @@ function buildTagFilterFn(
       };
 }
 
+const allBandsSelected = (): Record<EffortBand, boolean> =>
+  EFFORT_BANDS.reduce((acc, band) => {
+    acc[band.key] = true;
+    return acc;
+  }, {} as Record<EffortBand, boolean>);
+
+interface ZenFilters {
+  outcome: "" | "solved" | "gaveup";
+  bands: Record<EffortBand, boolean>;
+  dueOnly: boolean;
+  selectedTags: Record<string, boolean>;
+}
+
+interface SettingsType {
+  columnVisibility: VisibilityState;
+  filters: ZenFilters;
+}
+
+const defaultSettings: SettingsType = {
+  columnVisibility: { tags: true, ratings: true, en: true },
+  filters: {
+    outcome: "",
+    bands: allBandsSelected(),
+    dueOnly: false,
+    selectedTags: {},
+  },
+};
+
 interface FilterSettingsProps {
   handleClose: () => void;
-  onSettingsSaved: React.Dispatch<
-    React.SetStateAction<SettingsType | undefined>
-  >;
-  optionKeys: ProgressKeyType[];
-  getOption: (key?: ProgressKeyType) => OptionEntry;
+  onSettingsSaved: React.Dispatch<React.SetStateAction<SettingsType | undefined>>;
   tags: Tags;
   lang: "zh" | "en";
   settings: SettingsType;
 }
 
 const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
-  optionKeys,
-  getOption,
   tags,
   handleClose,
   onSettingsSaved,
@@ -153,19 +178,23 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
   const [curSetting, setCurSetting] = useState<SettingsType>(settings);
 
   const onTagsChange = (key: string) => {
-    if (curSetting.selectedTags[key]) {
-      const { [key]: _, ...rest } = curSetting.selectedTags;
-      setCurSetting({ ...curSetting, selectedTags: rest });
+    const selectedTags = { ...curSetting.filters.selectedTags };
+    if (selectedTags[key]) {
+      delete selectedTags[key];
     } else {
-      setCurSetting({
-        ...curSetting,
-        selectedTags: { ...curSetting.selectedTags, [key]: true },
-      });
+      selectedTags[key] = true;
     }
+    setCurSetting({
+      ...curSetting,
+      filters: { ...curSetting.filters, selectedTags },
+    });
   };
 
   const onTagsReset = () => {
-    setCurSetting({ ...curSetting, selectedTags: {} });
+    setCurSetting({
+      ...curSetting,
+      filters: { ...curSetting.filters, selectedTags: {} },
+    });
   };
 
   const onVisibilityChange = (name: string) => {
@@ -178,8 +207,31 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
     });
   };
 
-  const onProgressChange = (progress: ProgressKeyType) => {
-    setCurSetting({ ...curSetting, selectedProgress: progress });
+  const onOutcomeChange = (outcome: ZenFilters["outcome"]) => {
+    setCurSetting({
+      ...curSetting,
+      filters: { ...curSetting.filters, outcome },
+    });
+  };
+
+  const onBandToggle = (band: EffortBand) => {
+    setCurSetting({
+      ...curSetting,
+      filters: {
+        ...curSetting.filters,
+        bands: {
+          ...curSetting.filters.bands,
+          [band]: !curSetting.filters.bands[band],
+        },
+      },
+    });
+  };
+
+  const onDueOnlyChange = () => {
+    setCurSetting({
+      ...curSetting,
+      filters: { ...curSetting.filters, dueOnly: !curSetting.filters.dueOnly },
+    });
   };
 
   const onCancel = () => {
@@ -208,7 +260,9 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
               <Button
                 size="sm"
                 variant={
-                  curSetting.selectedTags[tag[1]] ? "primary" : "secondary"
+                  curSetting.filters.selectedTags[tag[1]]
+                    ? "primary"
+                    : "secondary"
                 }
               >
                 {lang === "en" ? tag[1] : tag[2]}
@@ -264,24 +318,47 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
           </h5>
           {RenderTags(tags)}
           <hr />
-          <h5 className="pt-1 pb-1">进度选择</h5>
-          <div className="w-25">
-            <Form.Select
-              value={curSetting.selectedProgress}
-              onChange={(e) => {
-                onProgressChange(e.target.value as ProgressKeyType);
-              }}
-              style={{ color: getOption(curSetting.selectedProgress).color }}
-            >
-              <option value="" style={{ color: getOption().color }}>
-                [全部]
-              </option>
-              {optionKeys.map((p) => (
-                <option key={p} value={p} style={{ color: getOption(p).color }}>
-                  {getOption(p).label}
-                </option>
+          <h5 className="pt-1 pb-1">练习记录</h5>
+          <div className="d-flex flex-wrap align-items-center gap-3">
+            <div className="w-25" style={{ minWidth: "12rem" }}>
+              <Form.Select
+                value={curSetting.filters.outcome}
+                onChange={(e) =>
+                  onOutcomeChange(e.target.value as ZenFilters["outcome"])
+                }
+              >
+                <option value="">[全部]</option>
+                <option value="solved">做出来了</option>
+                <option value="gaveup">没做出来</option>
+              </Form.Select>
+            </div>
+            <Form.Check
+              checked={curSetting.filters.dueOnly}
+              onChange={onDueOnlyChange}
+              type="switch"
+              label="只看已到期"
+              id="toggle-due"
+            />
+          </div>
+          <div className="mt-3">
+            <div className="text-muted mb-2" style={{ fontSize: ".85rem" }}>
+              体感档位（仅在「做出来了」时生效）
+            </div>
+            <ButtonGroup size="sm" className="flex-wrap">
+              {EFFORT_BANDS.map((band) => (
+                <Button
+                  key={band.key}
+                  variant={
+                    curSetting.filters.bands[band.key]
+                      ? "primary"
+                      : "outline-secondary"
+                  }
+                  onClick={() => onBandToggle(band.key)}
+                >
+                  {band.label}
+                </Button>
               ))}
-            </Form.Select>
+            </ButtonGroup>
           </div>
         </Modal.Body>
         <Modal.Footer>
@@ -297,37 +374,27 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
   );
 };
 
-interface SettingsType {
-  columnVisibility: VisibilityState;
-  selectedProgress: ProgressKeyType;
-  selectedTags: Record<string, boolean>;
-}
-
-const defaultSettings: SettingsType = {
-  columnVisibility: { tags: true, ratings: true, en: true },
-  selectedProgress: "",
-  selectedTags: {},
-};
-
 export default function Zenk() {
   // State and hooks
   const { zen: data, isPending: progressLoading } = useZen();
   const { language, isCn } = useLeetCodeLanguage();
+  const { derived } = useProgressStore();
 
   const { tags, isPending: tagsLoading } = useQuestionTags(null);
   const { tags: qtags } = useTags();
 
   const [showFilter, setShowFilter] = useState(false);
+  const [recordTarget, setRecordTarget] = useState<{
+    qid: string;
+    title: string;
+  } | null>(null);
 
-  const [settings = defaultSettings, setSettings] = useStorage(
+  const [settings = defaultSettings, setSettings] = useStorage<SettingsType>(
     LC_RATING_ZEN_SETTINGS_KEY,
     {
       defaultValue: defaultSettings,
     },
   );
-
-  const { allProgress, updateProgress, removeProgress } = useQuestProgress();
-  const { optionKeys, getOption } = useProgressOptions();
 
   const [currentFilterKey, setCurrentFilterKey] = useStorage(
     LC_RATING_ZEN_LAST_USED_FILTER_KEY,
@@ -347,33 +414,38 @@ export default function Zenk() {
     );
   }, [currentFilterKey]);
 
+  const now = Date.now();
+
   const filteredData = useMemo(() => {
-    const tagsFilter = buildTagFilterFn(settings.selectedTags, queryTags);
+    const { filters } = settings;
+    const tagsFilter = buildTagFilterFn(filters.selectedTags, queryTags);
+    const selectedBands = EFFORT_BANDS.filter(
+      (band) => filters.bands[band.key],
+    ).map((band) => band.key);
+    const bandFilterActive =
+      filters.outcome === "solved" &&
+      selectedBands.length < EFFORT_BANDS.length;
 
-    const progressFilter = settings.selectedProgress
-      ? (v: ConstQuestion) => {
-          const progress = getOption(allProgress[v.question_id]);
-          return progress.key === settings.selectedProgress;
-        }
-      : () => true;
+    return data.filter(curRatingFilter).filter(tagsFilter).filter((item) => {
+      const current = derived.currentByQid.get(item.question_id);
 
-    return data
-      .filter(curRatingFilter)
-      .filter(tagsFilter)
-      .filter(progressFilter);
-  }, [data, curRatingFilter, settings]);
-
-  // Event handlers
-  const handleProgressSelectChange = useCallback(
-    (questID: string, progress: ProgressKeyType) => {
-      if (progress === getOption().key) {
-        removeProgress(questID);
-      } else {
-        updateProgress(questID, progress);
+      if (filters.dueOnly) {
+        const schedule = derived.scheduleByQid.get(item.question_id);
+        if (!isDue(schedule, now)) return false;
       }
-    },
-    [],
-  );
+
+      if (filters.outcome === "solved") {
+        if (!current || current.outcome !== "solved") return false;
+        if (bandFilterActive && !selectedBands.includes(current.band)) {
+          return false;
+        }
+      } else if (filters.outcome === "gaveup") {
+        if (!current || current.outcome !== "gaveup") return false;
+      }
+
+      return true;
+    });
+  }, [data, curRatingFilter, settings, derived, now, queryTags]);
 
   if (progressLoading) {
     return <Loading />;
@@ -386,7 +458,7 @@ export default function Zenk() {
           <p className="eyebrow">Difficulty practice</p>
           <h1 className="page-title">难度练习</h1>
           <p className="page-description">
-            按评级区间、标签和本地进度筛选题目，进度只保存在当前浏览器。
+            按评级区间、标签和练习记录筛选题目，记录只保存在当前浏览器。
           </p>
         </div>
         <div className="metric-strip">
@@ -421,8 +493,6 @@ export default function Zenk() {
 
       {showFilter && (
         <FilterSettings
-          optionKeys={optionKeys}
-          getOption={getOption}
           lang={isCn ? "zh" : "en"}
           tags={qtags}
           handleClose={() => setShowFilter(false)}
@@ -432,46 +502,62 @@ export default function Zenk() {
       )}
       <div className="data-panel zen-data-panel">
         <ZenTableComp
-          optionKeys={optionKeys}
-          getOption={getOption}
           language={language}
           tagLanguage={isCn ? "zh" : "en"}
           columnVisibility={settings.columnVisibility}
           queryTags={queryTags}
           data={filteredData}
-          quest2progress={(item: ConstQuestion) =>
-            allProgress[item.question_id]
-          }
-          handleProgressSelectChange={handleProgressSelectChange}
+          currentByQid={derived.currentByQid}
+          scheduleByQid={derived.scheduleByQid}
+          onRecord={(qid, title) => setRecordTarget({ qid, title })}
         />
       </div>
+
+      <Modal
+        show={!!recordTarget}
+        onHide={() => setRecordTarget(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>记录这次练习</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {recordTarget && (
+            <ProgressRecordPanel
+              qid={recordTarget.qid}
+              questionTitle={recordTarget.title}
+              source="zen"
+              onRecorded={() => setRecordTarget(null)}
+              onCancel={() => setRecordTarget(null)}
+            />
+          )}
+        </Modal.Body>
+      </Modal>
     </Container>
   );
 }
 
 interface ZenTableCompProps {
-  optionKeys: ProgressKeyType[];
-  getOption: (key: ProgressKeyType) => OptionEntry;
   columnVisibility: VisibilityState;
   queryTags: (id: string) => QTag;
   data: ConstQuestion[];
   language: LeetCodeLanguage;
   tagLanguage: "zh" | "en";
-  quest2progress: (v: ConstQuestion) => ProgressKeyType;
-  handleProgressSelectChange: (questID: string, value: ProgressKeyType) => void;
+  currentByQid: Map<string, AttemptEvent>;
+  scheduleByQid: Map<string, ScheduleState>;
+  onRecord: (qid: string, title: string) => void;
 }
 
 const ZenTableComp = React.memo(
   ({
-    optionKeys,
-    getOption,
     queryTags,
     data,
     language,
     tagLanguage,
     columnVisibility,
-    quest2progress,
-    handleProgressSelectChange,
+    currentByQid,
+    scheduleByQid,
+    onRecord,
   }: ZenTableCompProps) => {
     const columns = React.useMemo<ColumnDef<ConstQuestion>[]>(
       () => [
@@ -563,50 +649,43 @@ const ZenTableComp = React.memo(
           enableSorting: false,
         },
         {
-          accessorKey: "progress",
+          accessorFn: (row) => row.question_id,
+          id: "progress",
           header: "进度",
           enableColumnFilter: false,
           enableSorting: false,
           cell: (info) => {
             const item = info.row.original;
-            const curOption = getOption(quest2progress(item));
+            const current = currentByQid.get(item.question_id);
+            const schedule = scheduleByQid.get(item.question_id);
+            const due = isDue(schedule, Date.now());
 
             return (
-              <Form.Select
-                value={curOption.key}
-                onChange={(e) =>
-                  handleProgressSelectChange(
-                    item.question_id,
-                    e.target.value as ProgressKeyType,
-                  )
-                }
-                style={{ color: curOption.color }}
-              >
-                {optionKeys.map((p) => (
-                  <option
-                    key={p}
-                    value={p}
-                    style={{ color: getOption(p).color }}
-                  >
-                    {getOption(p).label}
-                  </option>
-                ))}
-                {optionKeys.indexOf(curOption.key) == -1 && (
-                  <option
-                    key={curOption.key}
-                    value={curOption.key}
-                    style={{ color: curOption.color }}
-                  >
-                    {curOption.label}
-                  </option>
-                )}
-              </Form.Select>
+              <div className="zen-progress-cell">
+                <button
+                  type="button"
+                  className={`pc-state${current ? " recorded" : ""}`}
+                  onClick={() => onRecord(item.question_id, item.title)}
+                  title={current ? "重新记录" : "记录这次练习"}
+                >
+                  {attemptLabel(current)}
+                </button>
+                {due && <span className="zen-due">到期</span>}
+              </div>
             );
           },
           footer: (props) => props.column.id,
         },
       ],
-      [queryTags, language, tagLanguage],
+      [
+        queryTags,
+        language,
+        tagLanguage,
+        columnVisibility,
+        currentByQid,
+        scheduleByQid,
+        onRecord,
+      ],
     );
 
     // const { zen: data, isPending: loading } = useZen(null);

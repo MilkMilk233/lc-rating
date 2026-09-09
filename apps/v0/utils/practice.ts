@@ -1,6 +1,8 @@
-// Shared practice/recommendation primitives used by both the profile
-// analytics and the /recommend page. Single source of truth for the
-// difficulty bands and the XP economy.
+// Shared practice/recommendation primitives used by the profile analytics and
+// the /recommend page. Single source of truth for the difficulty bands and the
+// XP economy.
+
+import type { AttemptEvent, EffortBand } from "@hooks/useProgressStore/types";
 
 export const RATING_BANDS = [
   { label: "入门", range: "<1200", min: 0, max: 1200, xp: 6, color: "var(--rating-color-0)" },
@@ -11,31 +13,52 @@ export const RATING_BANDS = [
   { label: "传说", range: "2100+", min: 2100, max: Infinity, xp: 50, color: "var(--rating-color-5)" },
 ];
 
-// Honest effort always earns something, even when the problem wins.
-export const STATUS_XP = {
-  WORKING: 2,
-  REVIEW_NEEDED: 2,
-  TOO_HARD: 1,
-  CUSTOM: 1,
-};
-
 export const bandFor = (rating: number) =>
   RATING_BANDS.find((band) => rating >= band.min && rating < band.max) ??
   RATING_BANDS[0];
 
-// Capability estimate: average of the user's top-quartile AC ratings,
+// Capability estimate: average of the user's top-quartile solved ratings,
 // nudged slightly upward so practice stays in the zone of proximal
-// development. Returns 0 when there is not enough data (< 3 ACs).
-export const estimateStrength = (acRatings: number[]) => {
-  if (acRatings.length < 3) return 0;
-  const sorted = [...acRatings].sort((a, b) => b - a);
+// development. Returns 0 when there is not enough data (< 3 solves).
+export const estimateStrength = (solvedRatings: number[]) => {
+  if (solvedRatings.length < 3) return 0;
+  const sorted = [...solvedRatings].sort((a, b) => b - a);
   const top = sorted.slice(0, Math.max(1, Math.ceil(sorted.length / 4)));
   const estimate = top.reduce((sum, rating) => sum + rating, 0) / top.length;
   return Math.round((estimate + 100) / 50) * 50;
 };
 
-export const displayOptionLabel = (key: string, label?: string) => {
-  if (label) return label;
-  if (key === "TODO") return "待开始";
-  return key;
+// ---------------------------------------------------------------------------
+// XP economy (minimal first pass; numbers get tuned once real data exists).
+//
+// Struggle is rewarded, speed is not: a slow solo solve is worth more than a
+// fast one, and leaning on the editorial is heavily discounted so that reading
+// solutions never becomes a shortcut to levels.
+// ---------------------------------------------------------------------------
+
+export const EFFORT_XP_MULTIPLIER: Record<EffortBand, number> = {
+  LE5: 1,
+  L5_15: 1.1,
+  L15_30: 1.25,
+  L30_60: 1.5,
+  GT60: 1.75,
 };
+
+export const SOLUTION_XP_FACTOR = 0.5;
+
+export const GAVEUP_XP = {
+  idea_tedious: 2,
+  no_idea: 1,
+} as const;
+
+/** XP earned by a single attempt. `rating` is the problem's difficulty score. */
+export function xpForAttempt(
+  event: AttemptEvent,
+  rating: number | undefined,
+): number {
+  if (event.outcome === "gaveup") return GAVEUP_XP[event.reason];
+
+  const base = rating == null ? RATING_BANDS[0].xp : bandFor(rating).xp;
+  const factor = event.independence === "solution" ? SOLUTION_XP_FACTOR : 1;
+  return Math.max(1, Math.round(base * EFFORT_XP_MULTIPLIER[event.band] * factor));
+}

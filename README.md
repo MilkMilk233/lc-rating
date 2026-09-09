@@ -9,7 +9,7 @@ This fork keeps the older Bootstrap-style interface and removes the newer app, c
 - Contest list with Q1-Q4 problem ratings.
 - Difficulty practice page at `/zen`.
 - Topic study lists under `/list/*`.
-- Local progress labels and customizable progress options.
+- Local-only attempt log with felt-difficulty bands and spaced-repetition review dates.
 - Manual local progress export/import in site settings.
 - Dark/light theme from the old v0 UI.
 
