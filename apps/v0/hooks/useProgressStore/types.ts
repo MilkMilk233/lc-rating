@@ -37,6 +37,15 @@ interface AttemptBase {
   /** When the attempt happened, epoch ms (defaults to the record time). */
   at: number;
   src: AttemptSource;
+  /**
+   * The problem's difficulty at the time of the attempt.
+   *
+   * Snapshotted on purpose: the scheduler needs it to judge whether the felt
+   * duration was fast or slow *for that level*, and deriving it from the frozen
+   * question data would require the store to know about the question pool.
+   * Older events simply lack it and fall back to the absolute model.
+   */
+  rating?: number;
 }
 
 export interface SolvedAttempt extends AttemptBase {

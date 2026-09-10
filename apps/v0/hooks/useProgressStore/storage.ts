@@ -48,6 +48,10 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
   if (typeof e.at !== "number" || !Number.isFinite(e.at)) return null;
 
   const src = typeof e.src === "string" && e.src.length > 0 ? e.src : "zen";
+  const rating =
+    typeof e.rating === "number" && Number.isFinite(e.rating)
+      ? e.rating
+      : undefined;
 
   if (e.outcome === "solved") {
     if (!isEffortBand(e.band)) return null;
@@ -60,6 +64,7 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       qid: e.qid,
       at: e.at,
       src,
+      rating,
       outcome: "solved",
       band: e.band,
       independence: e.independence,
@@ -77,6 +82,7 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       qid: e.qid,
       at: e.at,
       src,
+      rating,
       outcome: "gaveup",
       reason: e.reason,
     };

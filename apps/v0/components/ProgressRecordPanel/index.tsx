@@ -26,6 +26,8 @@ type Stage = "outcome" | "solved" | "gaveup";
 export interface ProgressRecordPanelProps {
   qid: string;
   questionTitle?: string;
+  /** Problem difficulty, snapshotted into the event for pace judgement. */
+  rating?: number;
   source?: AttemptSource;
   onRecorded?: (event: AttemptEvent) => void;
   onCancel?: () => void;
@@ -35,6 +37,7 @@ export interface ProgressRecordPanelProps {
 export default function ProgressRecordPanel({
   qid,
   questionTitle,
+  rating,
   source = "recommend",
   onRecorded,
   onCancel,
@@ -53,13 +56,16 @@ export default function ProgressRecordPanel({
         band,
         independence,
         revisit: drill,
+        rating,
         src: source,
       }),
     );
   };
 
   const recordGaveUp = (reason: GaveUpReason) => {
-    onRecorded?.(logAttempt({ qid, outcome: "gaveup", reason, src: source }));
+    onRecorded?.(
+      logAttempt({ qid, outcome: "gaveup", reason, rating, src: source }),
+    );
   };
 
   useEffect(() => {

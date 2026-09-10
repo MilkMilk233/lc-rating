@@ -137,6 +137,7 @@ function ProblemCategoryList({
                   <ProgressRecordPanel
                     qid={id}
                     questionTitle={item.title}
+                    rating={item.score ? Number(item.score) : undefined}
                     source="zen"
                     className="pc-panel"
                     onRecorded={() => setOpenId(null)}

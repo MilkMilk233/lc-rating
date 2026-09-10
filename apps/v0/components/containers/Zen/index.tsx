@@ -387,6 +387,7 @@ export default function Zenk() {
   const [recordTarget, setRecordTarget] = useState<{
     qid: string;
     title: string;
+    rating: number;
   } | null>(null);
 
   const [settings = defaultSettings, setSettings] = useStorage<SettingsType>(
@@ -509,7 +510,9 @@ export default function Zenk() {
           data={filteredData}
           currentByQid={derived.currentByQid}
           scheduleByQid={derived.scheduleByQid}
-          onRecord={(qid, title) => setRecordTarget({ qid, title })}
+          onRecord={(qid, title, rating) =>
+            setRecordTarget({ qid, title, rating })
+          }
         />
       </div>
 
@@ -526,6 +529,7 @@ export default function Zenk() {
             <ProgressRecordPanel
               qid={recordTarget.qid}
               questionTitle={recordTarget.title}
+              rating={recordTarget.rating}
               source="zen"
               onRecorded={() => setRecordTarget(null)}
               onCancel={() => setRecordTarget(null)}
@@ -545,7 +549,7 @@ interface ZenTableCompProps {
   tagLanguage: "zh" | "en";
   currentByQid: Map<string, AttemptEvent>;
   scheduleByQid: Map<string, ScheduleState>;
-  onRecord: (qid: string, title: string) => void;
+  onRecord: (qid: string, title: string, rating: number) => void;
 }
 
 const ZenTableComp = React.memo(
@@ -665,7 +669,9 @@ const ZenTableComp = React.memo(
                 <button
                   type="button"
                   className={`pc-state${current ? " recorded" : ""}`}
-                  onClick={() => onRecord(item.question_id, item.title)}
+                  onClick={() =>
+                    onRecord(item.question_id, item.title, item.rating)
+                  }
                   title={current ? "重新记录" : "记录这次练习"}
                 >
                   {attemptLabel(current)}

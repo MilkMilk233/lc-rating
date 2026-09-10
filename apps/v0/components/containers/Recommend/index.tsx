@@ -357,6 +357,7 @@ export default function Recommend() {
             <ProgressRecordPanel
               qid={qid}
               questionTitle={question.title}
+              rating={question.rating}
               source="recommend"
               onRecorded={handleRecorded}
               onCancel={() => setShowRecord(false)}

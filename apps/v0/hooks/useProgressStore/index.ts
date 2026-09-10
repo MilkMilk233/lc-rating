@@ -31,6 +31,8 @@ export type LogAttemptInput =
       independence?: Independence;
       /** Drill mode: something here is worth memorising. */
       revisit?: boolean;
+      /** Problem difficulty at the time of the attempt. */
+      rating?: number;
       at?: number;
       src?: AttemptSource;
     }
@@ -38,6 +40,7 @@ export type LogAttemptInput =
       qid: string;
       outcome: "gaveup";
       reason: GaveUpReason;
+      rating?: number;
       at?: number;
       src?: AttemptSource;
     };
@@ -102,6 +105,7 @@ class ProgressStore {
       qid: input.qid,
       at,
       src: input.src ?? "recommend",
+      ...(typeof input.rating === "number" ? { rating: input.rating } : {}),
     };
     const event: AttemptEvent =
       input.outcome === "solved"
