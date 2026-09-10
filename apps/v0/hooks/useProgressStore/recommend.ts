@@ -13,10 +13,11 @@
 //   5. leeches (3+ consecutive give-ups) are parked and get the same treatment.
 
 import {
+  EASY_MODE_MARGIN,
   MIN_TOTAL_WEIGHT,
   targetForTags,
 } from "./ability";
-import type { AbilityEstimate } from "./ability";
+import type { AbilityEstimate, TargetAdjustment } from "./ability";
 import type { DerivedProgress } from "./derive";
 import { DAY_MS, hashUnit, isDue, isGraduated, isLeech, overdueDays, urgency } from "./srs";
 import type { AttemptEvent } from "./types";
@@ -101,12 +102,15 @@ function reasonForNew(
   target: number,
   tagSolved: Map<string, number>,
   ability: AbilityEstimate,
+  offset: number,
 ): string {
   if (ability.totalWeight < MIN_TOTAL_WEIGHT) {
     return "从基础题开始，先把地基打牢";
   }
   const novel = candidate.tags.find((tag) => !tagSolved.has(tag));
   if (novel) return `新题型：${novel}`;
+  if (offset <= -100) return `先找回手感，难度 ≈${target}`;
+  if (offset >= 80) return `状态不错，难度上调到 ≈${target}`;
   return `难度贴合你当前的水平 ≈${target}`;
 }
 
@@ -115,6 +119,8 @@ export interface BuildQueueParams {
   byQid: Map<string, Candidate>;
   derived: DerivedProgress;
   ability: AbilityEstimate;
+  /** Short-term difficulty adjustment (form, frustration, momentum). */
+  adjustment: TargetAdjustment;
   now: number;
 }
 
@@ -123,9 +129,13 @@ export function buildRecommendationQueue({
   byQid,
   derived,
   ability,
+  adjustment,
   now,
 }: BuildQueueParams): QueueItem[] {
   const { currentByQid, scheduleByQid, currentSolved } = derived;
+  const offset = adjustment.offset;
+  const targetFor = (tags: string[]) =>
+    targetForTags(tags, ability) + offset;
 
   const tagSolved = new Map<string, number>();
   for (const attempt of currentSolved) {
@@ -184,7 +194,7 @@ export function buildRecommendationQueue({
       (candidate) => !currentByQid.has(candidate.qid) && !candidate.paidOnly,
     )
     .map((candidate) => {
-      const target = targetForTags(candidate.tags, ability);
+      const target = targetFor(candidate.tags);
       return {
         candidate,
         target,
@@ -211,7 +221,7 @@ export function buildRecommendationQueue({
   const fresh: QueueItem[] = picked.map((entry) => ({
     qid: entry.candidate.qid,
     pool: "new" as const,
-    reason: reasonForNew(entry.candidate, entry.target, tagSolved, ability),
+    reason: reasonForNew(entry.candidate, entry.target, tagSolved, ability, offset),
   }));
 
   // ---- 4. prerequisite before a too-hard "no idea" review --------------
@@ -266,5 +276,31 @@ export function buildRecommendationQueue({
     if (i < reviewBlocks.length) queue.push(...reviewBlocks[i]);
     if (i < remainingFresh.length) queue.push(remainingFresh[i]);
   }
+  // ---- 6. confidence builder -------------------------------------------
+  // After repeated "no idea" attempts, lead with something winnable instead of
+  // handing the user another wall.
+  if (adjustment.easyMode) {
+    const safe = scored.find(
+      (entry) =>
+        entry.candidate.rating <= adjustment.effective - EASY_MODE_MARGIN,
+    );
+    if (safe) {
+      const existing = queue.findIndex(
+        (item) => item.qid === safe.candidate.qid,
+      );
+      if (existing >= 0) {
+        const [item] = queue.splice(existing, 1);
+        item.reason = "先找回手感，来一道稳的";
+        queue.unshift(item);
+      } else {
+        queue.unshift({
+          qid: safe.candidate.qid,
+          pool: "new",
+          reason: "先找回手感，来一道稳的",
+        });
+      }
+    }
+  }
+
   return queue;
 }

@@ -4,7 +4,7 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useProgressStore } from "@hooks/useProgressStore";
-import { estimateAbility } from "@hooks/useProgressStore/ability";
+import { estimateAbility, targetAdjustment } from "@hooks/useProgressStore/ability";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { buildRecommendationQueue } from "@hooks/useProgressStore/recommend";
 import type {
@@ -51,6 +51,7 @@ export default function Recommend() {
   interface Plan {
     items: RecItem[];
     target: number;
+    offset: number;
   }
 
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -101,12 +102,16 @@ export default function Recommend() {
       now,
     );
 
+    // Short-term form: returning after a break, on a bad streak, or on a roll.
+    const adjustment = targetAdjustment(derived.events, ability, now);
+
     const items: RecItem[] = [];
     const plan = buildRecommendationQueue({
       candidates,
       byQid,
       derived,
       ability,
+      adjustment,
       now,
     });
     for (const item of plan) {
@@ -116,7 +121,7 @@ export default function Recommend() {
       }
     }
 
-    return { items, target: ability.global };
+    return { items, target: adjustment.effective, offset: adjustment.offset };
   }, [zen, derived, questionTags, now]);
 
   useEffect(() => {
@@ -308,7 +313,13 @@ export default function Recommend() {
         <span className="meta">
           已解决 {derived.totals.solved} 道
           {derived.totals.solved >= 3 && plan
-            ? ` · 当前目标 ≈${plan.target}`
+            ? ` · 当前目标 ≈${plan.target}${
+                plan.offset <= -100
+                  ? "（先找回手感）"
+                  : plan.offset >= 80
+                    ? "（状态不错）"
+                    : ""
+              }`
             : ""}
         </span>
       </div>

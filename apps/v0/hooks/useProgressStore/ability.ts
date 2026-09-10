@@ -169,3 +169,128 @@ export function targetForTags(
   }
   return Number.isFinite(target) ? target : ability.global;
 }
+
+// ---------------------------------------------------------------------------
+// Dynamic difficulty adjustment.
+//
+// Ability has two parts: the level demonstrated by history, and current form.
+// History alone would keep serving the same difficulty to someone who has been
+// away for months, or who just failed three problems in a row — both are
+// reliable ways to make a user quit. These three terms move the target up or
+// down without touching the stored data.
+// ---------------------------------------------------------------------------
+
+/** Days of inactivity before form starts to decay. */
+export const GAP_GRACE_DAYS = 7;
+export const GAP_PENALTY_PER_DAY = 1.5;
+export const MAX_GAP_PENALTY = 200;
+
+export const FRUSTRATION_NO_IDEA = 60;
+export const FRUSTRATION_TEDIOUS = 30;
+
+export const MOMENTUM_PER_FAST_SOLVE = 40;
+export const MAX_MOMENTUM = 120;
+
+/** Total adjustment is capped so the target never runs away. */
+export const MAX_TARGET_OFFSET = 200;
+
+/** Consecutive "no idea" attempts that trigger a confidence-builder card. */
+export const EASY_MODE_STREAK = 2;
+
+/** How far below the effective target a confidence-builder should sit. */
+export const EASY_MODE_MARGIN = 150;
+
+const RECENT_WINDOW = 3;
+
+/** Only attempts this recent say anything about current form. */
+export const FORM_WINDOW_DAYS = 7;
+
+export interface TargetAdjustment {
+  /** Demonstrated level from history. */
+  base: number;
+  /** Days since the last recorded attempt. */
+  gapDays: number;
+  /** Negative when the user has been away. */
+  gapPenalty: number;
+  /** Negative after recent give-ups. */
+  frustration: number;
+  /** Positive after recent fast solo solves. */
+  momentum: number;
+  /** Clamped sum of the three terms. */
+  offset: number;
+  /** base + offset. */
+  effective: number;
+  /** True when the last attempts were all "no idea". */
+  easyMode: boolean;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function targetAdjustment(
+  events: ProgressEvent[],
+  ability: AbilityEstimate,
+  now: number,
+): TargetAdjustment {
+  const base = ability.global;
+  const attempts = events
+    .filter((event) => event.type === "attempt")
+    .sort((a, b) => a.at - b.at);
+  const last = attempts[attempts.length - 1];
+
+  const gapDays = last == null ? 0 : Math.max(0, (now - last.at) / DAY_MS);
+  const gapPenalty =
+    gapDays > GAP_GRACE_DAYS
+      ? -Math.min(
+          MAX_GAP_PENALTY,
+          Math.round((gapDays - GAP_GRACE_DAYS) * GAP_PENALTY_PER_DAY),
+        )
+      : 0;
+
+  // Momentum and frustration describe *current* form, so stale attempts are
+  // ignored — otherwise a good run three months ago would cancel out the
+  // returning-user discount.
+  const recent = attempts
+    .filter((attempt) => now - attempt.at <= FORM_WINDOW_DAYS * DAY_MS)
+    .slice(-RECENT_WINDOW);
+  let frustration = 0;
+  let momentum = 0;
+  for (const attempt of recent) {
+    if (attempt.outcome === "gaveup") {
+      frustration -=
+        attempt.reason === "no_idea"
+          ? FRUSTRATION_NO_IDEA
+          : FRUSTRATION_TEDIOUS;
+    } else if (attempt.independence === "solo" && attempt.band === "LE5") {
+      momentum += MOMENTUM_PER_FAST_SOLVE;
+    }
+  }
+  momentum = Math.min(momentum, MAX_MOMENTUM);
+
+  const offset = clamp(
+    gapPenalty + frustration + momentum,
+    -MAX_TARGET_OFFSET,
+    MAX_TARGET_OFFSET,
+  );
+
+  const easyMode =
+    recent.length >= EASY_MODE_STREAK &&
+    recent
+      .slice(-EASY_MODE_STREAK)
+      .every(
+        (attempt) =>
+          attempt.outcome === "gaveup" && attempt.reason === "no_idea",
+      );
+
+  return {
+    base,
+    gapDays: Math.round(gapDays),
+    gapPenalty,
+    frustration,
+    momentum,
+    offset,
+    effective: base + offset,
+    easyMode,
+  };
+}
