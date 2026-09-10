@@ -21,8 +21,7 @@ import {
 } from "@utils/leetcodeLinks";
 import { bandFor, xpForAttempt } from "@utils/practice";
 import clsx from "clsx";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
   LuArrowUpRight,
@@ -47,7 +46,14 @@ export default function Recommend() {
   const { tags: questionTags } = useQuestionTags(null);
   const { language } = useLeetCodeLanguage();
   const { derived } = useProgressStore();
-  const [skipped, setSkipped] = useState<Set<string>>(new Set());
+  type ZenQuestion = (typeof zen)[number];
+  type RecItem = { question: ZenQuestion; pool: Pool; reason: string };
+  interface Plan {
+    items: RecItem[];
+    target: number;
+  }
+
+  const [plan, setPlan] = useState<Plan | null>(null);
   const [showRecord, setShowRecord] = useState(false);
   const [lastResult, setLastResult] = useState<{
     text: string;
@@ -61,12 +67,14 @@ export default function Recommend() {
     return () => clearInterval(timer);
   }, []);
 
-  type ZenQuestion = (typeof zen)[number];
-  type RecItem = { question: ZenQuestion; pool: Pool; reason: string };
-
   // The recommendation engine. Everything derives from the practice pool, the
   // event log, and topic tags — no extra storage needed.
-  const { queue, target, solvedCount } = useMemo(() => {
+  //
+  // Deliberately NOT a useMemo: the plan is built once and then consumed card by
+  // card. Re-deriving it after every attempt restarts the review/new
+  // interleaving from the top, which puts a review at the head every time — the
+  // user then sees review after review with no alternation.
+  const buildPlan = useCallback((): Plan => {
     const questionByQid = new Map<string, ZenQuestion>();
     const byQid = new Map<string, Candidate>();
     const candidates: Candidate[] = [];
@@ -108,28 +116,43 @@ export default function Recommend() {
       }
     }
 
-    return {
-      queue: items,
-      target: ability.global,
-      solvedCount: derived.totals.solved,
-    };
+    return { items, target: ability.global };
   }, [zen, derived, questionTags, now]);
 
-  const visible = queue.filter(
-    (item) => !skipped.has(String(item.question.question_id)),
-  );
-  const current = visible[0];
+  useEffect(() => {
+    if (plan !== null || zen.length === 0) return;
+    setPlan(buildPlan());
+  }, [plan, zen.length, buildPlan]);
+
+  const current = plan?.items[0];
+
+  const consume = useCallback((qid: string) => {
+    setPlan((prev) =>
+      prev
+        ? {
+            ...prev,
+            items: prev.items.filter(
+              (item) => String(item.question.question_id) !== qid,
+            ),
+          }
+        : prev,
+    );
+  }, []);
+
+  const restart = () => {
+    setShowRecord(false);
+    setLastResult(null);
+    setPlan(buildPlan());
+  };
 
   const handleSkip = () => {
     if (!current) return;
     setShowRecord(false);
-    setSkipped((prev) =>
-      new Set(Array.from(prev)).add(String(current.question.question_id)),
-    );
+    consume(String(current.question.question_id));
   };
 
   const renderBody = () => {
-    if (zen.length === 0) {
+    if (zen.length === 0 || plan === null) {
       return (
         <section className="duo-card rec-placeholder">
           <p>正在从题库中挑选适合你的题…</p>
@@ -137,37 +160,28 @@ export default function Recommend() {
       );
     }
 
-    if (queue.length === 0) {
+    if (plan.items.length === 0) {
+      const allAttempted = derived.totals.marked >= zen.length;
       return (
         <section className="duo-card rec-placeholder">
           <span className="duo-chip gold">
             <LuPartyPopper aria-hidden size={24} />
           </span>
-          <h2>练习池被你刷完了</h2>
-          <p>不可思议！去难度练习里回顾一下自己的战绩吧。</p>
-          <Link href="/zen" className="duo-btn">
-            前往难度练习
-          </Link>
-        </section>
-      );
-    }
-
-    if (!current) {
-      return (
-        <section className="duo-card rec-placeholder">
-          <h2>候选都看完了</h2>
-          <p>休息一下，或者重置候选再来一轮。</p>
-          <button
-            type="button"
-            className="duo-btn"
-            onClick={() => setSkipped(new Set())}
-          >
+          <h2>{allAttempted ? "练习池被你刷完了" : "这一轮候选看完了"}</h2>
+          <p>
+            {allAttempted
+              ? "不可思议！去难度练习里回顾一下自己的战绩吧。"
+              : "休息一下，或者重新生成一轮候选。"}
+          </p>
+          <button type="button" className="duo-btn" onClick={restart}>
             <LuRotateCcw aria-hidden size={18} />
-            <span>重置候选</span>
+            <span>{allAttempted ? "再刷一轮" : "重新生成候选"}</span>
           </button>
         </section>
       );
     }
+
+    if (!current) return null;
 
     const question = current.question;
     const qid = String(question.question_id);
@@ -179,7 +193,7 @@ export default function Recommend() {
 
     const handleRecorded = (event: AttemptEvent) => {
       setShowRecord(false);
-      setSkipped((prev) => new Set(Array.from(prev)).add(qid));
+      consume(qid);
 
       const next = applyAttempt(schedule, event);
       const days = Math.max(1, Math.round((next.dueAt - event.at) / DAY_MS));
@@ -292,8 +306,10 @@ export default function Recommend() {
       <div className="rec-head">
         <h1>推荐刷题</h1>
         <span className="meta">
-          已解决 {solvedCount} 道
-          {solvedCount >= 3 ? ` · 当前目标 ≈${target}` : ""}
+          已解决 {derived.totals.solved} 道
+          {derived.totals.solved >= 3 && plan
+            ? ` · 当前目标 ≈${plan.target}`
+            : ""}
         </span>
       </div>
 
