@@ -13,6 +13,7 @@ import {
 } from "@hooks/useProgressStore/derive";
 import { isDue, isGraduated } from "@hooks/useProgressStore/srs";
 import { BAND_MINUTES, expectedMinutes } from "@hooks/useProgressStore/pace";
+import type { EffortBand } from "@hooks/useProgressStore/types";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
 import { RATING_BANDS, xpForAttempt } from "@utils/practice";
@@ -46,6 +47,21 @@ import HistoryModal from "./HistoryModal";
 
 const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
 const XP_PER_LEVEL = 120;
+
+/**
+ * Pace chart dots are coloured by actual / expected, i.e. the comparison the
+ * chart exists to show. Colouring them by effort band would only repeat what
+ * their vertical position already says.
+ */
+const PACE_TONES = [
+  { max: 0.65, key: "fast", label: "快于期望", color: "var(--duo-green)" },
+  { max: 1.35, key: "onpace", label: "符合期望", color: "var(--duo-blue)" },
+  { max: 2.2, key: "slow", label: "偏慢", color: "var(--duo-orange)" },
+  { max: Infinity, key: "vslow", label: "明显偏慢", color: "var(--duo-red)" },
+] as const;
+
+const paceTone = (ratio: number) =>
+  PACE_TONES.find((tone) => ratio < tone.max) ?? PACE_TONES[PACE_TONES.length - 1];
 
 const diffDays = (a: string, b: string) => {
   const start = new Date(`${a}T00:00:00`).getTime();
@@ -424,47 +440,140 @@ export default function Profile() {
   // dots sits consistently above the curve, the table in pace.ts is optimistic
   // and should be tuned.
   const paceChart = useMemo(() => {
-    const points: { rating: number; minutes: number }[] = [];
+    const W = 640;
+    const H = 240;
+    const pad = { left: 44, right: 18, top: 26, bottom: 34 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    const attempts: { rating: number; band: EffortBand; minutes: number }[] = [];
     events.forEach((event) => {
       if (event.type !== "attempt" || event.outcome !== "solved") return;
       const rating = event.rating ?? zenById.get(event.qid)?.rating;
       if (rating == null) return;
-      points.push({ rating, minutes: BAND_MINUTES[event.band] });
+      attempts.push({
+        rating,
+        band: event.band,
+        minutes: BAND_MINUTES[event.band],
+      });
     });
 
-    const ratings = points.map((point) => point.rating);
-    const minRating = Math.min(1100, ...ratings) - 50;
-    const maxRating = Math.max(1700, ...ratings) + 50;
-    const maxMinutes = 90;
-    const left = 34;
-    const right = 592;
-    const top = 10;
-    const bottom = 140;
+    // Identical (difficulty, band) pairs would overplot, so they become one
+    // bubble whose radius grows with the count.
+    const groups = new Map<
+      string,
+      { rating: number; band: EffortBand; minutes: number; count: number }
+    >();
+    attempts.forEach((attempt) => {
+      const key = `${Math.round(attempt.rating)}-${attempt.band}`;
+      const existing = groups.get(key);
+      if (existing) existing.count += 1;
+      else groups.set(key, { ...attempt, count: 1 });
+    });
+
+    const ratings = attempts.map((attempt) => attempt.rating);
+    const minRating = Math.floor((Math.min(1100, ...ratings) - 50) / 50) * 50;
+    const maxRating = Math.ceil((Math.max(1600, ...ratings) + 50) / 50) * 50;
+
+    const maxActual = attempts.reduce(
+      (max, attempt) => Math.max(max, attempt.minutes),
+      0,
+    );
+    // Pick the coarsest gridline step that keeps the axis under ~6 lines, so a
+    // single slow solve cannot squash everything else into the bottom sliver.
+    const rawMax = Math.max(maxActual, expectedMinutes(maxRating)) * 1.08;
+    const yStep =
+      [5, 10, 15, 20, 25, 30, 50, 100].find((step) => rawMax / step <= 6) ?? 100;
+    const yMax = Math.max(yStep * 2, Math.ceil(rawMax / yStep) * yStep);
 
     const x = (rating: number) =>
-      left + ((rating - minRating) / (maxRating - minRating)) * (right - left);
+      pad.left + ((rating - minRating) / (maxRating - minRating)) * plotW;
     const y = (minutes: number) =>
-      bottom - (Math.min(minutes, maxMinutes) / maxMinutes) * (bottom - top);
+      pad.top + plotH - (Math.min(minutes, yMax) / yMax) * plotH;
 
-    const curve = Array.from({ length: 25 }, (_, index) => {
-      const rating = minRating + (index / 24) * (maxRating - minRating);
-      return `${x(rating).toFixed(1)},${y(expectedMinutes(rating)).toFixed(1)}`;
-    }).join(" ");
+    const samples = Array.from(
+      { length: 33 },
+      (_, index) => minRating + (index / 32) * (maxRating - minRating),
+    );
+    const curve = samples
+      .map((rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating)).toFixed(1)}`)
+      .join(" ");
+    const bandTop = samples.map(
+      (rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating) * 1.35).toFixed(1)}`,
+    );
+    const bandBottom = [...samples]
+      .reverse()
+      .map((rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating) * 0.7).toFixed(1)}`);
+    const paceBand = [...bandTop, ...bandBottom].join(" ");
 
-    return { points, x, y, curve };
-  }, [events, zenById]);
+    const xStep = maxRating - minRating > 700 ? 200 : 100;
+    const xTicks: number[] = [];
+    for (let rating = Math.ceil(minRating / xStep) * xStep; rating <= maxRating; rating += xStep) {
+      xTicks.push(rating);
+    }
+    const yTicks: number[] = [];
+    for (let minutes = yStep; minutes <= yMax; minutes += yStep) {
+      yTicks.push(minutes);
+    }
 
-  const paceSummary = useMemo(() => {
-    if (paceChart.points.length < 3) return null;
-    const ratios = paceChart.points
-      .map((point) => point.minutes / expectedMinutes(point.rating))
+    const ratios = attempts
+      .map((attempt) => attempt.minutes / expectedMinutes(attempt.rating))
       .sort((a, b) => a - b);
-    const median = ratios[Math.floor(ratios.length / 2)];
-    const percent = Math.round((median - 1) * 100);
-    if (percent <= -10) return { label: `比期望快 ${-percent}%` };
-    if (percent >= 10) return { label: `比期望慢 ${percent}%` };
-    return { label: "耗时基本符合期望" };
-  }, [paceChart]);
+    const median = ratios.length > 0 ? ratios[Math.floor(ratios.length / 2)] : 1;
+    const onPace = ratios.filter((ratio) => ratio >= 0.65 && ratio <= 1.35).length;
+    const summary =
+      attempts.length < 3
+        ? null
+        : median >= 2.2
+          ? {
+              label: `中位耗时 ${median.toFixed(1)}× 期望`,
+              tone: "red",
+              hint: "实际耗时远高于曲线，期望表低难度段偏紧，可以放宽",
+            }
+          : median >= 1.25
+            ? {
+                label: `中位耗时 ${median.toFixed(1)}× 期望`,
+                tone: "orange",
+                hint: "实际耗时普遍高于曲线，可以把 pace.ts 的期望表调慢一些",
+              }
+            : median <= 0.8
+              ? {
+                  label: `中位耗时 ${median.toFixed(1)}× 期望`,
+                  tone: "green",
+                  hint: "实际耗时低于曲线，期望表可以调快一些",
+                }
+              : {
+                  label: `中位耗时 ${median.toFixed(1)}× 期望`,
+                  tone: "green",
+                  hint: null,
+                };
+
+    return {
+      W,
+      H,
+      pad,
+      plotW,
+      plotH,
+      x,
+      y,
+      curve,
+      paceBand,
+      bubbles: Array.from(groups.values()).map((bubble) => {
+        const ratio = bubble.minutes / expectedMinutes(bubble.rating);
+        return { ...bubble, ratio, tone: paceTone(ratio) };
+      }),
+      xTicks,
+      yTicks,
+      count: attempts.length,
+      onPace,
+      // Left of this line is settled ground, right of it is frontier work.
+      ability:
+        suggestedRating > minRating && suggestedRating < maxRating
+          ? suggestedRating
+          : null,
+      summary,
+    };
+  }, [events, zenById, suggestedRating]);
 
   const weeklyTrend =
     weekly.last7 > weekly.prev7
@@ -603,37 +712,41 @@ export default function Profile() {
       <section className="duo-card">
         <header className="duo-card-head">
           <h2>解题速度 vs 期望</h2>
-          <span className="meta">
-            {paceSummary ? paceSummary.label : "记录几道题后可见"}
-          </span>
+          {paceChart.summary ? (
+            <span className={`pace-pill ${paceChart.summary.tone}`}>
+              {paceChart.summary.label}
+            </span>
+          ) : (
+            <span className="meta">记录几道题后可见</span>
+          )}
         </header>
-        {paceChart.points.length < 3 ? (
+        {paceChart.count < 3 ? (
           <div className="duo-teaser">
-            记录至少 3 道带难度分的题，这里会把你每道题的实际耗时和"该难度应有的
-            熟练耗时"叠在一起对照。
+            记录至少 3 道带难度分的题，这里会把你每道题的实际耗时和「该难度应有的
+            熟练耗时」叠在一起对照。
           </div>
         ) : (
           <>
             <svg
               className="pace-chart"
-              viewBox="0 0 600 170"
+              viewBox={`0 0 ${paceChart.W} ${paceChart.H}`}
               role="img"
               aria-label="实际耗时与期望曲线对照"
             >
-              <line x1="34" y1="140" x2="592" y2="140" className="pace-axis" />
-              <line x1="34" y1="10" x2="34" y2="140" className="pace-axis" />
-              {[15, 30, 45, 60, 75].map((minutes) => (
+              <polygon points={paceChart.paceBand} className="pace-band" />
+
+              {paceChart.yTicks.map((minutes) => (
                 <g key={minutes}>
                   <line
-                    x1="34"
-                    x2="592"
+                    x1={paceChart.pad.left}
+                    x2={paceChart.W - paceChart.pad.right}
                     y1={paceChart.y(minutes)}
                     y2={paceChart.y(minutes)}
                     className="pace-grid"
                   />
                   <text
-                    x="30"
-                    y={paceChart.y(minutes) + 3}
+                    x={paceChart.pad.left - 8}
+                    y={paceChart.y(minutes) + 3.5}
                     textAnchor="end"
                     className="pace-label"
                   >
@@ -641,38 +754,118 @@ export default function Profile() {
                   </text>
                 </g>
               ))}
+
+              <line
+                x1={paceChart.pad.left}
+                y1={paceChart.pad.top}
+                x2={paceChart.pad.left}
+                y2={paceChart.pad.top + paceChart.plotH}
+                className="pace-axis"
+              />
+              <line
+                x1={paceChart.pad.left}
+                y1={paceChart.pad.top + paceChart.plotH}
+                x2={paceChart.W - paceChart.pad.right}
+                y2={paceChart.pad.top + paceChart.plotH}
+                className="pace-axis"
+              />
+
               <polyline points={paceChart.curve} className="pace-curve" />
-              {paceChart.points.map((point, index) => (
+
+              {paceChart.ability != null ? (
+                <g>
+                  <line
+                    x1={paceChart.x(paceChart.ability)}
+                    y1={paceChart.pad.top}
+                    x2={paceChart.x(paceChart.ability)}
+                    y2={paceChart.pad.top + paceChart.plotH}
+                    className="pace-ability"
+                  />
+                  <text
+                    x={Math.min(
+                      paceChart.W - paceChart.pad.right - 34,
+                      Math.max(paceChart.pad.left + 34, paceChart.x(paceChart.ability)),
+                    )}
+                    y={paceChart.pad.top + 9}
+                    textAnchor="middle"
+                    className="pace-ability-label"
+                  >
+                    当前能力 {Math.round(paceChart.ability)}
+                  </text>
+                </g>
+              ) : null}
+
+              {paceChart.bubbles.map((bubble) => (
                 <circle
-                  key={`${point.rating}-${index}`}
-                  cx={paceChart.x(point.rating)}
-                  cy={paceChart.y(point.minutes)}
-                  r="3"
-                  className="pace-dot"
-                />
+                  key={`${bubble.rating}-${bubble.band}`}
+                  cx={paceChart.x(bubble.rating)}
+                  cy={paceChart.y(bubble.minutes)}
+                  r={3.5 + Math.min(5, Math.sqrt(bubble.count) * 2.2)}
+                  fill={bubble.tone.color}
+                  className="pace-bubble"
+                >
+                  <title>
+                    {`${Math.round(bubble.rating)} 分 · ${bubble.minutes} 分钟档 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}×）· ${bubble.count} 次`}
+                  </title>
+                </circle>
               ))}
-              {[1200, 1600, 2000, 2400].map((rating) => (
+
+              {paceChart.xTicks.map((rating) => (
                 <text
                   key={rating}
                   x={paceChart.x(rating)}
-                  y="156"
+                  y={paceChart.H - paceChart.pad.bottom + 17}
                   textAnchor="middle"
                   className="pace-label"
                 >
                   {rating}
                 </text>
               ))}
+
+              <text
+                x={paceChart.pad.left - 8}
+                y={paceChart.pad.top - 14}
+                textAnchor="end"
+                className="pace-label"
+              >
+                分钟
+              </text>
+              <text
+                x={paceChart.W - paceChart.pad.right}
+                y={paceChart.H - 3}
+                textAnchor="end"
+                className="pace-label"
+              >
+                难度分
+              </text>
             </svg>
+
             <div className="pace-legend">
               <span>
-                <span className="pace-legend-line" />
-                期望耗时（按难度拟合）
+                <span className="pace-legend-band" />
+                期望 ±35%
               </span>
               <span>
-                <span className="pace-legend-dot" />
-                你的每次解题（{paceChart.points.length} 次）
+                <span className="pace-legend-line" />
+                期望耗时
               </span>
+              {PACE_TONES.map((tone) => (
+                <span key={tone.key}>
+                  <span
+                    className="pace-legend-dot"
+                    style={{ background: tone.color }}
+                  />
+                  {tone.label}
+                </span>
+              ))}
             </div>
+
+            <p className="pace-footnote">
+              耗时取各档中值（3 / 9 / 22 / 45 / 75 分钟），点越大代表同一难度同一档位的次数越多；
+              点在曲线<b>上方</b>＝比该难度期望的慢。共 {paceChart.count} 次记录，
+              其中 {paceChart.onPace} 次落在期望区间内。
+              {paceChart.summary?.hint ? ` ${paceChart.summary.hint}。` : ""}
+            </p>
           </>
         )}
       </section>

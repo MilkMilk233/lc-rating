@@ -325,20 +325,28 @@
 
 // Pace calibration chart (Profile): actual solving time vs the expected curve.
 .pace-chart {
+  display: block;
   width: 100%;
   height: auto;
 }
 
+// Tolerance band around the expected curve (+-35%) — dots inside it are "on
+// pace", which is much easier to read than comparing against a single line.
+.pace-band {
+  fill: var(--app-accent);
+  opacity: .07;
+}
+
 .pace-axis {
   stroke: var(--app-border);
-  stroke-width: 1;
+  stroke-width: 1.5;
 }
 
 .pace-grid {
   stroke: var(--app-border);
   stroke-width: 1;
-  stroke-dasharray: 3 4;
-  opacity: .7;
+  stroke-dasharray: 2 6;
+  opacity: .8;
 }
 
 .pace-label {
@@ -350,19 +358,67 @@
 .pace-curve {
   fill: none;
   stroke: var(--app-accent);
-  stroke-width: 2;
+  stroke-width: 2.5;
+  stroke-linecap: round;
 }
 
-.pace-dot {
-  fill: var(--app-accent-strong);
-  opacity: .45;
+// One bubble per (difficulty, band); radius grows with the number of attempts.
+.pace-bubble {
+  fill-opacity: .5;
+  stroke: var(--app-surface);
+  stroke-width: 1.5;
+}
+
+.pace-pill {
+  padding: .2rem .65rem;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 850;
+
+  &.green {
+    background: var(--duo-green-soft);
+    color: var(--duo-green-dark);
+  }
+
+  &.orange {
+    background: var(--duo-orange-soft);
+    color: var(--duo-orange-dark);
+  }
+
+  &.blue {
+    background: var(--duo-blue-soft);
+    color: var(--duo-blue-dark);
+  }
+
+  &.red {
+    background: var(--duo-red-soft);
+    color: var(--duo-red-dark);
+  }
+}
+
+[data-bs-theme="dark"] .pace-pill {
+  &.green {
+    color: var(--duo-green);
+  }
+
+  &.orange {
+    color: var(--duo-orange);
+  }
+
+  &.blue {
+    color: var(--duo-blue);
+  }
+
+  &.red {
+    color: var(--duo-red);
+  }
 }
 
 .pace-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-top: .4rem;
+  margin-top: .5rem;
   color: var(--app-muted);
   font-size: .78rem;
   font-weight: 700;
@@ -374,9 +430,17 @@
   gap: .35rem;
 }
 
+.pace-legend-band {
+  width: 18px;
+  height: 10px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--app-accent) 22%, transparent);
+}
+
 .pace-legend-line {
   width: 18px;
   height: 2px;
+  border-radius: 2px;
   background: var(--app-accent);
 }
 
@@ -384,6 +448,30 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--app-accent-strong);
-  opacity: .5;
+  background: var(--duo-blue);
+  opacity: .6;
+}
+
+// Vertical marker at the estimated ability: problems to its left are settled
+// ground, to its right are frontier work.
+.pace-ability {
+  stroke: var(--app-text);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  opacity: .35;
+}
+
+.pace-ability-label {
+  fill: var(--app-muted);
+  font-size: 10px;
+  font-weight: 800;
+  opacity: .9;
+}
+
+.pace-footnote {
+  margin: .6rem 0 0;
+  color: var(--app-muted);
+  font-size: .76rem;
+  font-weight: 650;
+  line-height: 1.55;
 }
