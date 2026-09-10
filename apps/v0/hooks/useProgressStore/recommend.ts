@@ -19,8 +19,18 @@ import {
 } from "./ability";
 import type { AbilityEstimate, TargetAdjustment } from "./ability";
 import type { DerivedProgress } from "./derive";
-import { DAY_MS, hashUnit, isDue, isGraduated, isLeech, overdueDays, urgency } from "./srs";
-import type { AttemptEvent, EffortBand } from "./types";
+import { hasHeadroom } from "./pace";
+import {
+  DAY_MS,
+  hashUnit,
+  isDue,
+  isFluentSolve,
+  isGraduated,
+  isLeech,
+  overdueDays,
+  urgency,
+} from "./srs";
+import type { AttemptEvent } from "./types";
 
 export interface Candidate {
   qid: string;
@@ -62,21 +72,20 @@ export const PREREQUISITE_ABILITY_GAP = 100;
 export const PREREQUISITE_RATING_GAP = 150;
 
 /**
- * Bands that mean "this pattern is already internalised".
+ * A review is converted into a sibling when the problem is already comfortable:
+ * solved at or above the pace for its difficulty, *and* sitting well below the
+ * user's level. Re-solving such a problem mostly tests whether you remember
+ * *that* solution, not whether you can recognise the pattern in a new one.
  *
- * Re-solving such a problem mostly tests whether you remember *that* solution,
- * not whether you can recognise the pattern in a new problem. So its review
- * slot is converted into a sibling: a different problem sharing a tag.
+ * Pace alone is not enough — a frontier problem solved at exactly the expected
+ * pace is still at the frontier, so it keeps its review slot.
  */
-const EASY_MASTERED_BANDS: readonly EffortBand[] = ["LE5", "L5_15"];
-
-function isEasyMastered(attempt: AttemptEvent | undefined): boolean {
-  return (
-    !!attempt &&
-    attempt.outcome === "solved" &&
-    attempt.independence === "solo" &&
-    EASY_MASTERED_BANDS.includes(attempt.band)
-  );
+function isComfortable(
+  attempt: AttemptEvent | undefined,
+  rating: number,
+  abilityGlobal: number,
+): boolean {
+  return isFluentSolve(attempt) && hasHeadroom(rating, abilityGlobal);
 }
 
 /**
@@ -179,8 +188,15 @@ export function buildRecommendationQueue({
     const candidate = byQid.get(qid);
     if (!candidate || candidate.paidOnly) return;
 
-    // Graduated problems stop taking up review slots.
-    if (isGraduated(derived.attemptsByQid.get(qid) ?? [])) return;
+    // Graduated problems stop taking review slots — but only once they sit
+    // comfortably below the user's level. A frontier problem solved at the
+    // expected pace is not mastered, it is simply at the frontier.
+    if (
+      isGraduated(derived.attemptsByQid.get(qid) ?? []) &&
+      hasHeadroom(candidate.rating, ability.global)
+    ) {
+      return;
+    }
 
     // Heavily overdue problems are dripped back in instead of forming a wall.
     const overdue = overdueDays(schedule, now);
@@ -247,7 +263,12 @@ export function buildRecommendationQueue({
     const blocked = byQid.get(qid);
     // Drill mode means the user wants *this* problem again, not a sibling.
     if (scheduleByQid.get(qid)?.revisit === true) continue;
-    if (!blocked || !isEasyMastered(currentByQid.get(qid))) continue;
+    if (
+      !blocked ||
+      !isComfortable(currentByQid.get(qid), blocked.rating, ability.global)
+    ) {
+      continue;
+    }
 
     const sibling = scored.find((entry) => {
       if (consumed.has(entry.candidate.qid)) return false;

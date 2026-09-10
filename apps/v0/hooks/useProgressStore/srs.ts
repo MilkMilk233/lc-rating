@@ -5,13 +5,11 @@
 //   2. review cost  — a 45-minute problem costs far more to review than a
 //      3-minute one, and re-serving it the next day is exhausting.
 //
-// So the FIRST interval grows with effort (recovery room), while the growth
-// rate shrinks with effort (hard problems still end up reviewed more often over
-// time, just not tomorrow).
-//
-// Pure functions only: no storage, no React, no Date.now(). Callers pass the
-// events (and, when needed, the current time).
+// The split that matters: the FIRST interval follows absolute time (fatigue is
+// real regardless of difficulty), while the GROWTH rate follows relative pace
+// (how fast that duration was *for that difficulty*). See ./pace.ts.
 
+import { easeFactorFromPace, pointsAbove } from "./pace";
 import type { AttemptEvent, EffortBand } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
@@ -138,8 +136,13 @@ export function nextIntervalDays(
   }
 
   // Always advance at least one day so slow solves still move forward.
+  // The band sets the base growth; the pace relative to the problem's own
+  // difficulty scales it, so the same band grows differently at 1300 and 2400.
+  const pace =
+    event.rating != null ? pointsAbove(event.rating, event.band) : 0;
+  const ease = 1 + (EASE[event.band] - 1) * easeFactorFromPace(pace);
   return clampInterval(
-    Math.max(prev.intervalDays + 1, prev.intervalDays * EASE[event.band]),
+    Math.max(prev.intervalDays + 1, prev.intervalDays * ease),
   );
 }
 
@@ -182,31 +185,39 @@ export function isLeech(schedule: ScheduleState | undefined): boolean {
   );
 }
 
-/** Consecutive easy solo solves before a problem graduates. */
+/** Consecutive fluent solo solves before a problem graduates. */
 export const GRADUATION_STREAK = 3;
 
+/** Bands used for legacy events that carry no difficulty snapshot. */
 const EASY_BANDS: readonly EffortBand[] = ["LE5", "L5_15"];
 
 /**
- * Graduation: three easy, independent solves in a row means the pattern is
+ * A solo solve that was at or above the pace expected for its difficulty.
+ *
+ * Without a snapshotted rating (older events) this falls back to the absolute
+ * band rule, so existing logs keep working.
+ */
+export function isFluentSolve(attempt: AttemptEvent | undefined): boolean {
+  if (!attempt || attempt.outcome !== "solved") return false;
+  if (attempt.independence !== "solo") return false;
+  if (attempt.revisit === true) return false;
+  if (attempt.rating == null) return EASY_BANDS.includes(attempt.band);
+  return pointsAbove(attempt.rating, attempt.band) >= 0;
+}
+
+/**
+ * Graduation: three fluent solo solves in a row means the pattern is
  * internalised, so the problem stops taking up review slots. The event log is
  * untouched — if the user later struggles with it again, the last attempts
  * change and it comes back on its own.
  *
- * A flagged (drill-mode) attempt blocks graduation: the user explicitly said
- * they still want to practise this one.
+ * Callers must additionally check that the problem sits below the user's level
+ * (see `hasHeadroom`): a frontier problem solved at the expected pace is not
+ * mastered, it is simply at the frontier.
  */
 export function isGraduated(attempts: AttemptEvent[]): boolean {
   if (attempts.length < GRADUATION_STREAK) return false;
-  return attempts
-    .slice(-GRADUATION_STREAK)
-    .every(
-      (attempt) =>
-        attempt.outcome === "solved" &&
-        attempt.independence === "solo" &&
-        attempt.revisit !== true &&
-        EASY_BANDS.includes(attempt.band),
-    );
+  return attempts.slice(-GRADUATION_STREAK).every(isFluentSolve);
 }
 
 /** Replay a question's attempts (ascending by `at`) into its current schedule. */

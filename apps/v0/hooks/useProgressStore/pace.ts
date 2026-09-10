@@ -113,3 +113,14 @@ export function easeFactorFromPace(points: number): number {
 export function isOnPace(points: number): boolean {
   return points >= 0;
 }
+
+/**
+ * True when the problem sits comfortably below the user's level.
+ *
+ * Pace alone is not enough to retire a problem: a frontier problem solved at
+ * exactly the expected pace is still at the frontier. Retirement needs both
+ * fluency *and* headroom.
+ */
+export function hasHeadroom(rating: number, ability: number): boolean {
+  return ability - rating >= GRADUATION_HEADROOM;
+}

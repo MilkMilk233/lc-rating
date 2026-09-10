@@ -19,7 +19,7 @@
 // because being unable to solve at rating R is direct evidence against ability
 // above R.
 
-import { impliedAbility } from "./pace";
+import { impliedAbility, pointsAbove } from "./pace";
 import { DAY_MS } from "./srs";
 import type { ProgressEvent, SolvedAttempt } from "./types";
 
@@ -222,6 +222,12 @@ export const FRUSTRATION_TEDIOUS = 30;
 export const MOMENTUM_PER_FAST_SOLVE = 40;
 export const MAX_MOMENTUM = 120;
 
+/**
+ * How far above the problem's own level a solve must land to count as a hot
+ * streak. Absolute speed is not enough: five minutes on a 1300 is routine.
+ */
+export const MOMENTUM_PACE_THRESHOLD = 150;
+
 /** Total adjustment is capped so the target never runs away. */
 export const MAX_TARGET_OFFSET = 200;
 
@@ -256,7 +262,12 @@ export interface TargetAdjustment {
 }
 
 function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), max);}
+
+/** Solo solve that landed clearly above the problem's own level. */
+function isClearlyFastForLevel(attempt: SolvedAttempt): boolean {
+  if (attempt.rating == null) return attempt.band === "LE5";
+  return pointsAbove(attempt.rating, attempt.band) >= MOMENTUM_PACE_THRESHOLD;
 }
 
 export function targetAdjustment(
@@ -293,7 +304,10 @@ export function targetAdjustment(
         attempt.reason === "no_idea"
           ? FRUSTRATION_NO_IDEA
           : FRUSTRATION_TEDIOUS;
-    } else if (attempt.independence === "solo" && attempt.band === "LE5") {
+    } else if (
+      attempt.independence === "solo" &&
+      isClearlyFastForLevel(attempt)
+    ) {
       momentum += MOMENTUM_PER_FAST_SOLVE;
     }
   }
