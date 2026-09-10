@@ -69,6 +69,32 @@ function clampInterval(days: number): number {
 }
 
 /**
+ * Deterministic ±15% jitter, derived from the question id.
+ *
+ * Without it, everything solved on the same day shares the same interval and
+ * therefore comes back on the same day — a "review wave" that gets worse the
+ * more the user practices. Hashing the id (instead of using randomness) keeps a
+ * given problem's dates stable across renders and reloads.
+ */
+export function fuzzFactor(qid: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < qid.length; i += 1) {
+    hash ^= qid.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  const unit = ((hash >>> 0) % 1000) / 1000;
+  return 0.85 + unit * 0.3;
+}
+
+/**
+ * The interval actually used for the due date. Growth keeps using the clean
+ * value so the ladder stays predictable; only the calendar date is jittered.
+ */
+export function fuzzedIntervalDays(intervalDays: number, qid: string): number {
+  return clampInterval(intervalDays * fuzzFactor(qid));
+}
+
+/**
  * Interval after an attempt. `prev` is undefined for a first attempt, and the
  * ladder restarts after a give-up (you did not retrieve it at all).
  */
@@ -107,7 +133,7 @@ export function applyAttempt(
   const intervalDays = nextIntervalDays(prev, event);
   return {
     intervalDays,
-    dueAt: event.at + intervalDays * DAY_MS,
+    dueAt: event.at + fuzzedIntervalDays(intervalDays, event.qid) * DAY_MS,
     lastAt: event.at,
     lastOutcome: event.outcome,
     failCount: event.outcome === "gaveup" ? (prev?.failCount ?? 0) + 1 : 0,
@@ -146,4 +172,20 @@ export function overdueDays(
 ): number {
   if (!schedule || now < schedule.dueAt) return 0;
   return Math.floor((now - schedule.dueAt) / DAY_MS);
+}
+
+/**
+ * How overdue relative to the problem's own interval.
+ *
+ * Absolute lateness is misleading: 6 days late on a 3-day interval is a real
+ * miss, while 6 days late on a 100-day interval is noise. This is what review
+ * ordering should use.
+ */
+export function urgency(
+  schedule: ScheduleState | undefined,
+  now: number,
+): number {
+  if (!schedule || now < schedule.dueAt) return 0;
+  const interval = Math.max(1, schedule.intervalDays);
+  return (now - schedule.dueAt) / DAY_MS / interval;
 }

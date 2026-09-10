@@ -18,7 +18,7 @@ import {
 } from "./ability";
 import type { AbilityEstimate } from "./ability";
 import type { DerivedProgress } from "./derive";
-import { isDue, isLeech, overdueDays } from "./srs";
+import { isDue, isLeech, overdueDays, urgency } from "./srs";
 import type { AttemptEvent } from "./types";
 
 export interface Candidate {
@@ -121,15 +121,17 @@ export function buildRecommendationQueue({
     }
   }
 
-  // ---- 1. due reviews, most overdue first -------------------------------
-  const due: { qid: string; dueAt: number }[] = [];
+  // ---- 1. due reviews, most *relatively* overdue first ------------------
+  // Absolute lateness is misleading: 6 days late on a 3-day interval matters,
+  // 6 days late on a 100-day interval does not.
+  const due: { qid: string; dueAt: number; urgency: number }[] = [];
   scheduleByQid.forEach((schedule, qid) => {
     if (!isDue(schedule, now)) return;
     const candidate = byQid.get(qid);
     if (!candidate || candidate.paidOnly) return;
-    due.push({ qid, dueAt: schedule.dueAt });
+    due.push({ qid, dueAt: schedule.dueAt, urgency: urgency(schedule, now) });
   });
-  due.sort((a, b) => a.dueAt - b.dueAt);
+  due.sort((a, b) => b.urgency - a.urgency || a.dueAt - b.dueAt);
 
   const reviews: QueueItem[] = due.map(({ qid }) => {
     const schedule = scheduleByQid.get(qid);
