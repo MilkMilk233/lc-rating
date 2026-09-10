@@ -18,7 +18,7 @@ import {
 } from "./ability";
 import type { AbilityEstimate } from "./ability";
 import type { DerivedProgress } from "./derive";
-import { isDue, isLeech, overdueDays, urgency } from "./srs";
+import { DAY_MS, hashUnit, isDue, isGraduated, isLeech, overdueDays, urgency } from "./srs";
 import type { AttemptEvent } from "./types";
 
 export interface Candidate {
@@ -53,6 +53,21 @@ export const PREREQUISITE_ABILITY_GAP = 100;
 
 /** The prerequisite must be this much easier than the blocked problem. */
 export const PREREQUISITE_RATING_GAP = 150;
+
+/**
+ * A problem this many intervals past its due date is treated as "half
+ * forgotten" rather than urgent. Instead of occupying the front of the stream
+ * (or forming a wall after a break), it is dripped back in roughly once every
+ * OVERDUE_SPREAD_DAYS days. SuperMemo calls the same idea auto-postpone.
+ */
+export const OVERDUE_COMPRESSION_FACTOR = 3;
+export const OVERDUE_SPREAD_DAYS = 14;
+
+/** Whether a heavily overdue problem's turn has come today. */
+export function surfacesToday(qid: string, now: number): boolean {
+  const slot = Math.floor(hashUnit(qid) * OVERDUE_SPREAD_DAYS);
+  return slot === Math.floor(now / DAY_MS) % OVERDUE_SPREAD_DAYS;
+}
 
 /** Difficulty fit (1 at the target, 0.5 at PROXIMITY_SCALE away). */
 export function proximityScore(rating: number, target: number): number {
@@ -129,6 +144,19 @@ export function buildRecommendationQueue({
     if (!isDue(schedule, now)) return;
     const candidate = byQid.get(qid);
     if (!candidate || candidate.paidOnly) return;
+
+    // Graduated problems stop taking up review slots.
+    if (isGraduated(derived.attemptsByQid.get(qid) ?? [])) return;
+
+    // Heavily overdue problems are dripped back in instead of forming a wall.
+    const overdue = overdueDays(schedule, now);
+    if (
+      overdue >
+      OVERDUE_COMPRESSION_FACTOR * Math.max(1, schedule.intervalDays)
+    ) {
+      if (!surfacesToday(qid, now)) return;
+    }
+
     due.push({ qid, dueAt: schedule.dueAt, urgency: urgency(schedule, now) });
   });
   due.sort((a, b) => b.urgency - a.urgency || a.dueAt - b.dueAt);

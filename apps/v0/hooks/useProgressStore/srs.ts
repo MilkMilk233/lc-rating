@@ -69,21 +69,29 @@ function clampInterval(days: number): number {
 }
 
 /**
+ * Stable pseudo-random unit value in [0, 1) derived from a string.
+ *
+ * Used for anything that should look random but must never change between
+ * renders or reloads (interval jitter, overdue spreading).
+ */
+export function hashUnit(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return ((hash >>> 0) % 1000) / 1000;
+}
+
+/**
  * Deterministic ±15% jitter, derived from the question id.
  *
  * Without it, everything solved on the same day shares the same interval and
  * therefore comes back on the same day — a "review wave" that gets worse the
- * more the user practices. Hashing the id (instead of using randomness) keeps a
- * given problem's dates stable across renders and reloads.
+ * more the user practices.
  */
 export function fuzzFactor(qid: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < qid.length; i += 1) {
-    hash ^= qid.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  const unit = ((hash >>> 0) % 1000) / 1000;
-  return 0.85 + unit * 0.3;
+  return 0.85 + hashUnit(qid) * 0.3;
 }
 
 /**
@@ -147,6 +155,29 @@ export function isLeech(schedule: ScheduleState | undefined): boolean {
     schedule.failCount >= LEECH_THRESHOLD &&
     schedule.lastOutcome === "gaveup"
   );
+}
+
+/** Consecutive easy solo solves before a problem graduates. */
+export const GRADUATION_STREAK = 3;
+
+const EASY_BANDS: readonly EffortBand[] = ["LE5", "L5_15"];
+
+/**
+ * Graduation: three easy, independent solves in a row means the pattern is
+ * internalised, so the problem stops taking up review slots. The event log is
+ * untouched — if the user later struggles with it again, the last attempts
+ * change and it comes back on its own.
+ */
+export function isGraduated(attempts: AttemptEvent[]): boolean {
+  if (attempts.length < GRADUATION_STREAK) return false;
+  return attempts
+    .slice(-GRADUATION_STREAK)
+    .every(
+      (attempt) =>
+        attempt.outcome === "solved" &&
+        attempt.independence === "solo" &&
+        EASY_BANDS.includes(attempt.band),
+    );
 }
 
 /** Replay a question's attempts (ascending by `at`) into its current schedule. */
