@@ -63,6 +63,8 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       outcome: "solved",
       band: e.band,
       independence: e.independence,
+      // Only ever true or absent, so the flag cannot be set to junk on import.
+      revisit: e.revisit === true ? true : undefined,
     };
   }
 

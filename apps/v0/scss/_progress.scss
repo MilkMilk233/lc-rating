@@ -304,3 +304,21 @@
   color: var(--app-muted);
   font-size: .85rem;
 }
+
+// Inline keyboard hint (used on the recommendation card buttons).
+.kbd-hint {
+  padding: .05rem .35rem;
+  border: 1px solid var(--app-border);
+  border-radius: 5px;
+  background: var(--app-surface);
+  color: var(--app-muted);
+  font-family: inherit;
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.prp-hint {
+  color: var(--app-muted);
+  font-size: .75rem;
+  font-weight: 700;
+}

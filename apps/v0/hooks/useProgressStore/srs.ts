@@ -51,6 +51,14 @@ export const LEECH_THRESHOLD = 3;
 /** Parked problems come back after this many days, not tomorrow. */
 export const LEECH_COOLDOWN_DAYS = 30;
 
+/**
+ * "Drill mode": the user flagged this problem as carrying something worth
+ * memorising (a template, an API usage). Intervals are halved so it comes back
+ * often, but capped so it never degenerates into a daily chore.
+ */
+export const REVISIT_INTERVAL_FACTOR = 0.5;
+export const REVISIT_MAX_INTERVAL_DAYS = 21;
+
 export interface ScheduleState {
   /** Days until the next review. */
   intervalDays: number;
@@ -61,6 +69,8 @@ export interface ScheduleState {
   lastOutcome: AttemptEvent["outcome"];
   /** Consecutive give-ups; reset by any solve. */
   failCount: number;
+  /** Drill mode: sticky until a solve is submitted without the flag. */
+  revisit: boolean;
 }
 
 function clampInterval(days: number): number {
@@ -138,13 +148,28 @@ export function applyAttempt(
   prev: ScheduleState | undefined,
   event: AttemptEvent,
 ): ScheduleState {
-  const intervalDays = nextIntervalDays(prev, event);
+  // Drill mode is sticky across give-ups: it is decided by the most recent
+  // *solve*, so failing once does not silently cancel the user's intent.
+  const revisit =
+    event.outcome === "solved"
+      ? event.revisit === true
+      : (prev?.revisit ?? false);
+
+  let intervalDays = nextIntervalDays(prev, event);
+  if (revisit && event.outcome === "solved") {
+    intervalDays = Math.min(
+      clampInterval(intervalDays * REVISIT_INTERVAL_FACTOR),
+      REVISIT_MAX_INTERVAL_DAYS,
+    );
+  }
+
   return {
     intervalDays,
     dueAt: event.at + fuzzedIntervalDays(intervalDays, event.qid) * DAY_MS,
     lastAt: event.at,
     lastOutcome: event.outcome,
     failCount: event.outcome === "gaveup" ? (prev?.failCount ?? 0) + 1 : 0,
+    revisit,
   };
 }
 
@@ -167,6 +192,9 @@ const EASY_BANDS: readonly EffortBand[] = ["LE5", "L5_15"];
  * internalised, so the problem stops taking up review slots. The event log is
  * untouched — if the user later struggles with it again, the last attempts
  * change and it comes back on its own.
+ *
+ * A flagged (drill-mode) attempt blocks graduation: the user explicitly said
+ * they still want to practise this one.
  */
 export function isGraduated(attempts: AttemptEvent[]): boolean {
   if (attempts.length < GRADUATION_STREAK) return false;
@@ -176,6 +204,7 @@ export function isGraduated(attempts: AttemptEvent[]): boolean {
       (attempt) =>
         attempt.outcome === "solved" &&
         attempt.independence === "solo" &&
+        attempt.revisit !== true &&
         EASY_BANDS.includes(attempt.band),
     );
 }

@@ -29,6 +29,8 @@ export type LogAttemptInput =
       outcome: "solved";
       band: EffortBand;
       independence?: Independence;
+      /** Drill mode: something here is worth memorising. */
+      revisit?: boolean;
       at?: number;
       src?: AttemptSource;
     }
@@ -108,6 +110,7 @@ class ProgressStore {
             outcome: "solved",
             band: input.band,
             independence: input.independence ?? "solo",
+            ...(input.revisit ? { revisit: true as const } : {}),
           }
         : { ...base, outcome: "gaveup", reason: input.reason };
 

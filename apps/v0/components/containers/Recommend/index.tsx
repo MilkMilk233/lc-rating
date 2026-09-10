@@ -41,6 +41,7 @@ type Pool = QueuePool;
 const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
   review: { label: "到期复习", tone: "orange" },
   revive: { label: "复活挑战", tone: "purple" },
+  revisit: { label: "待强化", tone: "gold" },
   prerequisite: { label: "先垫一题", tone: "blue" },
   sibling: { label: "换个题面", tone: "blue" },
   new: { label: "今日推荐", tone: "blue" },
@@ -168,6 +169,51 @@ export default function Recommend() {
     consume(String(current.question.question_id));
   };
 
+  // Card-level shortcuts: O 去做题 / R 记录结果 / N 换一道.
+  // While the record panel is open its own keys (1-5, 0, S, D, Esc) take over.
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (showRecord) {
+        // The panel owns 1-5 / 0 / S / D / Esc while it is open. R mirrors the
+        // "收起记录" button; handling Esc here too would make one press both
+        // step back inside the panel and close it.
+        if (event.key.toLowerCase() === "r") setShowRecord(false);
+        return;
+      }
+
+      const question = plan?.items[0]?.question;
+      if (!question) return;
+
+      const key = event.key.toLowerCase();
+      if (key === "o") {
+        window.open(
+          leetCodeProblemUrl(question.title_slug, language),
+          "_blank",
+          "noopener,noreferrer",
+        );
+      } else if (key === "r") {
+        setShowRecord(true);
+      } else if (key === "n") {
+        consume(String(question.question_id));
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [showRecord, plan, language, consume]);
+
   const renderBody = () => {
     if (zen.length === 0 || plan === null) {
       return (
@@ -288,6 +334,7 @@ export default function Recommend() {
             rel="noreferrer"
           >
             <span>去做题</span>
+            <kbd className="kbd-hint">O</kbd>
             <LuArrowUpRight aria-hidden size={18} />
           </a>
           <button
@@ -296,10 +343,12 @@ export default function Recommend() {
             onClick={() => setShowRecord((open) => !open)}
           >
             <span>{showRecord ? "收起记录" : "记录结果"}</span>
+            <kbd className="kbd-hint">R</kbd>
           </button>
           <button type="button" className="duo-btn-ghost" onClick={handleSkip}>
             <LuShuffle aria-hidden size={17} />
             <span>换一道</span>
+            <kbd className="kbd-hint">N</kbd>
           </button>
         </div>
 

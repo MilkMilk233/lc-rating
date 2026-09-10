@@ -43,6 +43,15 @@ export interface SolvedAttempt extends AttemptBase {
   outcome: "solved";
   band: EffortBand;
   independence: Independence;
+  /**
+   * "There is something here worth drilling" — a transferable fragment such as
+   * an API usage or a template. Orthogonal to difficulty: a five-minute solve
+   * can still carry a template worth memorising.
+   *
+   * The mode is sticky: it stays on until a later solve is submitted without
+   * it, and a give-up in between does not clear it.
+   */
+  revisit?: boolean;
 }
 
 export interface GaveUpAttempt extends AttemptBase {

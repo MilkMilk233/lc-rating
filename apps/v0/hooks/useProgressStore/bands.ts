@@ -94,7 +94,8 @@ export function attemptLabel(event: AttemptEvent | undefined): string {
   if (!event) return "未记录";
   if (event.outcome === "solved") {
     const mode = event.independence === "solo" ? "独立" : "参考题解";
-    return `${bandMeta(event.band).label} · ${mode}`;
+    const drill = event.revisit === true ? " · 待强化" : "";
+    return `${bandMeta(event.band).label} · ${mode}${drill}`;
   }
   return `没做出来 · ${gaveUpReasonMeta(event.reason).label}`;
 }

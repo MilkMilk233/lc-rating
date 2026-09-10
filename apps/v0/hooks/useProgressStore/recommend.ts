@@ -29,7 +29,13 @@ export interface Candidate {
   tags: string[];
 }
 
-export type QueuePool = "review" | "revive" | "new" | "prerequisite" | "sibling";
+export type QueuePool =
+  | "review"
+  | "revive"
+  | "revisit"
+  | "new"
+  | "prerequisite"
+  | "sibling";
 
 export interface QueueItem {
   qid: string;
@@ -194,15 +200,22 @@ export function buildRecommendationQueue({
     const current = currentByQid.get(qid);
     const overdue = overdueDays(schedule, now);
     const leech = isLeech(schedule);
+    const drill = schedule?.revisit === true;
 
     return {
       qid,
-      pool: current?.outcome === "gaveup" ? "revive" : "review",
-      reason: leech
-        ? `这题已经卡了 ${schedule?.failCount ?? 0} 次，先放一放，练练同类更简单的`
-        : overdue > 0
-          ? `逾期 ${overdue} 天，先把它复习掉`
-          : "今天到期，趁热复习一遍",
+      pool: drill
+        ? "revisit"
+        : current?.outcome === "gaveup"
+          ? "revive"
+          : "review",
+      reason: drill
+        ? "待强化：把这道题里的模板 / 用法再过一遍"
+        : leech
+          ? `这题已经卡了 ${schedule?.failCount ?? 0} 次，先放一放，练练同类更简单的`
+          : overdue > 0
+            ? `逾期 ${overdue} 天，先把它复习掉`
+            : "今天到期，趁热复习一遍",
     };
   });
 
@@ -232,6 +245,8 @@ export function buildRecommendationQueue({
 
   for (const { qid } of due) {
     const blocked = byQid.get(qid);
+    // Drill mode means the user wants *this* problem again, not a sibling.
+    if (scheduleByQid.get(qid)?.revisit === true) continue;
     if (!blocked || !isEasyMastered(currentByQid.get(qid))) continue;
 
     const sibling = scored.find((entry) => {

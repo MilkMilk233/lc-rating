@@ -43,10 +43,18 @@ export default function ProgressRecordPanel({
   const { logAttempt } = useProgressStore();
   const [stage, setStage] = useState<Stage>("outcome");
   const [independence, setIndependence] = useState<Independence>("solo");
+  const [drill, setDrill] = useState(false);
 
   const recordSolved = (band: EffortBand) => {
     onRecorded?.(
-      logAttempt({ qid, outcome: "solved", band, independence, src: source }),
+      logAttempt({
+        qid,
+        outcome: "solved",
+        band,
+        independence,
+        revisit: drill,
+        src: source,
+      }),
     );
   };
 
@@ -86,6 +94,8 @@ export default function ProgressRecordPanel({
           recordSolved(EFFORT_BANDS[index].key);
         } else if (event.key.toLowerCase() === "s") {
           setIndependence((prev) => (prev === "solo" ? "solution" : "solo"));
+        } else if (event.key.toLowerCase() === "d") {
+          setDrill((prev) => !prev);
         }
         return;
       }
@@ -100,7 +110,7 @@ export default function ProgressRecordPanel({
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [stage, independence, onCancel, qid, source]);
+  }, [stage, independence, drill, onCancel, qid, source]);
 
   return (
     <section
@@ -171,6 +181,18 @@ export default function ProgressRecordPanel({
             ))}
             <kbd>S</kbd>
           </div>
+          <div className="prp-independence" role="group" aria-label="强化复习">
+            <button
+              type="button"
+              className={`prp-toggle${drill ? " active" : ""}`}
+              aria-pressed={drill}
+              onClick={() => setDrill((prev) => !prev)}
+            >
+              值得再复习
+            </button>
+            <kbd>D</kbd>
+            <span className="prp-hint">模板、API 用法这类要背下来的东西</span>
+          </div>
         </>
       )}
 
@@ -205,7 +227,9 @@ export default function ProgressRecordPanel({
         >
           {stage === "outcome" ? "取消" : "返回"}
         </button>
-        <span className="prp-note">点击即保存</span>
+        <span className="prp-note">
+          {stage === "outcome" ? "1 / 0 选择 · Esc 取消" : "点击即保存 · Esc 返回"}
+        </span>
       </footer>
     </section>
   );
