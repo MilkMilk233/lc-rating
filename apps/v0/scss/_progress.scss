@@ -322,3 +322,68 @@
   font-size: .75rem;
   font-weight: 700;
 }
+
+// Pace calibration chart (Profile): actual solving time vs the expected curve.
+.pace-chart {
+  width: 100%;
+  height: auto;
+}
+
+.pace-axis {
+  stroke: var(--app-border);
+  stroke-width: 1;
+}
+
+.pace-grid {
+  stroke: var(--app-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: .7;
+}
+
+.pace-label {
+  fill: var(--app-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pace-curve {
+  fill: none;
+  stroke: var(--app-accent);
+  stroke-width: 2;
+}
+
+.pace-dot {
+  fill: var(--app-accent-strong);
+  opacity: .45;
+}
+
+.pace-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: .4rem;
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.pace-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.pace-legend-line {
+  width: 18px;
+  height: 2px;
+  background: var(--app-accent);
+}
+
+.pace-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--app-accent-strong);
+  opacity: .5;
+}
