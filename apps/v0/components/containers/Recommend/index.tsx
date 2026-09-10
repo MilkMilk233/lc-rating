@@ -4,7 +4,11 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
 import { useProgressStore } from "@hooks/useProgressStore";
-import { estimateAbility, targetAdjustment } from "@hooks/useProgressStore/ability";
+import {
+  WELCOME_BACK_DAYS,
+  estimateAbility,
+  targetAdjustment,
+} from "@hooks/useProgressStore/ability";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { buildRecommendationQueue } from "@hooks/useProgressStore/recommend";
 import type {
@@ -52,6 +56,8 @@ export default function Recommend() {
     items: RecItem[];
     target: number;
     offset: number;
+    /** Days since the last recorded attempt. */
+    gapDays: number;
   }
 
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -121,7 +127,12 @@ export default function Recommend() {
       }
     }
 
-    return { items, target: adjustment.effective, offset: adjustment.offset };
+    return {
+      items,
+      target: adjustment.effective,
+      offset: adjustment.offset,
+      gapDays: adjustment.gapDays,
+    };
   }, [zen, derived, questionTags, now]);
 
   useEffect(() => {
@@ -332,6 +343,15 @@ export default function Recommend() {
             <LuCheck aria-hidden size={18} />
           )}
           <span>{lastResult.text}</span>
+        </div>
+      )}
+
+      {plan && plan.gapDays >= WELCOME_BACK_DAYS && (
+        <div className="rec-banner">
+          <LuPartyPopper aria-hidden size={18} />
+          <span>
+            欢迎回来！离开 {plan.gapDays} 天了，难度已经调低，先用几道题找回手感。
+          </span>
         </div>
       )}
 

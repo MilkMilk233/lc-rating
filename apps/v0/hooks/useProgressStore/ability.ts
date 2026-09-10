@@ -185,6 +185,9 @@ export const GAP_GRACE_DAYS = 7;
 export const GAP_PENALTY_PER_DAY = 1.5;
 export const MAX_GAP_PENALTY = 200;
 
+/** A break this long is worth acknowledging in the UI. */
+export const WELCOME_BACK_DAYS = 14;
+
 export const FRUSTRATION_NO_IDEA = 60;
 export const FRUSTRATION_TEDIOUS = 30;
 

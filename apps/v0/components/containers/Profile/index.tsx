@@ -11,7 +11,7 @@ import {
   lastNDays,
   streakDays,
 } from "@hooks/useProgressStore/derive";
-import { isDue } from "@hooks/useProgressStore/srs";
+import { isDue, isGraduated } from "@hooks/useProgressStore/srs";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
 import { RATING_BANDS, xpForAttempt } from "@utils/practice";
@@ -23,7 +23,6 @@ import type { IconType } from "react-icons";
 import {
   LuArrowRight,
   LuBadgeCheck,
-  LuBookOpen,
   LuCalendarCheck,
   LuCheck,
   LuCrown,
@@ -230,10 +229,21 @@ export default function Profile() {
     return count;
   }, [scheduleByQid]);
 
+  // Problems that no longer need review slots — a positive number to show
+  // instead of the size of the backlog.
+  const graduatedCount = useMemo(() => {
+    let count = 0;
+    derived.attemptsByQid.forEach((attempts) => {
+      if (isGraduated(attempts)) count += 1;
+    });
+    return count;
+  }, [derived]);
+
   // One nudge at a time: due reviews first, then unfinished business.
+  // Deliberately no backlog count — "you have 18 due" is a quitting prompt.
   const nudge = useMemo(() => {
     if (dueCount > 0) {
-      return `有 ${dueCount} 道题今天到期，先复习再开新题？`;
+      return "有几道题到期了，从最急的那道开始复习吧。";
     }
     if (totals.gaveup > 0) {
       return `有 ${totals.gaveup} 道题还没拿下，换个思路再战一次？`;
@@ -290,10 +300,10 @@ export default function Profile() {
       { icon: LuBadgeCheck, tone: "green", label: "已解决", value: totals.solved },
       { icon: LuSwords, tone: "blue", label: "没做出来", value: totals.gaveup },
       {
-        icon: LuBookOpen,
-        tone: "orange",
-        label: "今天到期",
-        value: dueCount,
+        icon: LuCrown,
+        tone: "purple",
+        label: "已掌握",
+        value: graduatedCount,
       },
       { icon: LuSparkles, tone: "gold", label: "今日新增", value: todayGain },
     ];
