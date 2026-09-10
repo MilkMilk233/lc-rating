@@ -1,28 +1,33 @@
 // Capability estimation from the attempt log.
 //
-// The recommender needs a difficulty target. We derive it per tag (and globally)
-// by weighting each successful attempt:
+// The recommender needs a difficulty target. Each successful attempt becomes a
+// sample at "the level this attempt implies":
 //
-//   weight = independence × felt-difficulty band × recency decay
+//   solo solve      -> impliedAbility(rating, band)
+//                      = the problem's rating, plus a bonus when the solve was
+//                        at or above the pace expected for that difficulty
+//   editorial solve -> the problem's rating (the time proves nothing)
+//
+// weight = independence × recency decay × first-solve factor
+//
+// The bonus is one-sided: a slow solve never pushes the estimate *below* the
+// problem's rating, because solving it at all proves you can operate there.
+// The felt band therefore feeds the sample value, not the weight — the same
+// band means different things at 1300 and at 2400.
 //
 // Failures do not add samples; a recent "no idea" instead *caps* the estimate,
 // because being unable to solve at rating R is direct evidence against ability
 // above R.
 
+import { impliedAbility } from "./pace";
 import { DAY_MS } from "./srs";
-import type { EffortBand, ProgressEvent } from "./types";
-
-/** A 3-minute solve is stronger evidence than a 45-minute one. */
-export const BAND_WEIGHT: Record<EffortBand, number> = {
-  LE5: 1.0,
-  L5_15: 0.9,
-  L15_30: 0.7,
-  L30_60: 0.45,
-  GT60: 0.25,
-};
+import type { ProgressEvent, SolvedAttempt } from "./types";
 
 /** Peeking at the editorial says little about what you can do alone. */
 export const INDEPENDENCE_WEIGHT = { solo: 1, solution: 0.15 } as const;
+
+/** Re-solving a problem you have already logged says less than the first try. */
+export const REPEAT_ATTEMPT_WEIGHT = 0.4;
 
 /** 90-day half-life: recent form dominates without discarding history. */
 export const HALF_LIFE_DAYS = 90;
@@ -60,6 +65,19 @@ export function decayWeight(at: number, now: number): number {
   return Math.pow(0.5, ageDays / HALF_LIFE_DAYS);
 }
 
+/** How much one solved attempt counts, before per-tag aggregation. */
+export function attemptWeight(
+  attempt: SolvedAttempt,
+  isFirstSolve: boolean,
+  now: number,
+): number {
+  return (
+    INDEPENDENCE_WEIGHT[attempt.independence] *
+    decayWeight(attempt.at, now) *
+    (isFirstSolve ? 1 : REPEAT_ATTEMPT_WEIGHT)
+  );
+}
+
 export function weightedPercentile(
   samples: AbilitySample[],
   quantile: number,
@@ -88,10 +106,17 @@ export function estimateAbility(
   const allSamples: AbilitySample[] = [];
   const tagSamples = new Map<string, AbilitySample[]>();
   const failures: { rating: number; tags: string[]; at: number }[] = [];
+  const seen = new Set<string>();
 
   for (const event of events) {
     if (event.type !== "attempt") continue;
-    const rating = ratingOf(event.qid);
+
+    const isFirstSolve = !seen.has(event.qid);
+    seen.add(event.qid);
+
+    // Prefer the difficulty snapshotted on the event: it is what the attempt
+    // was actually judged against, even if the question pool later changes.
+    const rating = event.rating ?? ratingOf(event.qid);
     if (rating == null) continue;
     const tags = tagsOf(event.qid);
 
@@ -102,13 +127,16 @@ export function estimateAbility(
       continue;
     }
 
-    const weight =
-      BAND_WEIGHT[event.band] *
-      INDEPENDENCE_WEIGHT[event.independence] *
-      decayWeight(event.at, now);
+    const weight = attemptWeight(event, isFirstSolve, now);
     if (weight <= 0) continue;
 
-    const sample: AbilitySample = { rating, weight };
+    const sample: AbilitySample = {
+      rating:
+        event.independence === "solo"
+          ? impliedAbility(rating, event.band)
+          : rating,
+      weight,
+    };
     allSamples.push(sample);
     for (const tag of tags) {
       const list = tagSamples.get(tag);
