@@ -20,7 +20,7 @@ import {
 import type { AbilityEstimate, TargetAdjustment } from "./ability";
 import type { DerivedProgress } from "./derive";
 import { DAY_MS, hashUnit, isDue, isGraduated, isLeech, overdueDays, urgency } from "./srs";
-import type { AttemptEvent } from "./types";
+import type { AttemptEvent, EffortBand } from "./types";
 
 export interface Candidate {
   qid: string;
@@ -29,7 +29,7 @@ export interface Candidate {
   tags: string[];
 }
 
-export type QueuePool = "review" | "revive" | "new" | "prerequisite";
+export type QueuePool = "review" | "revive" | "new" | "prerequisite" | "sibling";
 
 export interface QueueItem {
   qid: string;
@@ -54,6 +54,24 @@ export const PREREQUISITE_ABILITY_GAP = 100;
 
 /** The prerequisite must be this much easier than the blocked problem. */
 export const PREREQUISITE_RATING_GAP = 150;
+
+/**
+ * Bands that mean "this pattern is already internalised".
+ *
+ * Re-solving such a problem mostly tests whether you remember *that* solution,
+ * not whether you can recognise the pattern in a new problem. So its review
+ * slot is converted into a sibling: a different problem sharing a tag.
+ */
+const EASY_MASTERED_BANDS: readonly EffortBand[] = ["LE5", "L5_15"];
+
+function isEasyMastered(attempt: AttemptEvent | undefined): boolean {
+  return (
+    !!attempt &&
+    attempt.outcome === "solved" &&
+    attempt.independence === "solo" &&
+    EASY_MASTERED_BANDS.includes(attempt.band)
+  );
+}
 
 /**
  * A problem this many intervals past its due date is treated as "half
@@ -204,10 +222,47 @@ export function buildRecommendationQueue({
     .filter((entry) => entry.candidate.rating <= entry.target + HARD_CEILING)
     .sort((a, b) => b.score - a.score);
 
-  // ---- 3. per-tag diversity cap ----------------------------------------
+  // ---- 3. sibling substitution -----------------------------------------
+  // An easy-mastered review is converted into a different problem sharing a
+  // tag: re-solving the same one mostly tests memory of that solution. This
+  // runs before the diversity pick so the converted slot reserves its tag.
   const tagCount = new Map<string, number>();
+  const consumed = new Set<string>();
+  const siblingFor = new Map<string, QueueItem>();
+
+  for (const { qid } of due) {
+    const blocked = byQid.get(qid);
+    if (!blocked || !isEasyMastered(currentByQid.get(qid))) continue;
+
+    const sibling = scored.find((entry) => {
+      if (consumed.has(entry.candidate.qid)) return false;
+      if (entry.candidate.qid === qid) return false;
+      const shared = entry.candidate.tags.filter((tag) =>
+        blocked.tags.includes(tag),
+      );
+      if (shared.length === 0) return false;
+      return shared.some((tag) => (tagCount.get(tag) ?? 0) < TAG_DAILY_CAP);
+    });
+    if (!sibling) continue;
+
+    consumed.add(sibling.candidate.qid);
+    const sharedTag = sibling.candidate.tags.find((tag) =>
+      blocked.tags.includes(tag),
+    );
+    if (sharedTag) {
+      tagCount.set(sharedTag, (tagCount.get(sharedTag) ?? 0) + 1);
+    }
+    siblingFor.set(qid, {
+      qid: sibling.candidate.qid,
+      pool: "sibling",
+      reason: `已经会了，换个题面巩固「${sharedTag ?? "同类"}」`,
+    });
+  }
+
+  // ---- 4. per-tag diversity cap for the remaining fresh problems --------
   const picked: typeof scored = [];
   for (const entry of scored) {
+    if (consumed.has(entry.candidate.qid)) continue;
     const full = entry.candidate.tags.some(
       (tag) => (tagCount.get(tag) ?? 0) >= TAG_DAILY_CAP,
     );
@@ -224,13 +279,18 @@ export function buildRecommendationQueue({
     reason: reasonForNew(entry.candidate, entry.target, tagSolved, ability, offset),
   }));
 
-  // ---- 4. prerequisite before a too-hard "no idea" review --------------
+  // ---- 5. review blocks: substitution / prerequisite --------------------
   // Each review becomes a block so a prerequisite stays glued to its problem
   // when the queue is interleaved with fresh material.
-  const consumed = new Set<string>();
   const reviewBlocks: QueueItem[][] = [];
 
   for (const item of reviews) {
+    const sibling = siblingFor.get(item.qid);
+    if (sibling) {
+      reviewBlocks.push([sibling]);
+      continue;
+    }
+
     const block: QueueItem[] = [];
     const blocked = byQid.get(item.qid);
     const current: AttemptEvent | undefined = currentByQid.get(item.qid);

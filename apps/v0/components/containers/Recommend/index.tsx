@@ -42,6 +42,7 @@ const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
   review: { label: "到期复习", tone: "orange" },
   revive: { label: "复活挑战", tone: "purple" },
   prerequisite: { label: "先垫一题", tone: "blue" },
+  sibling: { label: "换个题面", tone: "blue" },
   new: { label: "今日推荐", tone: "blue" },
 };
 
