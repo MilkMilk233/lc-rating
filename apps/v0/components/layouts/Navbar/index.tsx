@@ -14,6 +14,7 @@ import {
   LuBookOpen,
   LuListChecks,
   LuMedal,
+  LuSearch,
   LuSparkles,
   LuTarget,
   LuTrophy,
@@ -107,6 +108,7 @@ export default function () {
     { href: "/", label: "竞赛列表", icon: LuTrophy },
     { href: "/zen", label: "难度练习", icon: LuTarget },
     { href: "/recommend", label: "推荐刷题", icon: LuSparkles },
+    { href: "/search", label: "搜索题目", icon: LuSearch },
   ];
 
   return (

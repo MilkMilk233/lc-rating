@@ -1,14 +1,14 @@
 "use client";
 
-import Zen from "@components/containers/Zen";
+import Search from "@components/containers/Search";
 import { Suspense } from "react";
 
-// Zen reads ?tags= through useSearchParams, which bails out of the static
+// `Search` reads ?q= through useSearchParams, which bails out of the static
 // prerender unless it sits behind a Suspense boundary.
 export default function Page() {
   return (
     <Suspense fallback={null}>
-      <Zen />
+      <Search />
     </Suspense>
   );
 }

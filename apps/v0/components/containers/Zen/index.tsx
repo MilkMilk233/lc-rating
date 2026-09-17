@@ -43,7 +43,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Button,
   ButtonGroup,
@@ -403,6 +404,28 @@ export default function Zenk() {
       defaultValue: ALL_FILTER_LABEL,
     },
   );
+
+  // /search hands broad tag queries over as ?tags=<english tag name>, which is
+  // exactly the key shape `buildTagFilterFn` matches on. Applied once so the
+  // user can then deselect it without it snapping back.
+  const searchParams = useSearchParams();
+  const appliedDeepLink = useRef(false);
+  useEffect(() => {
+    if (appliedDeepLink.current) return;
+    const tag = searchParams.get("tags");
+    if (!tag) return;
+    appliedDeepLink.current = true;
+    setSettings((previous) => {
+      const base = previous ?? defaultSettings;
+      return {
+        ...base,
+        filters: {
+          ...base.filters,
+          selectedTags: { ...base.filters.selectedTags, [tag]: true },
+        },
+      };
+    });
+  }, [searchParams, setSettings]);
 
   const queryTags = (id: string): QTag => {
     return tags ? tags[id] : [[], []];

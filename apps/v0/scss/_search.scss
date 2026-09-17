@@ -1,0 +1,245 @@
+// Question lookup page (/search).
+
+.search-panel {
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .1rem .9rem;
+  border: 2px solid var(--app-border);
+  border-radius: 14px;
+  background: var(--app-surface);
+  color: var(--app-muted);
+  transition: border-color .15s ease, box-shadow .15s ease;
+
+  &:focus-within {
+    border-color: var(--app-accent);
+    box-shadow: 0 0 0 3px var(--app-accent-soft);
+  }
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  padding: .7rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 1rem;
+  font-weight: 650;
+  outline: none;
+
+  &::placeholder {
+    color: var(--app-muted);
+    font-weight: 600;
+  }
+}
+
+.search-clear {
+  display: inline-flex;
+  padding: .2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--app-muted);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--app-accent-soft);
+    color: var(--app-text);
+  }
+}
+
+.search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+  margin: .7rem 0 .9rem;
+}
+
+.search-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--app-muted);
+  font-size: .8rem;
+  font-weight: 750;
+  cursor: pointer;
+
+  input {
+    accent-color: var(--app-accent);
+  }
+}
+
+.search-kbd-hints {
+  color: var(--app-muted);
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-row {
+  padding: .5rem .6rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: background .12s ease, border-color .12s ease;
+
+  &.active {
+    border-color: var(--app-accent);
+    background: var(--app-accent-soft);
+  }
+}
+
+.search-row-main {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.search-title {
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--app-text);
+  font-weight: 750;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--app-accent);
+    text-decoration: underline;
+  }
+}
+
+.search-qid {
+  color: var(--app-muted);
+  font-weight: 700;
+}
+
+// Says which field matched, so a surprising hit is explainable.
+.search-reason {
+  padding: .05rem .4rem;
+  border-radius: 999px;
+  background: var(--app-accent-soft);
+  color: var(--app-muted);
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.search-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin-left: auto;
+}
+
+.search-row-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .3rem;
+  padding-left: 2.4rem;
+}
+
+.search-tag {
+  padding: .05rem .45rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-muted);
+  font-size: .7rem;
+  font-weight: 700;
+
+  &.more {
+    border-style: dashed;
+  }
+}
+
+.search-contest {
+  margin-left: auto;
+  color: var(--app-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--app-accent);
+    text-decoration: underline;
+  }
+}
+
+.search-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+  margin-top: .8rem;
+  padding-top: .7rem;
+  border-top: 1px dashed var(--app-border);
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 750;
+}
+
+.search-handoff {
+  color: var(--app-accent);
+  font-weight: 800;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.search-empty {
+  padding: 1.4rem .2rem .6rem;
+  color: var(--app-muted);
+  font-weight: 700;
+
+  p {
+    margin-bottom: .5rem;
+  }
+}
+
+.search-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin: .8rem 0;
+
+  button {
+    padding: .25rem .7rem;
+    border: 1px solid var(--app-border);
+    border-radius: 999px;
+    background: var(--app-surface);
+    color: var(--app-text);
+    font-size: .82rem;
+    font-weight: 750;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--app-accent);
+      color: var(--app-accent);
+    }
+  }
+}
+
+.search-note {
+  color: var(--app-muted);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1.6;
+}
