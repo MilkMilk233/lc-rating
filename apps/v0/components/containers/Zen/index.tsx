@@ -21,6 +21,7 @@ import type {
 } from "@hooks/useProgressStore/types";
 import { QTag, useQuestionTags } from "@hooks/useQuestionTags";
 import { useI18n } from "@hooks/useI18n";
+import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import type { Locale } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
@@ -590,6 +591,7 @@ const ZenTableComp = React.memo(
     onRecord,
   }: ZenTableCompProps) => {
     const { t } = useI18n();
+  const titleOf = useQuestionTitle();
     const columns = React.useMemo<ColumnDef<ConstQuestion>[]>(
       () => [
         {
@@ -631,7 +633,7 @@ const ZenTableComp = React.memo(
                     href={leetCodeProblemUrl(item.title_slug, language)}
                     target="_blank"
                   >
-                    {item.question_id}. {item.title}
+                    {item.question_id}. {titleOf(item.question_id, item.title)}
                   </a>
                   {columnVisibility["en"] && (
                     <a
@@ -699,7 +701,9 @@ const ZenTableComp = React.memo(
                 <button
                   type="button"
                   className={`pc-state${current ? " recorded" : ""}`}
-                  onClick={() => onRecord(qid, item.title, item.rating)}
+                  onClick={() =>
+                    onRecord(qid, titleOf(item.question_id, item.title), item.rating)
+                  }
                   title={current ? t("zen.reRecord") : t("zen.record")}
                 >
                   {attemptLabel(current, t)}
@@ -720,6 +724,7 @@ const ZenTableComp = React.memo(
         scheduleByQid,
         onRecord,
         t,
+        titleOf,
       ],
     );
 

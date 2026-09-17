@@ -11,6 +11,7 @@ import Loading from "@components/Loading";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import type { Locale } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
@@ -53,6 +54,7 @@ export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { language, isCn, t, locale } = useI18n();
+  const titleOf = useQuestionTitle();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
 
@@ -215,7 +217,7 @@ export default function Search() {
             target="_blank"
             rel="noreferrer"
           >
-            <span className="search-qid">#{hit.doc.qid}</span> {hit.doc.title}
+            <span className="search-qid">#{hit.doc.qid}</span> {titleOf(hit.doc.qid, hit.doc.title)}
           </a>
           <span className="search-reason">{t(MATCH_REASON_KEY[hit.reason])}</span>
           <span className="search-actions">
@@ -398,7 +400,10 @@ export default function Search() {
           {recordTarget && (
             <ProgressRecordPanel
               qid={String(recordTarget.doc.qid)}
-              questionTitle={recordTarget.doc.title}
+              questionTitle={titleOf(
+                recordTarget.doc.qid,
+                recordTarget.doc.title,
+              )}
               rating={recordTarget.doc.rating}
               source="search"
               onRecorded={() => setRecordTarget(null)}

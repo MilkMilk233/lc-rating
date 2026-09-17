@@ -3,6 +3,7 @@
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import type { Message, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
@@ -52,6 +53,7 @@ export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
   const { language, t } = useI18n();
+  const titleOf = useQuestionTitle();
   const { derived } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: Message };
@@ -266,8 +268,15 @@ export default function Recommend() {
         solved: event.outcome === "solved",
         text:
           event.outcome === "solved"
-            ? t("rec.toast.revisit", { title: question.title, xp, days })
-            : t("rec.toast.solved", { title: question.title, days }),
+            ? t("rec.toast.revisit", {
+                title: titleOf(question.question_id, question.title),
+                xp,
+                days,
+              })
+            : t("rec.toast.solved", {
+                title: titleOf(question.question_id, question.title),
+                days,
+              }),
       });
     };
 
@@ -286,7 +295,7 @@ export default function Recommend() {
           target="_blank"
           rel="noreferrer"
         >
-          {question.question_id}. {question.title}
+          {question.question_id}. {titleOf(question.question_id, question.title)}
           <LuArrowUpRight aria-hidden size={20} />
         </a>
 
@@ -359,7 +368,7 @@ export default function Recommend() {
           <div className="rec-record">
             <ProgressRecordPanel
               qid={qid}
-              questionTitle={question.title}
+              questionTitle={titleOf(question.question_id, question.title)}
               rating={question.rating}
               source="recommend"
               onRecorded={handleRecorded}

@@ -5,6 +5,7 @@
 // deleting the row and recording again.
 
 import { useI18n } from "@hooks/useI18n";
+import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
   EFFORT_BANDS,
@@ -43,6 +44,7 @@ export default function HistoryModal({
 }: HistoryModalProps) {
   const { derived, removeAttempts } = useProgressStore();
   const { t } = useI18n();
+  const titleOf = useQuestionTitle();
   const [query, setQuery] = useState("");
   const [outcome, setOutcome] = useState<OutcomeFilter>("");
   const [band, setBand] = useState<"" | EffortBand>("");
@@ -60,7 +62,8 @@ export default function HistoryModal({
       }
       if (needle) {
         const info = questionById.get(event.qid);
-        const haystack = `${event.qid} ${info?.title ?? ""}`.toLowerCase();
+        const title = info ? titleOf(event.qid, info.title) : "";
+        const haystack = `${event.qid} ${title}`.toLowerCase();
         if (!haystack.includes(needle)) return false;
       }
       return true;
@@ -163,7 +166,7 @@ export default function HistoryModal({
                 <span className="history-time">{formatTime(event.at)}</span>
                 <span className="history-qid">{event.qid}</span>
                 <span className="history-title">
-                  {info?.title ?? t("history.gone")}
+                  {titleOf(event.qid, info?.title ?? t("history.gone"))}
                 </span>
                 <span className="history-state">{attemptLabel(event, t)}</span>
                 <span className="history-src">{event.src}</span>

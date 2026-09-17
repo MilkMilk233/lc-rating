@@ -14,6 +14,8 @@ export interface Contest {
   ID: number;
   StartTime: number;
   Contest: string;
+  /** English contest name, from the same upstream source as titles-en.json. */
+  ContestEn: string;
   TitleSlug: string;
   A: QuestionType;
   B: QuestionType;
@@ -25,6 +27,7 @@ interface ContestType {
   id: number;
   start_time: number;
   title: string;
+  title_en: string;
   title_slug: string;
 }
 
@@ -40,6 +43,7 @@ function mapContests(data: ContestsResponse): Contest[] {
       ID: contest.id,
       StartTime: contest.start_time,
       Contest: contest.title,
+      ContestEn: contest.title_en,
       TitleSlug: contest.title_slug,
       A: questions[0],
       B: questions[1],

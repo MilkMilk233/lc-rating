@@ -68,7 +68,7 @@ const fuzzyFilter: FilterFn<Contest> = (row, columnId, value, addMeta) => {
 
 function ContestList() {
   const { contests, isPending: loading } = useContests();
-  const { t } = useI18n();
+  const { t, isEn } = useI18n();
 
   const [size, setSize] = useStorage<string>("__size", {
     defaultValue: "100",
@@ -128,7 +128,7 @@ function ContestList() {
       enableColumnFilter: false,
       cell: (info) => (
         <ContestCell
-          title={info.getValue()}
+          title={isEn ? info.row.original.ContestEn : info.getValue()}
           titleSlug={info.row.original.TitleSlug}
         />
       ),

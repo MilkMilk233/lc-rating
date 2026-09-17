@@ -1,6 +1,7 @@
 import RatingCircle, { COLORS } from "@components/RatingCircle";
 import { QuestionType } from "@hooks/useContests";
 import { useI18n } from "@hooks/useI18n";
+import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import { leetCodeProblemUrl } from "@utils/leetcodeLinks";
 import clsx from "clsx";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
@@ -13,6 +14,7 @@ interface ProblemCellProps {
 function ProblemCell({ question: que }: ProblemCellProps) {
   const { language } = useI18n();
   const { t } = useI18n();
+  const titleOf = useQuestionTitle();
   let link = leetCodeProblemUrl(que.title_slug, language);
   let rating = que.rating;
   let idx = COLORS.findIndex((v) => rating >= v.l && rating <= v.r);
@@ -47,7 +49,7 @@ function ProblemCell({ question: que }: ProblemCellProps) {
           "ff-st",
         )} /* style={{color: `var(--rating-color-${idx})`}} */
       >
-        {que.question_id}.{que.title}
+        {que.question_id}.{titleOf(que.question_id, que.title)}
       </a>
     </div>
   );
