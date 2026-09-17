@@ -11,6 +11,7 @@ import Loading from "@components/Loading";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import { contestName } from "@utils/contestName";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import type { Locale } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
@@ -53,7 +54,7 @@ const looksLikeMissingQid = (query: string) =>
 export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { language, isCn, t, locale } = useI18n();
+  const { language, isCn, isEn, t, locale } = useI18n();
   const titleOf = useQuestionTitle();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
@@ -248,7 +249,7 @@ export default function Search() {
             target="_blank"
             rel="noreferrer"
           >
-            {hit.doc.contest}
+            {contestName(isEn, hit.doc.contestSlug, hit.doc.contest)}
           </a>
         </div>
       </li>

@@ -98,7 +98,7 @@ export default function Recommend() {
         qid,
         rating: question.rating,
         paidOnly: question.paid_only,
-        tags: questionTags[String(question._hash)]?.[1] ?? [],
+        tags: questionTags[String(question._hash)]?.[isEn ? 0 : 1] ?? [],
       };
       questionByQid.set(qid, question);
       byQid.set(qid, candidate);
@@ -139,7 +139,7 @@ export default function Recommend() {
       offset: adjustment.offset,
       gapDays: adjustment.gapDays,
     };
-  }, [zen, derived, questionTags, now]);
+  }, [zen, derived, questionTags, now, isEn]);
 
   useEffect(() => {
     if (plan !== null || zen.length === 0) return;
@@ -253,7 +253,7 @@ export default function Recommend() {
     const question = current.question;
     const qid = String(question.question_id);
     const badge = POOL_BADGE[current.pool];
-    const tags = questionTags[String(question._hash)]?.[1] ?? [];
+    const tags = questionTags[String(question._hash)]?.[isEn ? 0 : 1] ?? [];
     const currentAttempt = derived.currentByQid.get(qid);
     const schedule = derived.scheduleByQid.get(qid);
     const baseXp = bandFor(question.rating).xp;
@@ -311,7 +311,7 @@ export default function Recommend() {
             target="_blank"
             rel="noreferrer"
           >
-            {question.cont_title}
+            {contestName(isEn, question.cont_title_slug, question.cont_title)}
           </a>
         </div>
 
