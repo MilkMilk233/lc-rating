@@ -86,7 +86,7 @@ export default function HistoryModal({
     if (selected.size === 0) return;
     const confirmed =
       typeof window === "undefined" ||
-      window.confirm(`确定删除选中的 ${selected.size} 条记录？该操作不可撤销。`);
+      window.confirm(t("history.confirm", { count: selected.size }));
     if (!confirmed) return;
     removeAttempts(Array.from(selected));
     setSelected(new Set());
@@ -101,13 +101,13 @@ export default function HistoryModal({
       contentClassName="duo-modal"
     >
       <Modal.Header closeButton>
-        <Modal.Title>记录管理</Modal.Title>
+        <Modal.Title>{t("history.title")}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <div className="history-toolbar">
           <Form.Control
             className="history-search"
-            placeholder="搜索题号或题名"
+            placeholder={t("history.search")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -118,9 +118,9 @@ export default function HistoryModal({
               setOutcome(event.target.value as OutcomeFilter)
             }
           >
-            <option value="">[全部结果]</option>
-            <option value="solved">做出来了</option>
-            <option value="gaveup">没做出来</option>
+            <option value="">{t("history.allOutcomes")}</option>
+            <option value="solved">{t("zen.outcome.solved")}</option>
+            <option value="gaveup">{t("zen.outcome.gaveup")}</option>
           </Form.Select>
           <Form.Select
             className="history-select"
@@ -129,7 +129,7 @@ export default function HistoryModal({
               setBand(event.target.value as "" | EffortBand)
             }
           >
-            <option value="">[全部档位]</option>
+            <option value="">{t("history.allBands")}</option>
             {EFFORT_BANDS.map((item) => (
               <option key={item.key} value={item.key}>
                 {t(bandLabelKey(item.key))} {t(bandHintKey(item.key))}
@@ -140,7 +140,7 @@ export default function HistoryModal({
             className="history-all"
             checked={allSelected}
             onChange={toggleAll}
-            label="全选"
+            label={t("history.selectAll")}
             disabled={rows.length === 0}
           />
         </div>
@@ -158,12 +158,12 @@ export default function HistoryModal({
                 <Form.Check
                   checked={selected.has(event.id)}
                   onChange={() => toggle(event.id)}
-                  aria-label="选择这条记录"
+                  aria-label={t("history.selectRow")}
                 />
                 <span className="history-time">{formatTime(event.at)}</span>
                 <span className="history-qid">{event.qid}</span>
                 <span className="history-title">
-                  {info?.title ?? "（题库中已不存在）"}
+                  {info?.title ?? t("history.gone")}
                 </span>
                 <span className="history-state">{attemptLabel(event, t)}</span>
                 <span className="history-src">{event.src}</span>
@@ -171,21 +171,23 @@ export default function HistoryModal({
             );
           })}
           {rows.length === 0 && (
-            <div className="duo-teaser">没有匹配的记录。</div>
+            <div className="duo-teaser">{t("history.noMatch")}</div>
           )}
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <span className="history-count">共 {rows.length} 条</span>
+        <span className="history-count">
+            {t("history.count", { count: rows.length })}
+          </span>
         <Button variant="secondary" onClick={onHide}>
-          关闭
+          {t("common.close")}
         </Button>
         <Button
           variant="danger"
           disabled={selected.size === 0}
           onClick={onDelete}
         >
-          删除选中（{selected.size}）
+          {t("history.delete", { count: selected.size })}
         </Button>
       </Modal.Footer>
     </Modal>

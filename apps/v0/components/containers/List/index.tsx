@@ -8,6 +8,7 @@ import {
   TOC,
 } from "@components/ProblemCatetory/TableOfContent";
 import { useI18n } from "@hooks/useI18n";
+import type { FixedItem } from "@components/FixedSidebar";
 import useStorage from "@hooks/useStorage";
 import { hashCode } from "@utils/hash";
 import { translateLeetCodeUrl } from "@utils/leetcodeLinks";
@@ -38,7 +39,7 @@ const mapCategory2TOC = (
 };
 
 export default function ({ data }: { data: ProblemCategory }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
 
   const scrollToComponent = () => {
     if (window.location.hash) {
@@ -66,7 +67,7 @@ export default function ({ data }: { data: ProblemCategory }) {
     },
   );
 
-  const buttons = [
+  const buttons: FixedItem[] = [
     {
       id: "move-to-top",
       content: <MoveToTopButton />,
@@ -74,12 +75,12 @@ export default function ({ data }: { data: ProblemCategory }) {
     {
       id: "move-to-todo",
       content: <MoveToTodoButton />,
-      tooltip: "下一题",
+      tooltipKey: "list.next",
     },
     {
       id: "move-to-random-todo",
       content: <MoveToTodoButton random />,
-      tooltip: "随机下一题",
+      tooltipKey: "list.random",
     },
   ];
 
@@ -96,7 +97,7 @@ export default function ({ data }: { data: ProblemCategory }) {
           <p className="eyebrow">Study plan</p>
           <h1 className="page-title">{data.title}</h1>
           <p className="page-description">
-            题单内容已冻结，进度会保存在当前浏览器本地。
+            {t("list.frozen")}
           </p>
         </div>
         <div className="metric-strip">
@@ -113,7 +114,7 @@ export default function ({ data }: { data: ProblemCategory }) {
               setSetting({ ...setting, showEn: !setting.showEn });
             }}
             type="switch"
-            label="英文链接"
+            label={t("list.englishLink")}
           />
           <Form.Check
             checked={setting.showRating}
@@ -121,7 +122,7 @@ export default function ({ data }: { data: ProblemCategory }) {
               setSetting({ ...setting, showRating: !setting.showRating });
             }}
             type="switch"
-            label="难度分"
+            label={t("list.rating")}
           />
           <Form.Check
             checked={setting.showPremium}
@@ -129,7 +130,7 @@ export default function ({ data }: { data: ProblemCategory }) {
               setSetting({ ...setting, showPremium: !setting.showPremium });
             }}
             type="switch"
-            label="会员题"
+            label={t("list.premium")}
           />
         </div>
         <a
@@ -137,7 +138,7 @@ export default function ({ data }: { data: ProblemCategory }) {
           className="source-link"
           href={translateLeetCodeUrl(data.original_src, language)}
         >
-          原始题单
+          {t("list.original")}
         </a>
       </section>
       <div className="topic-layout">

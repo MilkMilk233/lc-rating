@@ -97,7 +97,7 @@ function ProblemCategoryList({
                       )}
                       target="_blank"
                     >
-                      {item.title + (item.isPremium ? " (会员题)" : "")}
+                      {item.title + (item.isPremium ? t("common.premium") : "")}
                     </a>
                     {showEn && (
                       <a
@@ -127,7 +127,7 @@ function ProblemCategoryList({
                         open ? " open" : ""
                       }`}
                       onClick={() => setOpenId(open ? null : id)}
-                      title={current ? "重新记录" : "记录这次练习"}
+                      title={current ? t("common.reRecord") : t("common.recordAttempt")}
                     >
                       {attemptLabel(current, t)}
                     </button>

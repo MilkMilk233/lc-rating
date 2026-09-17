@@ -319,3 +319,16 @@ td,
   color: var(--rating-color-7);
   font-weight: 900;
 }
+
+// Shown on the Chinese-only study lists and code templates when the English UI
+// is active, so a direct visitor knows why the body text is Chinese.
+.mdx-lang-note {
+  margin: 0 0 .8rem;
+  padding: .5rem .9rem;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-accent-soft);
+  color: var(--app-muted);
+  font-size: .82rem;
+  font-weight: 700;
+}

@@ -12,6 +12,7 @@ interface ProblemCellProps {
 
 function ProblemCell({ question: que }: ProblemCellProps) {
   const { language } = useI18n();
+  const { t } = useI18n();
   let link = leetCodeProblemUrl(que.title_slug, language);
   let rating = que.rating;
   let idx = COLORS.findIndex((v) => rating >= v.l && rating <= v.r);
@@ -30,7 +31,7 @@ function ProblemCell({ question: que }: ProblemCellProps) {
               className={clsx(`rating-color-${idx}`, "ff-st")}
               style={{ fontSize: "1.2rem" }}
             >
-              <strong>难度: </strong> {rating.toFixed(2)}
+              <strong>{t("contest.rating")}</strong> {rating.toFixed(2)}
             </Popover.Body>
           </Popover>
         }

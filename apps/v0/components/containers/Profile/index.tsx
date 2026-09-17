@@ -4,6 +4,7 @@ import { ColorRating } from "@components/RatingCircle";
 import Sidebar from "@components/SettingsPanel/Sidebar";
 import { setting_tabs } from "@components/SettingsPanel/config";
 import { useI18n } from "@hooks/useI18n";
+import type { Locale, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { estimateAbility } from "@hooks/useProgressStore/ability";
 import {
@@ -54,7 +55,10 @@ import {
 } from "react-icons/lu";
 import HistoryModal from "./HistoryModal";
 
-const WEEK_LABELS = ["一", "二", "三", "四", "五", "六", "日"];
+const WEEK_LABELS: Record<Locale, string[]> = {
+  cn: ["一", "二", "三", "四", "五", "六", "日"],
+  en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+};
 const XP_PER_LEVEL = 120;
 
 /**
@@ -63,10 +67,10 @@ const XP_PER_LEVEL = 120;
  * their vertical position already says.
  */
 const PACE_TONES = [
-  { max: 0.65, key: "fast", label: "快于期望", color: "var(--duo-green)" },
-  { max: 1.35, key: "onpace", label: "符合期望", color: "var(--duo-blue)" },
-  { max: 2.2, key: "slow", label: "偏慢", color: "var(--duo-orange)" },
-  { max: Infinity, key: "vslow", label: "明显偏慢", color: "var(--duo-red)" },
+  { max: 0.65, key: "fast", label: "profile.pace.tone.fast", color: "var(--duo-green)" },
+  { max: 1.35, key: "onpace", label: "profile.pace.tone.onpace", color: "var(--duo-blue)" },
+  { max: 2.2, key: "slow", label: "profile.pace.tone.slow", color: "var(--duo-orange)" },
+  { max: Infinity, key: "vslow", label: "profile.pace.tone.vslow", color: "var(--duo-red)" },
 ] as const;
 
 const paceTone = (ratio: number) =>
@@ -93,7 +97,7 @@ export default function Profile() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
   const { derived } = useProgressStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [activeTab, setActiveTab] = useState(setting_tabs[0].key);
   const [showTagBoard, setShowTagBoard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -270,28 +274,30 @@ export default function Profile() {
   // Deliberately no backlog count — "you have 18 due" is a quitting prompt.
   const nudge = useMemo(() => {
     if (dueCount > 0) {
-      return "有几道题到期了，从最急的那道开始复习吧。";
+      return t("profile.nudge.due");
     }
     if (totals.gaveup > 0) {
-      return `有 ${totals.gaveup} 道题还没拿下，换个思路再战一次？`;
+      return t("profile.nudge.gaveup", { count: totals.gaveup });
     }
     if (totals.solved > 0) {
       const next = bandStats.find((band) => band.solved < band.total);
       if (next) {
-        return `状态不错！下一关：「${t(next.key)} ${next.range}」，还剩 ${
-          next.total - next.solved
-        } 道等你征服。`;
+        return t("profile.nudge.nextBand", {
+          band: t(next.key),
+          range: next.range,
+          count: next.total - next.solved,
+        });
       }
     }
     return null;
-  }, [dueCount, totals.gaveup, totals.solved, bandStats]);
+  }, [dueCount, totals.gaveup, totals.solved, bandStats, t]);
 
   const weekDays = useMemo(() => {
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
 
-    return WEEK_LABELS.map((label, index) => {
+    return WEEK_LABELS[locale].map((label, index) => {
       const day = new Date(monday);
       day.setDate(monday.getDate() + index);
       const key = dayKey(day.getTime());
@@ -303,116 +309,135 @@ export default function Profile() {
         isFuture: diffDays(today, key) > 0,
       };
     });
-  }, [activeSet, today]);
+  }, [activeSet, today, locale]);
 
   const todayGain = daily.get(today)?.solved ?? 0;
 
   const heroTitle =
-    streak > 0 ? `${streak} 天连胜` : todayActive ? "今日已打卡" : "点燃小火苗";
+    streak > 0
+      ? t("profile.streak", { days: streak })
+      : todayActive
+        ? t("profile.checkedIn")
+        : t("profile.lightFlame");
   const heroMessage = todayActive
-    ? "今天的目标已经达成，小火苗烧得正旺。"
+    ? t("profile.hero.goalMet")
     : streak > 0
-      ? "今天还没刷题，别让连胜的小火苗熄灭哦。"
+      ? t("profile.hero.keepStreak")
       : totals.marked > 0
-        ? "今天完成一道题，重新开始你的连胜。"
-        : "记录一道题，从今天开始积累。";
+        ? t("profile.hero.restart")
+        : t("profile.hero.start");
   const heroCta = todayActive
-    ? "再刷一题"
+    ? t("profile.cta.again")
     : totals.marked === 0
-      ? "去刷第一题"
-      : "去刷一题";
+      ? t("profile.cta.first")
+      : t("profile.cta.go");
 
   const stats: { icon: IconType; tone: Tone; label: string; value: number }[] =
     [
-      { icon: LuBadgeCheck, tone: "green", label: "已解决", value: totals.solved },
-      { icon: LuSwords, tone: "blue", label: "没做出来", value: totals.gaveup },
+      {
+        icon: LuBadgeCheck,
+        tone: "green",
+        label: t("profile.stat.solved"),
+        value: totals.solved,
+      },
+      {
+        icon: LuSwords,
+        tone: "blue",
+        label: t("profile.stat.gaveup"),
+        value: totals.gaveup,
+      },
       {
         icon: LuCrown,
         tone: "purple",
-        label: "已掌握",
+        label: t("profile.stat.mastered"),
         value: graduatedCount,
       },
-      { icon: LuSparkles, tone: "gold", label: "今日新增", value: todayGain },
+      {
+        icon: LuSparkles,
+        tone: "gold",
+        label: t("profile.stat.today"),
+        value: todayGain,
+      },
     ];
 
   const achievements: Achievement[] = [
     {
       icon: LuFootprints,
       tone: "blue",
-      name: "迈出第一步",
-      desc: "记录第 1 道题",
+      name: t("profile.ach.1.name"),
+      desc: t("profile.ach.1.desc"),
       goal: 1,
       value: totals.marked,
     },
     {
       icon: LuBadgeCheck,
       tone: "green",
-      name: "首开纪录",
-      desc: "解决第 1 道题",
+      name: t("profile.ach.2.name"),
+      desc: t("profile.ach.2.desc"),
       goal: 1,
       value: totals.solved,
     },
     {
       icon: LuZap,
       tone: "green",
-      name: "五题斩",
-      desc: "累计解决 5 道题",
+      name: t("profile.ach.3.name"),
+      desc: t("profile.ach.3.desc"),
       goal: 5,
       value: totals.solved,
     },
     {
       icon: LuMountain,
       tone: "purple",
-      name: "挑战自我",
-      desc: "解决一道 1600+ 的题",
+      name: t("profile.ach.4.name"),
+      desc: t("profile.ach.4.desc"),
       goal: 1,
       value: maxSolvedRating >= 1600 ? 1 : 0,
     },
     {
       icon: LuFlame,
       tone: "orange",
-      name: "三日小火苗",
-      desc: "连续刷题 3 天",
+      name: t("profile.ach.5.name"),
+      desc: t("profile.ach.5.desc"),
       goal: 3,
       value: streak,
     },
     {
       icon: LuCalendarCheck,
       tone: "purple",
-      name: "七日之约",
-      desc: "连续刷题 7 天",
+      name: t("profile.ach.6.name"),
+      desc: t("profile.ach.6.desc"),
       goal: 7,
       value: streak,
     },
     {
       icon: LuStar,
       tone: "gold",
-      name: "渐入佳境",
-      desc: "累计解决 25 道题",
+      name: t("profile.ach.7.name"),
+      desc: t("profile.ach.7.desc"),
       goal: 25,
       value: totals.solved,
     },
     {
       icon: LuGem,
       tone: "blue",
-      name: "半百俱乐部",
-      desc: "累计解决 50 道题",
+      name: t("profile.ach.8.name"),
+      desc: t("profile.ach.8.desc"),
       goal: 50,
       value: totals.solved,
     },
     {
       icon: LuRocket,
       tone: "red",
-      name: "登峰造极",
-      desc: "解决一道 2100+ 的题",
+      name: t("profile.ach.9.name"),
+      desc: t("profile.ach.9.desc"),
       goal: 1,
       value: maxSolvedRating >= 2100 ? 1 : 0,
     },
     {
       icon: LuCrown,
       tone: "gold",
-      name: "百题斩",
-      desc: "累计解决 100 道题",
+      name: t("profile.ach.10.name"),
+      desc: t("profile.ach.10.desc"),
       goal: 100,
       value: totals.solved,
     },
@@ -424,13 +449,13 @@ export default function Profile() {
   const segments = [
     {
       key: "solved",
-      label: "已解决",
+      label: t("profile.stat.solved"),
       color: "var(--duo-green)",
       count: totals.solved,
     },
     {
       key: "gaveup",
-      label: "没做出来",
+      label: t("profile.stat.gaveup"),
       color: "var(--duo-orange)",
       count: totals.gaveup,
     },
@@ -573,7 +598,7 @@ export default function Profile() {
       attempts.length < 3
         ? null
         : {
-            label: `中位耗时 ${median.toFixed(1)}× 期望`,
+            label: t("profile.pace.summary", { median: median.toFixed(1) }),
             tone:
               median >= 2.2
                 ? ("red" as const)
@@ -613,7 +638,7 @@ export default function Profile() {
           : null,
       summary,
     };
-  }, [events, zenById, suggestedRating]);
+  }, [events, zenById, suggestedRating, t]);
 
   const weeklyTrend =
     weekly.last7 > weekly.prev7
@@ -656,7 +681,7 @@ export default function Profile() {
             <span>{heroCta}</span>
           </Link>
         </div>
-        <div className="duo-week" aria-label="本周打卡">
+        <div className="duo-week" aria-label={t("profile.week")}>
           {weekDays.map((day) => (
             <div
               className={clsx("duo-day", {
@@ -681,7 +706,7 @@ export default function Profile() {
           <div className="level-labels">
             <span>{xp} XP</span>
             <span className="muted">
-              再得 {xpToNext} XP 升到 Lv.{level + 1}
+              {t("profile.levelNext", { xp: xpToNext, level: level + 1 })}
             </span>
           </div>
           <div
@@ -712,11 +737,11 @@ export default function Profile() {
 
       <section className="duo-card">
         <header className="duo-card-head">
-          <h2>最近 14 天</h2>
-          <span className="meta">每天解决的题数</span>
+          <h2>{t("profile.daily.title")}</h2>
+          <span className="meta">{t("profile.daily.meta")}</span>
         </header>
         {recentDays.every((item) => item.solved === 0) ? (
-          <div className="duo-empty">完成一道题，这里就会长出第一根柱子。</div>
+          <div className="duo-empty">{t("profile.daily.empty")}</div>
         ) : (
           <div className="duo-chart">
             {recentDays.map((item) => {
@@ -725,7 +750,7 @@ export default function Profile() {
                 <div
                   className={clsx("duo-chart-col", { today: isToday })}
                   key={item.date}
-                  title={`${item.date} · 解决 ${item.solved} 题`}
+                  title={t("profile.daily.tip", { date: item.date, count: item.solved })}
                 >
                   <span className="duo-chart-val">{item.solved}</span>
                   <div className="duo-chart-track">
@@ -751,19 +776,18 @@ export default function Profile() {
 
       <section className="duo-card">
         <header className="duo-card-head">
-          <h2>解题速度 vs 期望</h2>
+          <h2>{t("profile.pace.title")}</h2>
           {paceChart.summary ? (
             <span className={`pace-pill ${paceChart.summary.tone}`}>
               {paceChart.summary.label}
             </span>
           ) : (
-            <span className="meta">记录几道题后可见</span>
+            <span className="meta">{t("profile.pace.hidden")}</span>
           )}
         </header>
         {paceChart.count < 3 ? (
           <div className="duo-teaser">
-            记录至少 3 道带难度分的题，这里会把你每道题的实际耗时和「该难度应有的
-            熟练耗时」叠在一起对照。
+            {t("profile.pace.teaser")}
           </div>
         ) : (
           <>
@@ -774,7 +798,7 @@ export default function Profile() {
                 className="pace-chart"
                 viewBox={`0 0 ${paceChart.W} ${paceChart.H}`}
                 role="img"
-                aria-label="实际耗时与期望曲线对照"
+                aria-label={t("profile.pace.aria")}
               >
                 <polygon points={paceChart.paceBand} className="pace-band" />
 
@@ -845,7 +869,7 @@ export default function Profile() {
                       textAnchor="middle"
                       className="pace-ability-label"
                     >
-                      当前能力 {Math.round(paceChart.ability)}
+                      {t("profile.pace.ability", { rating: Math.round(paceChart.ability) })}
                     </text>
                   </g>
                 ) : null}
@@ -860,7 +884,12 @@ export default function Profile() {
                     className="pace-bubble"
                   >
                     <title>
-                      {`${Math.round(bubble.rating)} 分 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}× 期望）· ${bubble.count} 次`}
+                      {t("profile.pace.tip", {
+                rating: Math.round(bubble.rating),
+                tone: t(bubble.tone.label),
+                ratio: bubble.ratio.toFixed(1),
+                count: bubble.count,
+              })}
                     </title>
                   </circle>
                 ))}
@@ -883,7 +912,7 @@ export default function Profile() {
                   textAnchor="end"
                   className="pace-label"
                 >
-                  难度分
+                  {t("profile.pace.axisX")}
                 </text>
               </svg>
             </div>
@@ -891,11 +920,11 @@ export default function Profile() {
             <div className="pace-legend">
               <span>
                 <span className="pace-legend-band" />
-                期望 ±35%
+                {t("profile.pace.band")}
               </span>
               <span>
                 <span className="pace-legend-line" />
-                期望耗时
+                {t("profile.pace.curve")}
               </span>
               {PACE_TONES.map((tone) => (
                 <span key={tone.key}>
@@ -903,15 +932,16 @@ export default function Profile() {
                     className="pace-legend-dot"
                     style={{ background: tone.color }}
                   />
-                  {tone.label}
+                  {t(tone.label)}
                 </span>
               ))}
             </div>
 
             <p className="pace-footnote">
-              每个点是一道你记录过的题，点在曲线上方＝比该难度的期望慢，点越大＝同一难度
-              同一档位记录的次数越多。共 {paceChart.count} 次记录，其中{" "}
-              {paceChart.onPace} 次落在期望区间内。
+              {t("profile.pace.footnote", {
+                total: paceChart.count,
+                onPace: paceChart.onPace,
+              })}
             </p>
           </>
         )}
@@ -919,12 +949,16 @@ export default function Profile() {
 
       <section className="duo-card">
         <header className="duo-card-head">
-          <h2>练习池进度</h2>
+          <h2>{t("profile.pool.title")}</h2>
           <span className="meta">
-            {totals.marked} / {totalPool} · 已启动 {startedPercent}%
+            {t("profile.pool.meta", {
+              marked: totals.marked,
+              total: totalPool,
+              percent: startedPercent,
+            })}
           </span>
         </header>
-        <div className="duo-stack" role="img" aria-label="练习池进度分布">
+        <div className="duo-stack" role="img" aria-label={t("profile.pool.aria")}>
           {segments.map((item) => (
             <span
               className="duo-stack-seg"
@@ -947,7 +981,7 @@ export default function Profile() {
           ))}
           <span className="duo-legend-item">
             <span className="duo-dot muted" />
-            未开始
+            {t("profile.pool.unstarted")}
             <strong>{unstarted}</strong>
           </span>
         </div>
@@ -956,8 +990,8 @@ export default function Profile() {
           {totals.solved > 0 ? (
             <div className="duo-bands">
               <div className="duo-subhead">
-                难度攻克
-                <span>难度越高，经验越多</span>
+                {t("profile.bands.title")}
+                <span>{t("profile.bands.meta")}</span>
               </div>
               {bandStats.map((band) => {
                 const suggested =
@@ -970,7 +1004,11 @@ export default function Profile() {
                     <div className="duo-band-label">
                       <strong>{t(band.key)}</strong>
                       <span>{band.range}</span>
-                      {suggested && <em className="duo-band-tag">适合你</em>}
+                      {suggested && (
+                        <em className="duo-band-tag">
+                          {t("profile.bands.suggested")}
+                        </em>
+                      )}
                     </div>
                     <div className="duo-bar slim">
                       <span
@@ -987,7 +1025,9 @@ export default function Profile() {
                       <span>
                         <strong>{band.solved}</strong>/{band.total}
                       </span>
-                      <span className="duo-band-xp">+{band.xp} XP/题</span>
+                      <span className="duo-band-xp">
+                        {t("profile.bands.xp", { xp: band.xp })}
+                      </span>
                     </div>
                   </div>
                 );
@@ -995,7 +1035,7 @@ export default function Profile() {
             </div>
           ) : (
             <div className="duo-teaser">
-              解决第一道题，这里会画出你的难度攻克图。
+              {t("profile.bands.empty")}
             </div>
           )}
 
@@ -1012,7 +1052,7 @@ export default function Profile() {
                         {Math.round(maxSolvedRating)}
                       </ColorRating>
                     </strong>
-                    <span>最高攻破</span>
+                    <span>{t("profile.bands.best")}</span>
                   </div>
                 </div>
               )}
@@ -1023,8 +1063,9 @@ export default function Profile() {
                   </span>
                   <div>
                     <strong>+{weekly.last7}</strong>
-                    <span title={`前 7 天 +${weekly.prev7}`}>
-                      近 7 天新增 · 前 7 天 +{weekly.prev7}
+                    <span title={t("profile.weekly.prevTitle", { count: weekly.prev7 })}>
+                      {t("profile.weekly.recent")} ·{" "}
+                      {t("profile.weekly.prev", { count: weekly.prev7 })}
                     </span>
                   </div>
                 </div>
@@ -1034,7 +1075,7 @@ export default function Profile() {
 
           {tagRadar.preview.length > 0 && (
             <div className="duo-tags-preview">
-              <span className="duo-subhead-inline">最擅长</span>
+              <span className="duo-subhead-inline">{t("profile.tags.strongest")}</span>
               {tagRadar.preview.map(([name, count]) => (
                 <span className="duo-tag-chip" key={name}>
                   {name}
@@ -1046,7 +1087,7 @@ export default function Profile() {
                 className="duo-text-btn"
                 onClick={() => setShowTagBoard(true)}
               >
-                查看题型榜
+                {t("profile.tags.openBoard")}
               </button>
             </div>
           )}
@@ -1062,9 +1103,12 @@ export default function Profile() {
 
       <section className="duo-card">
         <header className="duo-card-head">
-          <h2>成就</h2>
+          <h2>{t("profile.ach.title")}</h2>
           <span className="meta">
-            已解锁 {unlockedCount} / {achievements.length}
+            {t("profile.ach.progress", {
+              unlocked: unlockedCount,
+              total: achievements.length,
+            })}
           </span>
         </header>
         <div className="duo-achievements">
@@ -1108,12 +1152,12 @@ export default function Profile() {
         contentClassName="duo-modal"
       >
         <Modal.Header closeButton>
-          <Modal.Title>题型榜</Modal.Title>
+          <Modal.Title>{t("profile.ach.board")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="duo-subhead green">最擅长</div>
+          <div className="duo-subhead green">{t("profile.tags.strongest")}</div>
           {tagRadar.strengths.length === 0 ? (
-            <div className="duo-teaser">再解决几道题，这里会生成你的强项。</div>
+            <div className="duo-teaser">{t("profile.tags.noStrength")}</div>
           ) : (
             tagRadar.strengths.map(([name, count], index) => (
               <div className="tag-rank" key={name}>
@@ -1132,9 +1176,9 @@ export default function Profile() {
             ))
           )}
 
-          <div className="duo-subhead orange">待加强</div>
+          <div className="duo-subhead orange">{t("profile.tags.weakest")}</div>
           {tagRadar.struggles.length === 0 ? (
-            <div className="duo-teaser">暂无待加强的题型，保持！</div>
+            <div className="duo-teaser">{t("profile.tags.noWeakness")}</div>
           ) : (
             tagRadar.struggles.map(([name, count], index) => (
               <div className="tag-rank" key={name}>
@@ -1163,13 +1207,13 @@ export default function Profile() {
 
       <section className="duo-card settings-dashboard">
         <header className="duo-card-head">
-          <h2>站点设置</h2>
+          <h2>{t("profile.settings.title")}</h2>
           <button
             type="button"
             className="duo-text-btn"
             onClick={() => setShowHistory(true)}
           >
-            记录管理
+            {t("profile.settings.history")}
           </button>
         </header>
         <div className="settings-layout">
@@ -1181,7 +1225,7 @@ export default function Profile() {
             />
           </aside>
           <div className="settings-content">
-            {ActiveSettings ? ActiveSettings : "页面配置错误"}
+            {ActiveSettings ?? t("profile.settings.broken")}
           </div>
         </div>
       </section>

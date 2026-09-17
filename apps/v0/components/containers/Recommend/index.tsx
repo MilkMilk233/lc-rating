@@ -3,7 +3,7 @@
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
-import type { Message } from "@hooks/useI18n";
+import type { Message, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
   WELCOME_BACK_DAYS,
@@ -39,13 +39,13 @@ import {
 
 type Pool = QueuePool;
 
-const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
-  review: { label: "到期复习", tone: "orange" },
-  revive: { label: "复活挑战", tone: "purple" },
-  revisit: { label: "待强化", tone: "gold" },
-  prerequisite: { label: "先垫一题", tone: "blue" },
-  sibling: { label: "换个题面", tone: "blue" },
-  new: { label: "今日推荐", tone: "blue" },
+const POOL_BADGE: Record<Pool, { label: MessageKey; tone: string }> = {
+  review: { label: "rec.pool.review", tone: "orange" },
+  revive: { label: "rec.pool.revive", tone: "purple" },
+  revisit: { label: "rec.pool.revisit", tone: "gold" },
+  prerequisite: { label: "rec.pool.prerequisite", tone: "blue" },
+  sibling: { label: "rec.pool.sibling", tone: "blue" },
+  new: { label: "rec.pool.new", tone: "blue" },
 };
 
 export default function Recommend() {
@@ -219,7 +219,7 @@ export default function Recommend() {
     if (zen.length === 0 || plan === null) {
       return (
         <section className="duo-card rec-placeholder">
-          <p>正在从题库中挑选适合你的题…</p>
+          <p>{t("rec.loading")}</p>
         </section>
       );
     }
@@ -231,15 +231,15 @@ export default function Recommend() {
           <span className="duo-chip gold">
             <LuPartyPopper aria-hidden size={24} />
           </span>
-          <h2>{allAttempted ? "练习池被你刷完了" : "这一轮候选看完了"}</h2>
+          <h2>{t(allAttempted ? "rec.done.all" : "rec.done.round")}</h2>
           <p>
             {allAttempted
-              ? "不可思议！去难度练习里回顾一下自己的战绩吧。"
-              : "休息一下，或者重新生成一轮候选。"}
+              ? t("rec.done.allHint")
+              : t("rec.done.roundHint")}
           </p>
           <button type="button" className="duo-btn" onClick={restart}>
             <LuRotateCcw aria-hidden size={18} />
-            <span>{allAttempted ? "再刷一轮" : "重新生成候选"}</span>
+            <span>{t(allAttempted ? "rec.restart.all" : "rec.restart.round")}</span>
           </button>
         </section>
       );
@@ -266,17 +266,17 @@ export default function Recommend() {
         solved: event.outcome === "solved",
         text:
           event.outcome === "solved"
-            ? `「${question.title}」+${xp} XP，${days} 天后再见`
-            : `「${question.title}」已记录，${days} 天后回来再战`,
+            ? t("rec.toast.revisit", { title: question.title, xp, days })
+            : t("rec.toast.solved", { title: question.title, days }),
       });
     };
 
     return (
       <section className="duo-card rec-card" key={qid}>
         <div className="rec-kicker">
-          <span className={`rec-badge ${badge.tone}`}>{badge.label}</span>
+          <span className={`rec-badge ${badge.tone}`}>{t(badge.label)}</span>
           <span className="rec-xp">
-            做出来可得 +{baseXp}~{Math.round(baseXp * 1.75)} XP
+            {t("rec.xpRange", { min: baseXp, max: Math.round(baseXp * 1.75) })}
           </span>
         </div>
 
@@ -322,8 +322,10 @@ export default function Recommend() {
 
         {currentAttempt && (
           <div className="rec-last">
-            上次：{attemptLabel(currentAttempt, t)} ·{" "}
-            {Math.floor((now - currentAttempt.at) / DAY_MS)} 天前
+            {t("rec.last", {
+              label: attemptLabel(currentAttempt, t),
+              days: Math.floor((now - currentAttempt.at) / DAY_MS),
+            })}
           </div>
         )}
 
@@ -334,7 +336,7 @@ export default function Recommend() {
             target="_blank"
             rel="noreferrer"
           >
-            <span>去做题</span>
+            <span>{t("rec.open")}</span>
             <kbd className="kbd-hint">O</kbd>
             <LuArrowUpRight aria-hidden size={18} />
           </a>
@@ -343,12 +345,12 @@ export default function Recommend() {
             className="duo-btn-outline"
             onClick={() => setShowRecord((open) => !open)}
           >
-            <span>{showRecord ? "收起记录" : "记录结果"}</span>
+            <span>{t(showRecord ? "rec.collapse" : "rec.record")}</span>
             <kbd className="kbd-hint">R</kbd>
           </button>
           <button type="button" className="duo-btn-ghost" onClick={handleSkip}>
             <LuShuffle aria-hidden size={17} />
-            <span>换一道</span>
+            <span>{t("rec.swap")}</span>
             <kbd className="kbd-hint">N</kbd>
           </button>
         </div>
@@ -372,15 +374,15 @@ export default function Recommend() {
   return (
     <Container fluid className="duo-shell page-shell recommend">
       <div className="rec-head">
-        <h1>推荐刷题</h1>
+        <h1>{t("rec.title")}</h1>
         <span className="meta">
-          已解决 {derived.totals.solved} 道
+          {t("rec.solvedCount", { count: derived.totals.solved })}
           {derived.totals.solved >= 3 && plan
-            ? ` · 当前目标 ≈${plan.target}${
+            ? `${t("rec.target", { target: plan.target })}${
                 plan.offset <= -100
-                  ? "（先找回手感）"
+                  ? t("rec.target.warmup")
                   : plan.offset >= 80
-                    ? "（状态不错）"
+                    ? t("rec.target.strong")
                     : ""
               }`
             : ""}
@@ -402,7 +404,7 @@ export default function Recommend() {
         <div className="rec-banner">
           <LuPartyPopper aria-hidden size={18} />
           <span>
-            欢迎回来！离开 {plan.gapDays} 天了，难度已经调低，先用几道题找回手感。
+            {t("rec.welcomeBack", { days: plan.gapDays })}
           </span>
         </div>
       )}

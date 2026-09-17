@@ -32,6 +32,7 @@ import {
 
 import { rankItem } from "@tanstack/match-sorter-utils";
 
+import { useI18n } from "@hooks/useI18n";
 import { Contest, useContests } from "@hooks/useContests";
 import useStorage from "@hooks/useStorage";
 
@@ -67,6 +68,7 @@ const fuzzyFilter: FilterFn<Contest> = (row, columnId, value, addMeta) => {
 
 function ContestList() {
   const { contests, isPending: loading } = useContests();
+  const { t } = useI18n();
 
   const [size, setSize] = useStorage<string>("__size", {
     defaultValue: "100",
@@ -219,7 +221,7 @@ function ContestList() {
             table.setPageIndex(page);
           }}
           className="compact-input"
-          aria-label="跳转页码"
+          aria-label={t("zen.page")}
         />
       </div>
       <div className="toolbar-group">
@@ -250,9 +252,9 @@ function ContestList() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Contest archive</p>
-          <h1 className="page-title">竞赛题目评级</h1>
+          <h1 className="page-title">{t("contest.title")}</h1>
           <p className="page-description">
-            冻结的本地题库，按周赛/双周赛浏览 A-D 题的难度。
+            {t("contest.description")}
           </p>
         </div>
         <div className="metric-strip">

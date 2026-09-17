@@ -1,3 +1,5 @@
+import { useI18n } from "@hooks/useI18n";
+import type { MessageKey } from "@hooks/useI18n";
 import React from "react";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
 import Stack from "react-bootstrap/Stack";
@@ -5,7 +7,8 @@ import Stack from "react-bootstrap/Stack";
 export interface FixedItem {
   id: string;
   content: React.ReactNode;
-  tooltip?: string;
+  /** Resolved at render time so the tooltip follows the active locale. */
+  tooltipKey?: MessageKey;
   offset?: { x?: string; y?: string };
 }
 
@@ -53,6 +56,7 @@ const FixedSidebar: React.FC<FixedSidebarProps> = ({
   className,
   style,
 }) => {
+  const { t } = useI18n();
   const containerPosition = () => {
     const baseStyle = {
       right: initialOffset.x,
@@ -89,7 +93,10 @@ const FixedSidebar: React.FC<FixedSidebarProps> = ({
             transition: "transform 0.2s ease",
           }}
         >
-          <TooltipWrapper id={item.id} tooltip={item.tooltip}>
+          <TooltipWrapper
+            id={item.id}
+            tooltip={item.tooltipKey ? t(item.tooltipKey) : undefined}
+          >
             {item.content}
           </TooltipWrapper>
         </div>

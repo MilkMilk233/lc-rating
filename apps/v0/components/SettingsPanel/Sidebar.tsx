@@ -1,3 +1,4 @@
+import { useI18n } from "@hooks/useI18n";
 import { Nav } from "react-bootstrap";
 import { SettingTabType } from "./config";
 
@@ -8,6 +9,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ tabs, activeTab, onTabChange }: SidebarProps) => {
+  const { t } = useI18n();
   return (
     <Nav variant="pills" className="flex-column sticky-top">
       {tabs.map((tab) => (
@@ -18,7 +20,7 @@ const Sidebar = ({ tabs, activeTab, onTabChange }: SidebarProps) => {
             className="cursor-pointer sidebar-link text-start"
           >
             <span className="mx-2">{tab.icon}</span>
-            {tab.title}
+            {t(tab.titleKey)}
           </Nav.Link>
         </Nav.Item>
       ))}
