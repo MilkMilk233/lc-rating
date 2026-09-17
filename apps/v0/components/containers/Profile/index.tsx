@@ -564,32 +564,21 @@ export default function Profile() {
       .sort((a, b) => a - b);
     const median = ratios.length > 0 ? ratios[Math.floor(ratios.length / 2)] : 1;
     const onPace = ratios.filter((ratio) => ratio >= 0.65 && ratio <= 1.35).length;
+    // Only a label and a tone: the chart is read by the person who practised,
+    // not by whoever tunes the expectation table, so wording that names the
+    // model belongs in review notes rather than on the page.
     const summary =
       attempts.length < 3
         ? null
-        : median >= 2.2
-          ? {
-              label: `中位耗时 ${median.toFixed(1)}× 期望`,
-              tone: "red",
-              hint: "实际耗时远高于曲线，期望表低难度段偏紧，可以放宽",
-            }
-          : median >= 1.25
-            ? {
-                label: `中位耗时 ${median.toFixed(1)}× 期望`,
-                tone: "orange",
-                hint: "实际耗时普遍高于曲线，可以把 pace.ts 的期望表调慢一些",
-              }
-            : median <= 0.8
-              ? {
-                  label: `中位耗时 ${median.toFixed(1)}× 期望`,
-                  tone: "green",
-                  hint: "实际耗时低于曲线，期望表可以调快一些",
-                }
-              : {
-                  label: `中位耗时 ${median.toFixed(1)}× 期望`,
-                  tone: "green",
-                  hint: null,
-                };
+        : {
+            label: `中位耗时 ${median.toFixed(1)}× 期望`,
+            tone:
+              median >= 2.2
+                ? ("red" as const)
+                : median >= 1.25
+                  ? ("orange" as const)
+                  : ("green" as const),
+          };
 
     return {
       W,
@@ -918,11 +907,9 @@ export default function Profile() {
             </div>
 
             <p className="pace-footnote">
-              纵轴是耗时档位（等距排列，不是线性的分钟刻度），横轴是难度分；曲线把「该难度应有的
-              熟练耗时」映射到档位空间，落在曲线<b>上方</b>＝比该难度期望的慢。点在同一行内上下
-              错开只是为了避免重叠。共 {paceChart.count} 次记录，其中 {paceChart.onPace}{" "}
-              次落在期望区间内。
-              {paceChart.summary?.hint ? ` ${paceChart.summary.hint}。` : ""}
+              每个点是一道你记录过的题，点在曲线上方＝比该难度的期望慢，点越大＝同一难度
+              同一档位记录的次数越多。共 {paceChart.count} 次记录，其中{" "}
+              {paceChart.onPace} 次落在期望区间内。
             </p>
           </>
         )}

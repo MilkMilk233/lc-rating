@@ -333,8 +333,8 @@ export default function Search() {
               ))}
             </div>
             <p className="search-note">
-              题库收录 {total} 道竞赛题（题号 {MIN_QUESTION_ID} 起）。算法名只在标签里，
-              所以“动态规划”这类词也能搜到。
+              题库收录 {total} 道竞赛题（题号 {MIN_QUESTION_ID} 起）。除了题号和标题，
+              也可以直接搜算法名，比如「动态规划」「二分查找」。
             </p>
           </div>
         ) : filtered.length === 0 ? (
