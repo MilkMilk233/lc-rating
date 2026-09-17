@@ -1,6 +1,6 @@
 import { hashCode } from "@utils/hash";
 import ProblemCategoryList from "./ProblemCategoryList";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { translateLeetCodeHtml } from "@utils/leetcodeLinks";
 
 interface ProblemCategory {
@@ -39,7 +39,7 @@ function ProblemCategory({
   showRating,
   showPremium,
 }: ProblemCategoryProps) {
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
 
   return (
     <div className={`pb-container level-${level}` + className}>

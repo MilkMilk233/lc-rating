@@ -1,6 +1,6 @@
 import RatingCircle, { COLORS } from "@components/RatingCircle";
 import { QuestionType } from "@hooks/useContests";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { leetCodeProblemUrl } from "@utils/leetcodeLinks";
 import clsx from "clsx";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
@@ -11,7 +11,7 @@ interface ProblemCellProps {
 }
 
 function ProblemCell({ question: que }: ProblemCellProps) {
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
   let link = leetCodeProblemUrl(que.title_slug, language);
   let rating = que.rating;
   let idx = COLORS.findIndex((v) => rating >= v.l && rating <= v.r);

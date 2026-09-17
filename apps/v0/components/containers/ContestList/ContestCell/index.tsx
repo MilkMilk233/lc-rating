@@ -1,4 +1,4 @@
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { leetCodeContestUrl } from "@utils/leetcodeLinks";
 import React from "react";
@@ -10,7 +10,7 @@ interface ContestCellProps {
 }
 
 function ContestCell({ title, titleSlug }: ContestCellProps) {
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
   const [mark, setMark] = useStorage<string>("__mark", {
     defaultValue: "",
   });

@@ -7,7 +7,7 @@ import {
   TableOfContent,
   TOC,
 } from "@components/ProblemCatetory/TableOfContent";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { hashCode } from "@utils/hash";
 import { translateLeetCodeUrl } from "@utils/leetcodeLinks";
@@ -38,7 +38,7 @@ const mapCategory2TOC = (
 };
 
 export default function ({ data }: { data: ProblemCategory }) {
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
 
   const scrollToComponent = () => {
     if (window.location.hash) {

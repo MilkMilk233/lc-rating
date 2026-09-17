@@ -2,7 +2,7 @@
 
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
   WELCOME_BACK_DAYS,
@@ -50,7 +50,7 @@ const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
 export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
   const { derived } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: string };

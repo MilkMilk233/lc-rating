@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import DocumentLanguage from "@components/layouts/DocumentLanguage";
 import MainLayout from "@components/layouts/MainLayout";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://leetcode.com" />
       </head>
       <body>
+        <DocumentLanguage />
         <MainLayout>{children}</MainLayout>
       </body>
     </html>

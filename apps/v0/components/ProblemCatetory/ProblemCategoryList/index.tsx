@@ -3,7 +3,7 @@
 import { ShareIcon } from "@components/icons";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { hashCode } from "@utils/hash";
@@ -53,7 +53,7 @@ function ProblemCategoryList({
   showRating,
   showPremium,
 }: ProblemCategoryListProps) {
-  const { language } = useLeetCodeLanguage();
+  const { language } = useI18n();
   const { derived } = useProgressStore();
   const [openId, setOpenId] = useState<string | null>(null);
 

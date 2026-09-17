@@ -16,10 +16,8 @@ import type {
   EffortBand,
 } from "@hooks/useProgressStore/types";
 import { QTag, useQuestionTags } from "@hooks/useQuestionTags";
-import {
-  LeetCodeLanguage,
-  useLeetCodeLanguage,
-} from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
+import type { Locale } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
 import { useZen } from "@hooks/useZen";
@@ -378,7 +376,7 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
 export default function Zenk() {
   // State and hooks
   const { zen: data, isPending: progressLoading } = useZen();
-  const { language, isCn } = useLeetCodeLanguage();
+  const { language, isCn } = useI18n();
   const { derived } = useProgressStore();
 
   const { tags, isPending: tagsLoading } = useQuestionTags(null);
@@ -568,7 +566,7 @@ interface ZenTableCompProps {
   columnVisibility: VisibilityState;
   queryTags: (id: string) => QTag;
   data: ConstQuestion[];
-  language: LeetCodeLanguage;
+  language: Locale;
   tagLanguage: "zh" | "en";
   currentByQid: Map<string, AttemptEvent>;
   scheduleByQid: Map<string, ScheduleState>;

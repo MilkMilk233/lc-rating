@@ -1,25 +1,25 @@
-import { LeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import type { Locale } from "@hooks/useI18n";
 
-const HOSTS: Record<LeetCodeLanguage, string> = {
+const HOSTS: Record<Locale, string> = {
   cn: "https://leetcode.cn",
   en: "https://leetcode.com",
 };
 
-export function leetCodeHost(language: LeetCodeLanguage) {
+export function leetCodeHost(language: Locale) {
   return HOSTS[language];
 }
 
-export function leetCodeProblemUrl(slug: string, language: LeetCodeLanguage) {
+export function leetCodeProblemUrl(slug: string, language: Locale) {
   return `${leetCodeHost(language)}/problems/${slug}`;
 }
 
-export function leetCodeContestUrl(slug: string, language: LeetCodeLanguage) {
+export function leetCodeContestUrl(slug: string, language: Locale) {
   return `${leetCodeHost(language)}/contest/${slug}`;
 }
 
 export function translateLeetCodeUrl(
   url: string | undefined,
-  language: LeetCodeLanguage
+  language: Locale
 ) {
   if (!url) return "";
   return url
@@ -29,7 +29,7 @@ export function translateLeetCodeUrl(
 
 export function translateLeetCodeHtml(
   html: string | undefined,
-  language: LeetCodeLanguage
+  language: Locale
 ) {
   if (!html) return "";
   return html

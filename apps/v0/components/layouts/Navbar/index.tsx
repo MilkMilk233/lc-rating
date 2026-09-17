@@ -1,7 +1,7 @@
 "use client";
 
 import ThemeSwitchButton from "@components/ThemeSwitchButton";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { loadContests } from "@hooks/useContests";
 import { loadQuestionTags } from "@hooks/useQuestionTags";
 import { useTheme } from "@hooks/useTheme";
@@ -75,7 +75,7 @@ const questList = [
 
 export default function () {
   const { theme, toggleTheme } = useTheme();
-  const { language, toggleLanguage } = useLeetCodeLanguage();
+  const { language, toggle, t, isCn } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -105,10 +105,10 @@ export default function () {
   });
 
   const navItems = [
-    { href: "/", label: "竞赛列表", icon: LuTrophy },
-    { href: "/zen", label: "难度练习", icon: LuTarget },
-    { href: "/recommend", label: "推荐刷题", icon: LuSparkles },
-    { href: "/search", label: "搜索题目", icon: LuSearch },
+    { href: "/", label: t("nav.contestList"), icon: LuTrophy },
+    { href: "/zen", label: t("nav.practice"), icon: LuTarget },
+    { href: "/recommend", label: t("nav.recommend"), icon: LuSparkles },
+    { href: "/search", label: t("nav.search"), icon: LuSearch },
   ];
 
   return (
@@ -124,7 +124,7 @@ export default function () {
         <div className="d-flex flex-fill d-md-none d-lg-none justify-content-end pe-2">
           <button
             className="theme-toggle"
-            aria-label="切换主题"
+            aria-label={t("nav.theme")}
             onClick={() => {
               toggleTheme();
             }}
@@ -151,57 +151,61 @@ export default function () {
               </Link>
             ))}
 
-            <Dropdown
-              className="study-plan-menu"
-              show={showDropdown}
-              onToggle={(showDropdown) => setShowDropdown(showDropdown)}
-            >
-              <Dropdown.Toggle className="nav-action" variant="link">
-                <LuListChecks aria-hidden size={17} />
-                题单
-              </Dropdown.Toggle>
+            {/* The study lists are Chinese-only prose, so the menu is hidden
+                rather than offered in a language it cannot deliver. */}
+            {isCn ? (
+              <Dropdown
+                className="study-plan-menu"
+                show={showDropdown}
+                onToggle={(showDropdown) => setShowDropdown(showDropdown)}
+              >
+                <Dropdown.Toggle className="nav-action" variant="link">
+                  <LuListChecks aria-hidden size={17} />
+                  {t("nav.topicLists")}
+                </Dropdown.Toggle>
 
-              <Dropdown.Menu>
-                <div className="study-plan-grid">
-                  {questList.map((item) => (
-                    <Link
-                      key={item.link}
-                      href={item.link}
-                      prefetch={false}
-                      {...prefetchHandlers(item.link)}
-                      className="study-plan-link"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      <LuBookOpen aria-hidden size={15} />
-                      <span>{item.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </Dropdown.Menu>
-            </Dropdown>
+                <Dropdown.Menu>
+                  <div className="study-plan-grid">
+                    {questList.map((item) => (
+                      <Link
+                        key={item.link}
+                        href={item.link}
+                        prefetch={false}
+                        {...prefetchHandlers(item.link)}
+                        className="study-plan-link"
+                        onClick={() => setShowDropdown(false)}
+                      >
+                        <LuBookOpen aria-hidden size={15} />
+                        <span>{item.title}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </Dropdown.Menu>
+              </Dropdown>
+            ) : null}
           </Nav>
           <Link
             href="/profile"
             prefetch={false}
             {...prefetchHandlers("/profile")}
             className={`profile-badge ${pathname === "/profile" ? "active" : ""}`}
-            aria-label="打开个人进度"
-            title="个人进度"
+            aria-label={t("nav.profile")}
+            title={t("nav.profile")}
           >
             <LuMedal aria-hidden size={18} />
           </Link>
           <button
             className="language-toggle"
-            onClick={toggleLanguage}
-            aria-label="切换 LeetCode 站点语言"
-            title="切换 LeetCode 站点语言"
+            onClick={toggle}
+            aria-label={t("nav.language")}
+            title={t("nav.language")}
           >
             <span className={language === "cn" ? "active" : ""}>CN</span>
             <span className={language === "en" ? "active" : ""}>EN</span>
           </button>
           <button
             className="theme-toggle d-none d-lg-flex"
-            aria-label="切换主题"
+            aria-label={t("nav.theme")}
             onClick={() => {
               toggleTheme();
             }}

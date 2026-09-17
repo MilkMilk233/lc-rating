@@ -10,7 +10,7 @@
 import Loading from "@components/Loading";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
-import { useLeetCodeLanguage } from "@hooks/useLeetCodeLanguage";
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { isDue } from "@hooks/useProgressStore/srs";
@@ -42,7 +42,7 @@ const looksLikeMissingQid = (query: string) =>
 export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { language, isCn } = useLeetCodeLanguage();
+  const { language, isCn } = useI18n();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
 
