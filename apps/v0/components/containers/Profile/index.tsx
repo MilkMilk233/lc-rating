@@ -727,118 +727,122 @@ export default function Profile() {
           </div>
         ) : (
           <>
-            <svg
-              className="pace-chart"
-              viewBox={`0 0 ${paceChart.W} ${paceChart.H}`}
-              role="img"
-              aria-label="实际耗时与期望曲线对照"
-            >
-              <polygon points={paceChart.paceBand} className="pace-band" />
+            {/* Wrap the svg so the card's other children (legend, footnote)
+                share the same horizontal inset as .duo-card-head. */}
+            <div className="pace-plot">
+              <svg
+                className="pace-chart"
+                viewBox={`0 0 ${paceChart.W} ${paceChart.H}`}
+                role="img"
+                aria-label="实际耗时与期望曲线对照"
+              >
+                <polygon points={paceChart.paceBand} className="pace-band" />
 
-              {paceChart.yTicks.map((minutes) => (
-                <g key={minutes}>
-                  <line
-                    x1={paceChart.pad.left}
-                    x2={paceChart.W - paceChart.pad.right}
-                    y1={paceChart.y(minutes)}
-                    y2={paceChart.y(minutes)}
-                    className="pace-grid"
-                  />
+                {paceChart.yTicks.map((minutes) => (
+                  <g key={minutes}>
+                    <line
+                      x1={paceChart.pad.left}
+                      x2={paceChart.W - paceChart.pad.right}
+                      y1={paceChart.y(minutes)}
+                      y2={paceChart.y(minutes)}
+                      className="pace-grid"
+                    />
+                    <text
+                      x={paceChart.pad.left - 8}
+                      y={paceChart.y(minutes) + 3.5}
+                      textAnchor="end"
+                      className="pace-label"
+                    >
+                      {minutes}
+                    </text>
+                  </g>
+                ))}
+
+                <line
+                  x1={paceChart.pad.left}
+                  y1={paceChart.pad.top}
+                  x2={paceChart.pad.left}
+                  y2={paceChart.pad.top + paceChart.plotH}
+                  className="pace-axis"
+                />
+                <line
+                  x1={paceChart.pad.left}
+                  y1={paceChart.pad.top + paceChart.plotH}
+                  x2={paceChart.W - paceChart.pad.right}
+                  y2={paceChart.pad.top + paceChart.plotH}
+                  className="pace-axis"
+                />
+
+                <polyline points={paceChart.curve} className="pace-curve" />
+
+                {paceChart.ability != null ? (
+                  <g>
+                    <line
+                      x1={paceChart.x(paceChart.ability)}
+                      y1={paceChart.pad.top}
+                      x2={paceChart.x(paceChart.ability)}
+                      y2={paceChart.pad.top + paceChart.plotH}
+                      className="pace-ability"
+                    />
+                    <text
+                      x={Math.min(
+                        paceChart.W - paceChart.pad.right - 34,
+                        Math.max(paceChart.pad.left + 34, paceChart.x(paceChart.ability)),
+                      )}
+                      y={paceChart.pad.top + 9}
+                      textAnchor="middle"
+                      className="pace-ability-label"
+                    >
+                      当前能力 {Math.round(paceChart.ability)}
+                    </text>
+                  </g>
+                ) : null}
+
+                {paceChart.bubbles.map((bubble) => (
+                  <circle
+                    key={`${bubble.rating}-${bubble.band}`}
+                    cx={paceChart.x(bubble.rating)}
+                    cy={paceChart.y(bubble.minutes)}
+                    r={3.5 + Math.min(5, Math.sqrt(bubble.count) * 2.2)}
+                    fill={bubble.tone.color}
+                    className="pace-bubble"
+                  >
+                    <title>
+                      {`${Math.round(bubble.rating)} 分 · ${bubble.minutes} 分钟档 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}×）· ${bubble.count} 次`}
+                    </title>
+                  </circle>
+                ))}
+
+                {paceChart.xTicks.map((rating) => (
                   <text
-                    x={paceChart.pad.left - 8}
-                    y={paceChart.y(minutes) + 3.5}
-                    textAnchor="end"
+                    key={rating}
+                    x={paceChart.x(rating)}
+                    y={paceChart.H - paceChart.pad.bottom + 17}
+                    textAnchor="middle"
                     className="pace-label"
                   >
-                    {minutes}
+                    {rating}
                   </text>
-                </g>
-              ))}
+                ))}
 
-              <line
-                x1={paceChart.pad.left}
-                y1={paceChart.pad.top}
-                x2={paceChart.pad.left}
-                y2={paceChart.pad.top + paceChart.plotH}
-                className="pace-axis"
-              />
-              <line
-                x1={paceChart.pad.left}
-                y1={paceChart.pad.top + paceChart.plotH}
-                x2={paceChart.W - paceChart.pad.right}
-                y2={paceChart.pad.top + paceChart.plotH}
-                className="pace-axis"
-              />
-
-              <polyline points={paceChart.curve} className="pace-curve" />
-
-              {paceChart.ability != null ? (
-                <g>
-                  <line
-                    x1={paceChart.x(paceChart.ability)}
-                    y1={paceChart.pad.top}
-                    x2={paceChart.x(paceChart.ability)}
-                    y2={paceChart.pad.top + paceChart.plotH}
-                    className="pace-ability"
-                  />
-                  <text
-                    x={Math.min(
-                      paceChart.W - paceChart.pad.right - 34,
-                      Math.max(paceChart.pad.left + 34, paceChart.x(paceChart.ability)),
-                    )}
-                    y={paceChart.pad.top + 9}
-                    textAnchor="middle"
-                    className="pace-ability-label"
-                  >
-                    当前能力 {Math.round(paceChart.ability)}
-                  </text>
-                </g>
-              ) : null}
-
-              {paceChart.bubbles.map((bubble) => (
-                <circle
-                  key={`${bubble.rating}-${bubble.band}`}
-                  cx={paceChart.x(bubble.rating)}
-                  cy={paceChart.y(bubble.minutes)}
-                  r={3.5 + Math.min(5, Math.sqrt(bubble.count) * 2.2)}
-                  fill={bubble.tone.color}
-                  className="pace-bubble"
-                >
-                  <title>
-                    {`${Math.round(bubble.rating)} 分 · ${bubble.minutes} 分钟档 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}×）· ${bubble.count} 次`}
-                  </title>
-                </circle>
-              ))}
-
-              {paceChart.xTicks.map((rating) => (
                 <text
-                  key={rating}
-                  x={paceChart.x(rating)}
-                  y={paceChart.H - paceChart.pad.bottom + 17}
-                  textAnchor="middle"
+                  x={paceChart.pad.left - 8}
+                  y={paceChart.pad.top - 14}
+                  textAnchor="end"
                   className="pace-label"
                 >
-                  {rating}
+                  分钟
                 </text>
-              ))}
-
-              <text
-                x={paceChart.pad.left - 8}
-                y={paceChart.pad.top - 14}
-                textAnchor="end"
-                className="pace-label"
-              >
-                分钟
-              </text>
-              <text
-                x={paceChart.W - paceChart.pad.right}
-                y={paceChart.H - 3}
-                textAnchor="end"
-                className="pace-label"
-              >
-                难度分
-              </text>
-            </svg>
+                <text
+                  x={paceChart.W - paceChart.pad.right}
+                  y={paceChart.H - 3}
+                  textAnchor="end"
+                  className="pace-label"
+                >
+                  难度分
+                </text>
+              </svg>
+            </div>
 
             <div className="pace-legend">
               <span>

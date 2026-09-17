@@ -324,6 +324,14 @@
 }
 
 // Pace calibration chart (Profile): actual solving time vs the expected curve.
+//
+// .duo-card carries no padding of its own (every card body supplies its own
+// inset), so the chart, legend and footnote each repeat the 1.25rem used by
+// .duo-card-head. Without it they render flush against the card border.
+.pace-plot {
+  padding: 0 1.25rem;
+}
+
 .pace-chart {
   display: block;
   width: 100%;
@@ -419,6 +427,7 @@
   flex-wrap: wrap;
   gap: 1rem;
   margin-top: .5rem;
+  padding: 0 1.25rem;
   color: var(--app-muted);
   font-size: .78rem;
   font-weight: 700;
@@ -470,6 +479,7 @@
 
 .pace-footnote {
   margin: .6rem 0 0;
+  padding: 0 1.25rem 1.15rem;
   color: var(--app-muted);
   font-size: .76rem;
   font-weight: 650;
