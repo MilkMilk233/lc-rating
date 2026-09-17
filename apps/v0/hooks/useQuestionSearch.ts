@@ -12,6 +12,7 @@
 // tagged questions, so tag matching is the backbone of this search rather
 // than a nice-to-have.
 
+import type { MessageKey } from "@hooks/useI18n/messages";
 import { useMemo } from "react";
 import { useQuestionTags } from "./useQuestionTags";
 import { useZen } from "./useZen";
@@ -30,7 +31,7 @@ export interface SearchDoc {
   contest: string;
   contestSlug: string;
   contestLower: string;
-  /** Contest number parsed from "第 144 场周赛", or null. */
+  /** Contest number parsed from the contest title, or null. */
   contestNumber: number | null;
   /** Chinese and English tag names, index-aligned so a matched tag can be
    * handed to /zen, which keys its filters by the English name. */
@@ -38,8 +39,17 @@ export interface SearchDoc {
   tagsEn: string[];
 }
 
-/** Which field produced the match, shown to the user as a small hint. */
-export type MatchReason = "题号" | "标题" | "英文名" | "标签" | "周赛";
+/** Which field produced the match, shown as a small hint next to the result. */
+export type MatchReason = "qid" | "title" | "slug" | "tag" | "contest";
+
+/** Match reason -> message key, so the label is resolved at render time. */
+export const MATCH_REASON_KEY: Record<MatchReason, MessageKey> = {
+  qid: "search.match.qid",
+  title: "search.match.title",
+  slug: "search.match.slug",
+  tag: "search.match.tag",
+  contest: "search.match.contest",
+};
 
 export interface SearchHit {
   doc: SearchDoc;
@@ -150,31 +160,31 @@ function matchToken(doc: SearchDoc, token: string): TokenMatch | null {
   // question #144 or contest #144, not every title containing a 1.
   if (NUMERIC.test(token)) {
     const value = Number(token);
-    if (value === doc.qid) return { score: SCORE.qidExact, reason: "题号" };
+    if (value === doc.qid) return { score: SCORE.qidExact, reason: "qid" };
     if (doc.contestNumber === value) {
-      return { score: SCORE.contestNumber, reason: "周赛" };
+      return { score: SCORE.contestNumber, reason: "contest" };
     }
     return null;
   }
 
   if (doc.titleLower === token) {
-    return { score: SCORE.titleWhole, reason: "标题" };
+    return { score: SCORE.titleWhole, reason: "title" };
   }
   if (doc.titleLower.startsWith(token)) {
-    return { score: SCORE.titlePrefix, reason: "标题" };
+    return { score: SCORE.titlePrefix, reason: "title" };
   }
   if (doc.titleLower.includes(token)) {
-    return { score: SCORE.titleIncludes, reason: "标题" };
+    return { score: SCORE.titleIncludes, reason: "title" };
   }
 
   // "two sum" -> "two-sum", and "twosum" -> "two-sum".
   const slugToken = token.replace(/[\s_]+/g, "-");
   if (slugToken.length >= 2 && doc.slug.includes(slugToken)) {
-    return { score: SCORE.slugIncludes, reason: "英文名" };
+    return { score: SCORE.slugIncludes, reason: "slug" };
   }
   const flatToken = token.replace(/[^a-z0-9]/g, "");
   if (flatToken.length >= 3 && doc.slugFlat.includes(flatToken)) {
-    return { score: SCORE.slugFlat, reason: "英文名" };
+    return { score: SCORE.slugFlat, reason: "slug" };
   }
 
   // Exact tag matches must beat partial ones, otherwise searching "图" would
@@ -185,7 +195,7 @@ function matchToken(doc: SearchDoc, token: string): TokenMatch | null {
     if (cn === token || en === token) {
       return {
         score: SCORE.tagExact,
-        reason: "标签",
+        reason: "tag",
         tag: doc.tagsEn[i],
         tagCn: doc.tagsCn[i],
       };
@@ -197,7 +207,7 @@ function matchToken(doc: SearchDoc, token: string): TokenMatch | null {
     if (cn.includes(token) || en.includes(token)) {
       return {
         score: SCORE.tagIncludes,
-        reason: "标签",
+        reason: "tag",
         tag: doc.tagsEn[i],
         tagCn: doc.tagsCn[i],
       };
@@ -205,7 +215,7 @@ function matchToken(doc: SearchDoc, token: string): TokenMatch | null {
   }
 
   if (token.length >= 3 && doc.contestLower.includes(token)) {
-    return { score: SCORE.contestIncludes, reason: "周赛" };
+    return { score: SCORE.contestIncludes, reason: "contest" };
   }
   return null;
 }

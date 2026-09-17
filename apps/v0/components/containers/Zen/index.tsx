@@ -287,42 +287,42 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
         size="xl"
       >
         <Modal.Header closeButton>
-          <Modal.Title>设置</Modal.Title>
+          <Modal.Title>{t("zen.settings")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <h5 className="pt-1 pb-1">
-            列显示
+            {t("zen.columns")}
             <Form className="d-flex mt-2 gap-3">
               <Form.Check
                 checked={Boolean(curSetting.columnVisibility.tags)}
                 onChange={() => onVisibilityChange("tags")}
                 type="switch"
-                label="算法标签"
+                label={t("zen.column.tags")}
                 id="toggle-tags"
               />
               <Form.Check
                 checked={Boolean(curSetting.columnVisibility.en)}
                 onChange={() => onVisibilityChange("en")}
                 type="switch"
-                label="英文链接"
+                label={t("zen.column.enLink")}
                 id="toggle-en"
               />
               <Form.Check
                 checked={Boolean(curSetting.columnVisibility.ratings)}
                 onChange={() => onVisibilityChange("ratings")}
                 type="switch"
-                label="难度分"
+                label={t("zen.column.rating")}
                 id="toggle-ratings"
               />
             </Form>
           </h5>
           <hr />
           <h5>
-            标签 <Button onClick={onTagsReset}>重置</Button>
+            {t("zen.tags")} <Button onClick={onTagsReset}>{t("zen.reset")}</Button>
           </h5>
           {RenderTags(tags)}
           <hr />
-          <h5 className="pt-1 pb-1">练习记录</h5>
+          <h5 className="pt-1 pb-1">{t("zen.history")}</h5>
           <div className="d-flex flex-wrap align-items-center gap-3">
             <div className="w-25" style={{ minWidth: "12rem" }}>
               <Form.Select
@@ -331,22 +331,22 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
                   onOutcomeChange(e.target.value as ZenFilters["outcome"])
                 }
               >
-                <option value="">[全部]</option>
-                <option value="solved">做出来了</option>
-                <option value="gaveup">没做出来</option>
+                <option value="">{t("zen.outcome.all")}</option>
+                <option value="solved">{t("zen.outcome.solved")}</option>
+                <option value="gaveup">{t("zen.outcome.gaveup")}</option>
               </Form.Select>
             </div>
             <Form.Check
               checked={curSetting.filters.dueOnly}
               onChange={onDueOnlyChange}
               type="switch"
-              label="只看已到期"
+              label={t("zen.dueOnly")}
               id="toggle-due"
             />
           </div>
           <div className="mt-3">
             <div className="text-muted mb-2" style={{ fontSize: ".85rem" }}>
-              体感档位（仅在「做出来了」时生效）
+              {t("zen.bands")}
             </div>
             <ButtonGroup size="sm" className="flex-wrap">
               {EFFORT_BANDS.map((band) => (
@@ -367,10 +367,10 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={onCancel}>
-            关闭
+            {t("zen.close")}
           </Button>
           <Button variant="primary" onClick={onConfirm}>
-            应用设置
+            {t("zen.apply")}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -483,9 +483,9 @@ export default function Zenk() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Difficulty practice</p>
-          <h1 className="page-title">难度练习</h1>
+          <h1 className="page-title">{t("zen.title")}</h1>
           <p className="page-description">
-            按评级区间、标签和练习记录筛选题目，记录只保存在当前浏览器。
+            {t("zen.description")}
           </p>
         </div>
         <div className="metric-strip">
@@ -514,7 +514,7 @@ export default function Zenk() {
         </ButtonGroup>
         <Button variant="outline-secondary" onClick={() => setShowFilter(true)}>
           <FilterIcon width={24} height={24} />
-          <span className="ms-1">筛选</span>
+          <span className="ms-1">{t("zen.filter")}</span>
         </Button>
       </nav>
 
@@ -548,7 +548,7 @@ export default function Zenk() {
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>记录这次练习</Modal.Title>
+          <Modal.Title>{t("record.title")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {recordTarget && (
@@ -594,7 +594,7 @@ const ZenTableComp = React.memo(
       () => [
         {
           accessorFn: (row) => row.cont_title_slug,
-          id: "场次",
+          id: "contest",
           enableColumnFilter: false,
           cell: (info) => {
             const item = info.row.original;
@@ -650,13 +650,13 @@ const ZenTableComp = React.memo(
             );
           },
           enableColumnFilter: false,
-          header: () => <span>题号</span>,
+          header: () => <span>{t("zen.column.qid")}</span>,
           // footer: (props) => props.column.id,
         },
         {
           accessorKey: "rating",
           id: "ratings",
-          header: () => "难度分",
+          header: () => t("zen.column.rating"),
           size: 80,
           enableColumnFilter: false,
           cell: (info) => (
@@ -673,7 +673,7 @@ const ZenTableComp = React.memo(
             let tags = queryTags(row._hash.toString());
             return tags ? tags[tagLanguage === "en" ? 0 : 1] : "-";
           },
-          header: "算法标签",
+          header: t("zen.column.tags"),
           id: "tags",
           footer: (props) => props.column.id,
           enableColumnFilter: false,
@@ -682,7 +682,7 @@ const ZenTableComp = React.memo(
         {
           accessorFn: (row) => row.question_id,
           id: "progress",
-          header: "进度",
+          header: t("zen.column.progress"),
           enableColumnFilter: false,
           enableSorting: false,
           cell: (info) => {
@@ -700,11 +700,11 @@ const ZenTableComp = React.memo(
                   type="button"
                   className={`pc-state${current ? " recorded" : ""}`}
                   onClick={() => onRecord(qid, item.title, item.rating)}
-                  title={current ? "重新记录" : "记录这次练习"}
+                  title={current ? t("zen.reRecord") : t("zen.record")}
                 >
                   {attemptLabel(current, t)}
                 </button>
-                {due && <span className="zen-due">到期</span>}
+                {due && <span className="zen-due">{t("zen.due")}</span>}
               </div>
             );
           },
@@ -749,6 +749,7 @@ const ZenTable = React.memo(
     columns: ColumnDef<ConstQuestion>[];
     columnVisibility?: VisibilityState;
   }) => {
+    const { t } = useI18n();
     const [pagination, setPagination] = React.useState<PaginationState>({
       pageIndex: 0,
       pageSize: 50,
@@ -815,7 +816,7 @@ const ZenTable = React.memo(
               table.setPageIndex(page);
             }}
             className="compact-input"
-            aria-label="跳转页码"
+            aria-label={t("zen.page")}
           />
           <Dropdown
             onSelect={(e) => {

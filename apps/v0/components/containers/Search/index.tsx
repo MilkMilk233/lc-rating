@@ -11,10 +11,15 @@ import Loading from "@components/Loading";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import type { Locale } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { attemptLabel } from "@hooks/useProgressStore/bands";
 import { isDue } from "@hooks/useProgressStore/srs";
-import { MIN_QUESTION_ID, useQuestionSearch } from "@hooks/useQuestionSearch";
+import {
+  MATCH_REASON_KEY,
+  MIN_QUESTION_ID,
+  useQuestionSearch,
+} from "@hooks/useQuestionSearch";
 import type { SearchHit } from "@hooks/useQuestionSearch";
 import { leetCodeContestUrl, leetCodeProblemUrl } from "@utils/leetcodeLinks";
 import clsx from "clsx";
@@ -33,7 +38,12 @@ import { LuSearch, LuX } from "react-icons/lu";
 
 const VISIBLE_LIMIT = 30;
 const TAG_CHIP_LIMIT = 6;
-const SUGGESTIONS = ["动态规划", "二分查找", "并查集", "two sum", "144"];
+// Example queries, not labels: the English ones are the English tag names,
+// which the index matches just as well as the Chinese ones.
+const SUGGESTIONS: Record<Locale, string[]> = {
+  cn: ["动态规划", "二分查找", "并查集", "two sum", "144"],
+  en: ["dynamic programming", "binary search", "union find", "two sum", "144"],
+};
 
 /** A bare number the pool cannot contain, so the empty state can say why. */
 const looksLikeMissingQid = (query: string) =>
@@ -42,7 +52,7 @@ const looksLikeMissingQid = (query: string) =>
 export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { language, isCn, t } = useI18n();
+  const { language, isCn, t, locale } = useI18n();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
 
@@ -207,17 +217,17 @@ export default function Search() {
           >
             <span className="search-qid">#{hit.doc.qid}</span> {hit.doc.title}
           </a>
-          <span className="search-reason">{hit.reason}</span>
+          <span className="search-reason">{t(MATCH_REASON_KEY[hit.reason])}</span>
           <span className="search-actions">
             <button
               type="button"
               className={clsx("pc-state", { recorded: !!current })}
               onClick={() => setRecordTarget(hit)}
-              title={current ? "重新记录" : "记录这次练习"}
+              title={current ? t("search.reRecord") : t("search.record")}
             >
               {attemptLabel(current, t)}
             </button>
-            {isDue(schedule, Date.now()) && <span className="zen-due">到期</span>}
+            {isDue(schedule, Date.now()) && <span className="zen-due">{t("zen.due")}</span>}
           </span>
         </div>
 
@@ -250,18 +260,18 @@ export default function Search() {
       <header className="page-heading">
         <div>
           <p className="eyebrow">Lookup</p>
-          <h1 className="page-title">搜索题目</h1>
+          <h1 className="page-title">{t("search.title")}</h1>
           <p className="page-description">
-            按题号、标题、算法标签或周赛名查找题目，记录只保存在当前浏览器。
+            {t("search.description")}
           </p>
         </div>
         <div className="metric-strip">
           <span className="metric-pill">
-            题库 <strong>{total}</strong>
+            {t("search.pool")} <strong>{total}</strong>
           </span>
           {deferredQuery && (
             <span className="metric-pill">
-              命中 <strong>{filtered.length}</strong>
+              {t("search.hits")} <strong>{filtered.length}</strong>
             </span>
           )}
         </div>
@@ -276,15 +286,15 @@ export default function Search() {
             value={query}
             autoFocus
             spellCheck={false}
-            placeholder="题号 / 标题 / 标签 / 周赛，例如：128、动态规划、two sum"
+            placeholder={t("search.placeholder")}
             onChange={(event) => setQuery(event.target.value)}
-            aria-label="搜索题目"
+            aria-label={t("search.title")}
           />
           {query ? (
             <button
               type="button"
               className="search-clear"
-              aria-label="清空"
+              aria-label={t("search.clear")}
               onClick={() => {
                 setQuery("");
                 inputRef.current?.focus();
@@ -302,14 +312,14 @@ export default function Search() {
               checked={onlyTodo}
               onChange={(event) => setOnlyTodo(event.target.checked)}
             />
-            只看没记录过的
+            {t("search.onlyTodo")}
           </label>
           <span className="search-kbd-hints">
             <kbd className="kbd-hint">↑</kbd>
-            <kbd className="kbd-hint">↓</kbd> 选择 ·{" "}
-            <kbd className="kbd-hint">Enter</kbd> 打开 ·{" "}
-            <kbd className="kbd-hint">R</kbd> 记录 ·{" "}
-            <kbd className="kbd-hint">/</kbd> 聚焦
+            <kbd className="kbd-hint">↓</kbd> {t("search.hint.keys")}
+            <kbd className="kbd-hint">Enter</kbd> {t("search.hint.open")}
+            <kbd className="kbd-hint">R</kbd> {t("search.hint.record")}
+            <kbd className="kbd-hint">/</kbd> {t("search.hint.focus")}
           </span>
         </div>
 
@@ -317,9 +327,9 @@ export default function Search() {
           <Loading />
         ) : !deferredQuery ? (
           <div className="search-empty">
-            <p>输入题号、标题、算法标签或周赛名开始查找。</p>
+            <p>{t("search.empty.prompt")}</p>
             <div className="search-suggestions">
-              {SUGGESTIONS.map((item) => (
+              {SUGGESTIONS[locale].map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -333,22 +343,24 @@ export default function Search() {
               ))}
             </div>
             <p className="search-note">
-              题库收录 {total} 道竞赛题（题号 {MIN_QUESTION_ID} 起）。除了题号和标题，
-              也可以直接搜算法名，比如「动态规划」「二分查找」。
+              {t("search.empty.note", { total, min: MIN_QUESTION_ID })}
             </p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="search-empty">
             <p>
-              没有匹配「{deferredQuery}」的题目
-              {onlyTodo ? "（已排除记录过的题）" : ""}。
+              {t("search.noMatch", { query: deferredQuery })}
+              {onlyTodo ? t("search.noMatch.excluded") : ""}
             </p>
             <p className="search-note">
               {looksLikeMissingQid(deferredQuery)
-                ? `题号 ${deferredQuery} 不在题库中：这里只收录 ${MIN_QUESTION_ID} 号以后的竞赛题。`
+                ? t("search.noMatch.missingQid", {
+                    query: deferredQuery,
+                    min: MIN_QUESTION_ID,
+                  })
                 : numberish
-                  ? "这个数字既不是题库里的题号，也不是周赛场次。"
-                  : "试试更短的关键词，或用算法标签搜索（如“二分查找”）。"}
+                  ? t("search.noMatch.number")
+                  : t("search.noMatch.generic")}
             </p>
           </div>
         ) : (
@@ -358,14 +370,14 @@ export default function Search() {
             {hidden > 0 && (
               <div className="search-more">
                 <span>
-                  共 {filtered.length} 条，只显示前 {VISIBLE_LIMIT} 条
+                  {t("search.more", { total: filtered.length, shown: VISIBLE_LIMIT })}
                 </span>
                 {dominantTag && (
                   <Link
                     className="search-handoff"
                     href={`/zen?tags=${encodeURIComponent(dominantTag.en)}`}
                   >
-                    去难度练习按「{dominantTag.cn}」筛选全部 →
+                    {t("search.handoff", { tag: dominantTag.cn })}
                   </Link>
                 )}
               </div>
@@ -380,7 +392,7 @@ export default function Search() {
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>记录这次练习</Modal.Title>
+          <Modal.Title>{t("record.title")}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {recordTarget && (
