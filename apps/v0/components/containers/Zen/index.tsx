@@ -8,7 +8,11 @@ import RatingCircle, { ColorRating } from "@components/RatingCircle";
 
 // hooks
 import { useProgressStore } from "@hooks/useProgressStore";
-import { EFFORT_BANDS, attemptLabel } from "@hooks/useProgressStore/bands";
+import {
+  EFFORT_BANDS,
+  attemptLabel,
+  bandLabelKey,
+} from "@hooks/useProgressStore/bands";
 import { isDue } from "@hooks/useProgressStore/srs";
 import type { ScheduleState } from "@hooks/useProgressStore/srs";
 import type {
@@ -174,6 +178,7 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
   settings,
   lang,
 }: FilterSettingsProps) => {
+  const { t } = useI18n();
   const [curSetting, setCurSetting] = useState<SettingsType>(settings);
 
   const onTagsChange = (key: string) => {
@@ -354,7 +359,7 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
                   }
                   onClick={() => onBandToggle(band.key)}
                 >
-                  {band.label}
+                  {t(bandLabelKey(band.key))}
                 </Button>
               ))}
             </ButtonGroup>
@@ -376,7 +381,7 @@ const FilterSettings: React.FunctionComponent<FilterSettingsProps> = ({
 export default function Zenk() {
   // State and hooks
   const { zen: data, isPending: progressLoading } = useZen();
-  const { language, isCn } = useI18n();
+  const { language, isCn, t } = useI18n();
   const { derived } = useProgressStore();
 
   const { tags, isPending: tagsLoading } = useQuestionTags(null);
@@ -584,6 +589,7 @@ const ZenTableComp = React.memo(
     scheduleByQid,
     onRecord,
   }: ZenTableCompProps) => {
+    const { t } = useI18n();
     const columns = React.useMemo<ColumnDef<ConstQuestion>[]>(
       () => [
         {
@@ -696,7 +702,7 @@ const ZenTableComp = React.memo(
                   onClick={() => onRecord(qid, item.title, item.rating)}
                   title={current ? "重新记录" : "记录这次练习"}
                 >
-                  {attemptLabel(current)}
+                  {attemptLabel(current, t)}
                 </button>
                 {due && <span className="zen-due">到期</span>}
               </div>
@@ -713,6 +719,7 @@ const ZenTableComp = React.memo(
         currentByQid,
         scheduleByQid,
         onRecord,
+        t,
       ],
     );
 

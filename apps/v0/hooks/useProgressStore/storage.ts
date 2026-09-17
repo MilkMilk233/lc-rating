@@ -7,6 +7,7 @@
 // This module is the only place that knows about localStorage. Swapping the
 // backend (IndexedDB, sharded keys, ...) should not touch the rest of the app.
 
+import type { MessageKey } from "@hooks/useI18n/messages";
 import {
   isEffortBand,
   isGaveUpReason,
@@ -225,7 +226,8 @@ export function buildExport(store: ProgressStoreV2): string {
 
 export interface ImportParseResult {
   ok: boolean;
-  error?: string;
+  /** Message key, not finished text: the caller owns the locale. */
+  errorKey?: MessageKey;
   events: ProgressEvent[];
   /** Entries that failed validation. */
   invalid: number;
@@ -248,7 +250,7 @@ export function parseImport(json: string): ImportParseResult {
   try {
     parsed = JSON.parse(json);
   } catch {
-    return { ok: false, error: "JSON 解析失败", events: [], invalid: 0 };
+    return { ok: false, errorKey: "import.badJson", events: [], invalid: 0 };
   }
 
   if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
@@ -260,7 +262,7 @@ export function parseImport(json: string): ImportParseResult {
     if (looksLikeV1Map(record)) {
       return {
         ok: false,
-        error: "检测到旧版（v1）进度格式，已不再支持导入",
+        errorKey: "import.legacyV1",
         events: [],
         invalid: 0,
       };
@@ -272,5 +274,5 @@ export function parseImport(json: string): ImportParseResult {
     return { ok: true, events: extracted.events, invalid: extracted.invalid };
   }
 
-  return { ok: false, error: "无法识别的数据格式", events: [], invalid: 0 };
+  return { ok: false, errorKey: "import.unknownFormat", events: [], invalid: 0 };
 }

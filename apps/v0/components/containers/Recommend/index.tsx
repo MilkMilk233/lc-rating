@@ -3,6 +3,7 @@
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import type { Message } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
   WELCOME_BACK_DAYS,
@@ -50,10 +51,10 @@ const POOL_BADGE: Record<Pool, { label: string; tone: string }> = {
 export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { derived } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];
-  type RecItem = { question: ZenQuestion; pool: Pool; reason: string };
+  type RecItem = { question: ZenQuestion; pool: Pool; reason: Message };
   interface Plan {
     items: RecItem[];
     target: number;
@@ -316,12 +317,12 @@ export default function Recommend() {
 
         <div className="rec-reason">
           <LuLightbulb aria-hidden size={16} />
-          <span>{current.reason}</span>
+          <span>{t(current.reason.key, current.reason.params)}</span>
         </div>
 
         {currentAttempt && (
           <div className="rec-last">
-            上次：{attemptLabel(currentAttempt)} ·{" "}
+            上次：{attemptLabel(currentAttempt, t)} ·{" "}
             {Math.floor((now - currentAttempt.at) / DAY_MS)} 天前
           </div>
         )}

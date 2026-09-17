@@ -42,7 +42,7 @@ const looksLikeMissingQid = (query: string) =>
 export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { language, isCn } = useI18n();
+  const { language, isCn, t } = useI18n();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
 
@@ -215,7 +215,7 @@ export default function Search() {
               onClick={() => setRecordTarget(hit)}
               title={current ? "重新记录" : "记录这次练习"}
             >
-              {attemptLabel(current)}
+              {attemptLabel(current, t)}
             </button>
             {isDue(schedule, Date.now()) && <span className="zen-due">到期</span>}
           </span>

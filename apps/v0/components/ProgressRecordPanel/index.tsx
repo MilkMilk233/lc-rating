@@ -6,11 +6,16 @@
 // The panel is presentation-only: it calls `logAttempt` and hands the event to
 // the parent, which owns the undo toast and navigation.
 
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
   EFFORT_BANDS,
   GAVEUP_REASONS,
   INDEPENDENCE_OPTIONS,
+  bandHintKey,
+  bandLabelKey,
+  gaveUpReasonKey,
+  independenceKey,
 } from "@hooks/useProgressStore/bands";
 import type {
   AttemptEvent,
@@ -44,6 +49,7 @@ export default function ProgressRecordPanel({
   className,
 }: ProgressRecordPanelProps) {
   const { logAttempt } = useProgressStore();
+  const { t } = useI18n();
   const [stage, setStage] = useState<Stage>("outcome");
   const [independence, setIndependence] = useState<Independence>("solo");
   const [drill, setDrill] = useState(false);
@@ -121,23 +127,23 @@ export default function ProgressRecordPanel({
   return (
     <section
       className={`prp${className ? ` ${className}` : ""}`}
-      aria-label="记录这次练习"
+      aria-label={t("record.title")}
     >
       <header className="prp-head">
-        <span className="prp-kicker">记录这次练习</span>
+        <span className="prp-kicker">{t("record.title")}</span>
         {questionTitle && <span className="prp-title">{questionTitle}</span>}
       </header>
 
       {stage === "outcome" && (
         <>
-          <p className="prp-question">这次做得怎么样？</p>
+          <p className="prp-question">{t("record.prompt.outcome")}</p>
           <div className="prp-row">
             <button
               type="button"
               className="prp-choice primary"
               onClick={() => setStage("solved")}
             >
-              <span>做出来了</span>
+              <span>{t("record.outcome.solved")}</span>
               <kbd>1</kbd>
             </button>
             <button
@@ -145,7 +151,7 @@ export default function ProgressRecordPanel({
               className="prp-choice"
               onClick={() => setStage("gaveup")}
             >
-              <span>没做出来</span>
+              <span>{t("record.outcome.gaveup")}</span>
               <kbd>0</kbd>
             </button>
           </div>
@@ -155,7 +161,7 @@ export default function ProgressRecordPanel({
       {stage === "solved" && (
         <>
           <p className="prp-question">
-            用了多久？<span className="prp-required">必选</span>
+            {t("record.prompt.band")}<span className="prp-required">{t("record.required")}</span>
           </p>
           <div className="prp-bands">
             {EFFORT_BANDS.map((band, index) => (
@@ -165,13 +171,13 @@ export default function ProgressRecordPanel({
                 className="prp-band"
                 onClick={() => recordSolved(band.key)}
               >
-                <span className="prp-band-label">{band.label}</span>
-                <span className="prp-band-hint">{band.hint}</span>
+                <span className="prp-band-label">{t(bandLabelKey(band.key))}</span>
+                <span className="prp-band-hint">{t(bandHintKey(band.key))}</span>
                 <kbd>{index + 1}</kbd>
               </button>
             ))}
           </div>
-          <div className="prp-independence" role="group" aria-label="完成方式">
+          <div className="prp-independence" role="group" aria-label={t("record.group.independence")}>
             {INDEPENDENCE_OPTIONS.map((option) => (
               <button
                 key={option.key}
@@ -182,22 +188,22 @@ export default function ProgressRecordPanel({
                 aria-pressed={independence === option.key}
                 onClick={() => setIndependence(option.key)}
               >
-                {option.label}
+                {t(independenceKey(option.key))}
               </button>
             ))}
             <kbd>S</kbd>
           </div>
-          <div className="prp-independence" role="group" aria-label="强化复习">
+          <div className="prp-independence" role="group" aria-label={t("record.group.drill")}>
             <button
               type="button"
               className={`prp-toggle${drill ? " active" : ""}`}
               aria-pressed={drill}
               onClick={() => setDrill((prev) => !prev)}
             >
-              值得再复习
+              {t("record.drill.toggle")}
             </button>
             <kbd>D</kbd>
-            <span className="prp-hint">模板、API 用法这类要背下来的东西</span>
+            <span className="prp-hint">{t("record.drill.hint")}</span>
           </div>
         </>
       )}
@@ -205,7 +211,7 @@ export default function ProgressRecordPanel({
       {stage === "gaveup" && (
         <>
           <p className="prp-question">
-            卡在哪？<span className="prp-required">必选</span>
+            {t("record.prompt.reason")}<span className="prp-required">{t("record.required")}</span>
           </p>
           <div className="prp-row column">
             {GAVEUP_REASONS.map((reason, index) => (
@@ -215,7 +221,7 @@ export default function ProgressRecordPanel({
                 className="prp-choice"
                 onClick={() => recordGaveUp(reason.key)}
               >
-                <span>{reason.label}</span>
+                <span>{t(gaveUpReasonKey(reason.key))}</span>
                 <kbd>{index + 1}</kbd>
               </button>
             ))}
@@ -231,10 +237,10 @@ export default function ProgressRecordPanel({
             stage === "outcome" ? onCancel?.() : setStage("outcome")
           }
         >
-          {stage === "outcome" ? "取消" : "返回"}
+          {stage === "outcome" ? t("common.cancel") : t("common.back")}
         </button>
         <span className="prp-note">
-          {stage === "outcome" ? "1 / 0 选择 · Esc 取消" : "点击即保存 · Esc 返回"}
+          {stage === "outcome" ? t("record.footer.outcome") : t("record.footer.steps")}
         </span>
       </footer>
     </section>

@@ -3,6 +3,7 @@
 import { ColorRating } from "@components/RatingCircle";
 import Sidebar from "@components/SettingsPanel/Sidebar";
 import { setting_tabs } from "@components/SettingsPanel/config";
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { estimateAbility } from "@hooks/useProgressStore/ability";
 import {
@@ -12,7 +13,7 @@ import {
   streakDays,
 } from "@hooks/useProgressStore/derive";
 import { isDue, isGraduated } from "@hooks/useProgressStore/srs";
-import { bandMeta } from "@hooks/useProgressStore/bands";
+import { bandLabelKey } from "@hooks/useProgressStore/bands";
 import {
   BAND_MINUTES,
   LADDER_MAX,
@@ -92,6 +93,7 @@ export default function Profile() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
   const { derived } = useProgressStore();
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState(setting_tabs[0].key);
   const [showTagBoard, setShowTagBoard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -276,7 +278,7 @@ export default function Profile() {
     if (totals.solved > 0) {
       const next = bandStats.find((band) => band.solved < band.total);
       if (next) {
-        return `状态不错！下一关：「${next.label} ${next.range}」，还剩 ${
+        return `状态不错！下一关：「${t(next.key)} ${next.range}」，还剩 ${
           next.total - next.solved
         } 道等你征服。`;
       }
@@ -595,7 +597,7 @@ export default function Profile() {
       // Rows are drawn top-down: slowest band first.
       rows: [...LADDER_ORDER].reverse().map((band) => ({
         band,
-        label: bandMeta(band).label,
+        label: t(bandLabelKey(band)),
         y: y(LADDER_ORDER.indexOf(band)),
         // Alternating shading, otherwise the bands tile the whole plot area
         // and stop telling rows apart, which is their only job.
@@ -963,10 +965,10 @@ export default function Profile() {
                 return (
                   <div
                     className={clsx("duo-band", { suggested })}
-                    key={band.label}
+                    key={band.key}
                   >
                     <div className="duo-band-label">
-                      <strong>{band.label}</strong>
+                      <strong>{t(band.key)}</strong>
                       <span>{band.range}</span>
                       {suggested && <em className="duo-band-tag">适合你</em>}
                     </div>

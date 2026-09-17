@@ -2,6 +2,9 @@ import type { Messages } from "./zh";
 
 // Typed against the Chinese dictionary, so a missing or misspelled key fails
 // the build. English is the only translation this app ships.
+//
+// `band.*` and `ratingBand.*` labels are kept short on purpose: they render
+// inside pills and table cells that were sized for the Chinese wording.
 export const en: Messages = {
   "nav.contestList": "Contests",
   "nav.practice": "Practice",
@@ -11,4 +14,80 @@ export const en: Messages = {
   "nav.profile": "Progress",
   "nav.theme": "Toggle theme",
   "nav.language": "Switch language",
+
+  "band.LE5": "≤5min",
+  "band.L5_15": "5–15min",
+  "band.L15_30": "15–30min",
+  "band.L30_60": "30–60min",
+  "band.GT60": ">60min",
+  "band.LE5.hint": "instant",
+  "band.L5_15.hint": "smooth",
+  "band.L15_30.hint": "had to think",
+  "band.L30_60.hint": "a real struggle",
+  "band.GT60.hint": "barely got there",
+
+  "gaveup.idea_tedious": "Had an idea, too tedious to finish",
+  "gaveup.no_idea": "No idea at all",
+  "independence.solo": "Solved alone",
+  "independence.solution": "Used the editorial",
+  "attempt.none": "Not recorded",
+  "attempt.solved": "{band} · {mode}",
+  "attempt.mode.solo": "solo",
+  "attempt.mode.solution": "with editorial",
+  "attempt.drill": "{base} · needs work",
+  "attempt.gaveup": "Gave up · {reason}",
+
+  "common.cancel": "Cancel",
+  "common.back": "Back",
+
+  "record.title": "Record this attempt",
+  "record.prompt.outcome": "How did it go?",
+  "record.outcome.solved": "Solved it",
+  "record.outcome.gaveup": "Gave up",
+  "record.prompt.band": "How long did it take?",
+  "record.required": "required",
+  "record.group.independence": "How you solved it",
+  "record.group.drill": "Worth reviewing",
+  "record.drill.toggle": "Worth another pass",
+  "record.drill.hint": "Templates and API details worth memorising",
+  "record.prompt.reason": "Where did you get stuck?",
+  "record.footer.outcome": "1 / 0 to choose · Esc to cancel",
+  "record.footer.steps": "Click to save · Esc to go back",
+
+  "settings.progress.summary": "{total} records ({solved} solved · {gaveup} gave up)",
+  "settings.progress.export": "Export to text box",
+  "settings.progress.download": "Download JSON file",
+  "settings.progress.copy": "Copy to clipboard",
+  "settings.progress.label": "Progress data (copy it to another device)",
+  "settings.progress.placeholder": "Export with the buttons above, or paste JSON from another device and press Import",
+  "settings.progress.import": "Import",
+  "settings.progress.importFailed": "Import failed",
+  "settings.progress.imported": "Imported: {parts}",
+  "settings.progress.added": "{count} added",
+  "settings.progress.skipped": "{count} duplicates skipped",
+  "settings.progress.ignored": "{count} invalid ignored",
+
+  "ratingBand.entry": "Entry",
+  "ratingBand.easy": "Easy",
+  "ratingBand.improve": "Improving",
+  "ratingBand.advanced": "Advanced",
+  "ratingBand.hard": "Hard",
+  "ratingBand.legendary": "Legendary",
+
+  "import.badJson": "Could not parse the JSON",
+  "import.legacyV1": "This is the old (v1) progress format, which is no longer supported",
+  "import.unknownFormat": "Unrecognised data format",
+
+  "reason.basics": "Starting from the basics to build a solid floor",
+  "reason.newTag": "New topic: {tag}",
+  "reason.regainFeel": "Warming up first, difficulty ≈{target}",
+  "reason.levelUp": "Going well — nudging the difficulty up to ≈{target}",
+  "reason.fit": "Matched to your current level ≈{target}",
+  "reason.drill": "Needs work: run through the pattern in this one again",
+  "reason.leech": "Stuck on this {count} times, so set it aside and practise easier ones like it",
+  "reason.overdue": "{days} days overdue — clear it first",
+  "reason.dueToday": "Due today, review it while it is fresh",
+  "reason.sibling": "Already know it — same idea, different surface",
+  "reason.prerequisite": "A simpler one in the same family first",
+  "reason.steady": "Warming up with a safe one",
 };

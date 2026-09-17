@@ -2,16 +2,25 @@
 // the /recommend page. Single source of truth for the difficulty bands and the
 // XP economy.
 
+import type { MessageKey } from "@hooks/useI18n/messages";
 import type { AttemptEvent, EffortBand } from "@hooks/useProgressStore/types";
 
+/** Band names live in the message dictionary, addressed by this key. */
 export const RATING_BANDS = [
-  { label: "入门", range: "<1200", min: 0, max: 1200, xp: 6, color: "var(--rating-color-0)" },
-  { label: "普及", range: "1200+", min: 1200, max: 1400, xp: 10, color: "var(--rating-color-1)" },
-  { label: "提高", range: "1400+", min: 1400, max: 1600, xp: 15, color: "var(--rating-color-2)" },
-  { label: "进阶", range: "1600+", min: 1600, max: 1900, xp: 22, color: "var(--rating-color-3)" },
-  { label: "困难", range: "1900+", min: 1900, max: 2100, xp: 32, color: "var(--rating-color-4)" },
-  { label: "传说", range: "2100+", min: 2100, max: Infinity, xp: 50, color: "var(--rating-color-5)" },
-];
+  { key: "ratingBand.entry", range: "<1200", min: 0, max: 1200, xp: 6, color: "var(--rating-color-0)" },
+  { key: "ratingBand.easy", range: "1200+", min: 1200, max: 1400, xp: 10, color: "var(--rating-color-1)" },
+  { key: "ratingBand.improve", range: "1400+", min: 1400, max: 1600, xp: 15, color: "var(--rating-color-2)" },
+  { key: "ratingBand.advanced", range: "1600+", min: 1600, max: 1900, xp: 22, color: "var(--rating-color-3)" },
+  { key: "ratingBand.hard", range: "1900+", min: 1900, max: 2100, xp: 32, color: "var(--rating-color-4)" },
+  { key: "ratingBand.legendary", range: "2100+", min: 2100, max: Infinity, xp: 50, color: "var(--rating-color-5)" },
+] as const satisfies readonly {
+  key: MessageKey;
+  range: string;
+  min: number;
+  max: number;
+  xp: number;
+  color: string;
+}[];
 
 export const bandFor = (rating: number) =>
   RATING_BANDS.find((band) => rating >= band.min && rating < band.max) ??

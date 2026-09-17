@@ -53,7 +53,7 @@ function ProblemCategoryList({
   showRating,
   showPremium,
 }: ProblemCategoryListProps) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const { derived } = useProgressStore();
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -129,7 +129,7 @@ function ProblemCategoryList({
                       onClick={() => setOpenId(open ? null : id)}
                       title={current ? "重新记录" : "记录这次练习"}
                     >
-                      {attemptLabel(current)}
+                      {attemptLabel(current, t)}
                     </button>
                   </div>
                 </div>

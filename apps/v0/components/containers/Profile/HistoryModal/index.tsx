@@ -4,8 +4,14 @@
 // Read-only otherwise — events are immutable, so fixing a wrong band means
 // deleting the row and recording again.
 
+import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
-import { EFFORT_BANDS, attemptLabel } from "@hooks/useProgressStore/bands";
+import {
+  EFFORT_BANDS,
+  attemptLabel,
+  bandHintKey,
+  bandLabelKey,
+} from "@hooks/useProgressStore/bands";
 import type {
   AttemptEvent,
   EffortBand,
@@ -36,6 +42,7 @@ export default function HistoryModal({
   questionById,
 }: HistoryModalProps) {
   const { derived, removeAttempts } = useProgressStore();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [outcome, setOutcome] = useState<OutcomeFilter>("");
   const [band, setBand] = useState<"" | EffortBand>("");
@@ -125,7 +132,7 @@ export default function HistoryModal({
             <option value="">[全部档位]</option>
             {EFFORT_BANDS.map((item) => (
               <option key={item.key} value={item.key}>
-                {item.label} {item.hint}
+                {t(bandLabelKey(item.key))} {t(bandHintKey(item.key))}
               </option>
             ))}
           </Form.Select>
@@ -158,7 +165,7 @@ export default function HistoryModal({
                 <span className="history-title">
                   {info?.title ?? "（题库中已不存在）"}
                 </span>
-                <span className="history-state">{attemptLabel(event)}</span>
+                <span className="history-state">{attemptLabel(event, t)}</span>
                 <span className="history-src">{event.src}</span>
               </div>
             );

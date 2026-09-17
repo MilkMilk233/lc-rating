@@ -12,6 +12,7 @@
 //      easier problem sharing a tag;
 //   5. leeches (3+ consecutive give-ups) are parked and get the same treatment.
 
+import type { Message } from "@hooks/useI18n/messages";
 import {
   EASY_MODE_MARGIN,
   MIN_TOTAL_WEIGHT,
@@ -50,7 +51,8 @@ export type QueuePool =
 export interface QueueItem {
   qid: string;
   pool: QueuePool;
-  reason: string;
+  /** Rendered by the caller: the model does not own the locale. */
+  reason: Message;
 }
 
 /** Fresh problems per tag per day. */
@@ -136,15 +138,15 @@ function reasonForNew(
   tagSolved: Map<string, number>,
   ability: AbilityEstimate,
   offset: number,
-): string {
+): Message {
   if (ability.totalWeight < MIN_TOTAL_WEIGHT) {
-    return "从基础题开始，先把地基打牢";
+    return { key: "reason.basics" };
   }
   const novel = candidate.tags.find((tag) => !tagSolved.has(tag));
-  if (novel) return `新题型：${novel}`;
-  if (offset <= -100) return `先找回手感，难度 ≈${target}`;
-  if (offset >= 80) return `状态不错，难度上调到 ≈${target}`;
-  return `难度贴合你当前的水平 ≈${target}`;
+  if (novel) return { key: "reason.newTag", params: { tag: novel } };
+  if (offset <= -100) return { key: "reason.regainFeel", params: { target } };
+  if (offset >= 80) return { key: "reason.levelUp", params: { target } };
+  return { key: "reason.fit", params: { target } };
 }
 
 export interface BuildQueueParams {
@@ -226,12 +228,15 @@ export function buildRecommendationQueue({
           ? "revive"
           : "review",
       reason: drill
-        ? "待强化：把这道题里的模板 / 用法再过一遍"
+        ? { key: "reason.drill" }
         : leech
-          ? `这题已经卡了 ${schedule?.failCount ?? 0} 次，先放一放，练练同类更简单的`
+          ? {
+              key: "reason.leech",
+              params: { count: schedule?.failCount ?? 0 },
+            }
           : overdue > 0
-            ? `逾期 ${overdue} 天，先把它复习掉`
-            : "今天到期，趁热复习一遍",
+            ? { key: "reason.overdue", params: { days: overdue } }
+            : { key: "reason.dueToday" },
     };
   });
 
@@ -291,7 +296,7 @@ export function buildRecommendationQueue({
     siblingFor.set(qid, {
       qid: sibling.candidate.qid,
       pool: "sibling",
-      reason: `已经会了，换个题面巩固「${sharedTag ?? "同类"}」`,
+      reason: { key: "reason.sibling", params: { tag: sharedTag ?? "" } },
     });
   }
 
@@ -353,7 +358,10 @@ export function buildRecommendationQueue({
           block.push({
             qid: prerequisite.candidate.qid,
             pool: "prerequisite",
-            reason: `先垫一道更简单的「${sharedTag ?? "同类"}」题`,
+            reason: {
+              key: "reason.prerequisite",
+              params: { tag: sharedTag ?? "" },
+            },
           });
         }
       }
@@ -386,13 +394,13 @@ export function buildRecommendationQueue({
       );
       if (existing >= 0) {
         const [item] = queue.splice(existing, 1);
-        item.reason = "先找回手感，来一道稳的";
+        item.reason = { key: "reason.steady" };
         queue.unshift(item);
       } else {
         queue.unshift({
           qid: safe.candidate.qid,
           pool: "new",
-          reason: "先找回手感，来一道稳的",
+          reason: { key: "reason.steady" },
         });
       }
     }

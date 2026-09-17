@@ -3,6 +3,7 @@
 // UI code should only talk to this module (and the projections it returns), so
 // that persistence and schema details stay contained in the data layer.
 
+import type { MessageKey } from "@hooks/useI18n/messages";
 import { useMemo, useSyncExternalStore } from "react";
 import { deriveProgress } from "./derive";
 import type { DerivedProgress } from "./derive";
@@ -47,7 +48,8 @@ export type LogAttemptInput =
 
 export interface ImportResult {
   ok: boolean;
-  error?: string;
+  /** Message key; the caller renders it in the active locale. */
+  errorKey?: MessageKey;
   imported: number;
   duplicates: number;
   invalid: number;
@@ -163,7 +165,7 @@ class ProgressStore {
     if (!parsed.ok) {
       return {
         ok: false,
-        error: parsed.error,
+        errorKey: parsed.errorKey,
         imported: 0,
         duplicates: 0,
         invalid: parsed.invalid,
