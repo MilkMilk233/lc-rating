@@ -124,3 +124,51 @@ export function isOnPace(points: number): boolean {
 export function hasHeadroom(rating: number, ability: number): boolean {
   return ability - rating >= GRADUATION_HEADROOM;
 }
+
+// ---------------------------------------------------------------------------
+// Band ladder
+//
+// Attempts only ever record a band, so anything that plots "how long did this
+// take" against difficulty is working with five discrete values, not a
+// continuous duration. The ladder gives those five values equidistant
+// positions (0 = fastest) so they can be plotted without inventing precision
+// or leaving gaps that exist only because 9 and 22 minutes are far apart.
+// ---------------------------------------------------------------------------
+
+/** Fastest band first, so position 0 is the bottom of the ladder. */
+export const LADDER_ORDER: readonly EffortBand[] = [
+  "LE5",
+  "L5_15",
+  "L15_30",
+  "L30_60",
+  "GT60",
+];
+
+export const LADDER_MINUTES: readonly number[] = LADDER_ORDER.map(
+  (band) => BAND_MINUTES[band],
+);
+
+/** Half a row of headroom above and below, so nothing clips at the edges. */
+export const LADDER_MIN = -0.6;
+export const LADDER_MAX = LADDER_ORDER.length - 1 + 0.6;
+
+/**
+ * Minutes -> ladder position. Interpolates inside a segment and extrapolates
+ * beyond the outermost ones, so an expected-time curve keeps moving instead of
+ * flattening against the edge.
+ */
+export function ladderPosition(minutes: number): number {
+  const first = LADDER_MINUTES[0];
+  const second = LADDER_MINUTES[1];
+  if (minutes <= first) return (minutes - first) / (second - first);
+
+  for (let index = 1; index < LADDER_MINUTES.length; index += 1) {
+    const low = LADDER_MINUTES[index - 1];
+    const high = LADDER_MINUTES[index];
+    if (minutes <= high) return index - 1 + (minutes - low) / (high - low);
+  }
+
+  const last = LADDER_MINUTES[LADDER_MINUTES.length - 1];
+  const previous = LADDER_MINUTES[LADDER_MINUTES.length - 2];
+  return LADDER_MINUTES.length - 1 + (minutes - last) / (last - previous);
+}

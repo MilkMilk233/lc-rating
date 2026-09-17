@@ -12,7 +12,15 @@ import {
   streakDays,
 } from "@hooks/useProgressStore/derive";
 import { isDue, isGraduated } from "@hooks/useProgressStore/srs";
-import { BAND_MINUTES, expectedMinutes } from "@hooks/useProgressStore/pace";
+import { bandMeta } from "@hooks/useProgressStore/bands";
+import {
+  BAND_MINUTES,
+  LADDER_MAX,
+  LADDER_MIN,
+  LADDER_ORDER,
+  expectedMinutes,
+  ladderPosition,
+} from "@hooks/useProgressStore/pace";
 import type { EffortBand } from "@hooks/useProgressStore/types";
 import { useQuestionTags } from "@hooks/useQuestionTags";
 import { useZen } from "@hooks/useZen";
@@ -441,8 +449,10 @@ export default function Profile() {
   // and should be tuned.
   const paceChart = useMemo(() => {
     const W = 640;
-    const H = 240;
-    const pad = { left: 44, right: 18, top: 26, bottom: 34 };
+    const H = 268;
+    // Wide left gutter: the rows are labelled with band ranges, and "30–60min"
+    // is wide enough to be clipped by a numeric-axis gutter.
+    const pad = { left: 74, right: 18, top: 26, bottom: 34 };
     const plotW = W - pad.left - pad.right;
     const plotH = H - pad.top - pad.bottom;
 
@@ -475,35 +485,31 @@ export default function Profile() {
     const minRating = Math.floor((Math.min(1100, ...ratings) - 50) / 50) * 50;
     const maxRating = Math.ceil((Math.max(1600, ...ratings) + 50) / 50) * 50;
 
-    const maxActual = attempts.reduce(
-      (max, attempt) => Math.max(max, attempt.minutes),
-      0,
-    );
-    // Pick the coarsest gridline step that keeps the axis under ~6 lines, so a
-    // single slow solve cannot squash everything else into the bottom sliver.
-    const rawMax = Math.max(maxActual, expectedMinutes(maxRating)) * 1.08;
-    const yStep =
-      [5, 10, 15, 20, 25, 30, 50, 100].find((step) => rawMax / step <= 6) ?? 100;
-    const yMax = Math.max(yStep * 2, Math.ceil(rawMax / yStep) * yStep);
-
     const x = (rating: number) =>
       pad.left + ((rating - minRating) / (maxRating - minRating)) * plotW;
-    const y = (minutes: number) =>
-      pad.top + plotH - (Math.min(minutes, yMax) / yMax) * plotH;
+    const y = (position: number) =>
+      pad.top + plotH - ((position - LADDER_MIN) / (LADDER_MAX - LADDER_MIN)) * plotH;
 
     const samples = Array.from(
       { length: 33 },
       (_, index) => minRating + (index / 32) * (maxRating - minRating),
     );
     const curve = samples
-      .map((rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating)).toFixed(1)}`)
+      .map(
+        (rating) =>
+          `${x(rating).toFixed(1)},${y(ladderPosition(expectedMinutes(rating))).toFixed(1)}`,
+      )
       .join(" ");
     const bandTop = samples.map(
-      (rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating) * 1.35).toFixed(1)}`,
+      (rating) =>
+        `${x(rating).toFixed(1)},${y(ladderPosition(expectedMinutes(rating) * 1.35)).toFixed(1)}`,
     );
     const bandBottom = [...samples]
       .reverse()
-      .map((rating) => `${x(rating).toFixed(1)},${y(expectedMinutes(rating) * 0.7).toFixed(1)}`);
+      .map(
+        (rating) =>
+          `${x(rating).toFixed(1)},${y(ladderPosition(expectedMinutes(rating) * 0.7)).toFixed(1)}`,
+      );
     const paceBand = [...bandTop, ...bandBottom].join(" ");
 
     const xStep = maxRating - minRating > 700 ? 200 : 100;
@@ -511,10 +517,47 @@ export default function Profile() {
     for (let rating = Math.ceil(minRating / xStep) * xStep; rating <= maxRating; rating += xStep) {
       xTicks.push(rating);
     }
-    const yTicks: number[] = [];
-    for (let minutes = yStep; minutes <= yMax; minutes += yStep) {
-      yTicks.push(minutes);
-    }
+
+    // Dots sit on their band's row, so same-row neighbours would stack on top
+    // of each other; spread them vertically in a narrow beeswarm instead.
+    const rowPx = plotH / (LADDER_MAX - LADDER_MIN);
+    const maxOffsetPx = rowPx * 0.34;
+    const stepPx = rowPx * 0.26;
+    const placedByRow = new Map<number, { cx: number; cy: number; r: number }[]>();
+    const bubbles = Array.from(groups.values())
+      .map((bubble) => {
+        const ratio = bubble.minutes / expectedMinutes(bubble.rating);
+        const row = LADDER_ORDER.indexOf(bubble.band);
+        return {
+          ...bubble,
+          ratio,
+          tone: paceTone(ratio),
+          row,
+          cx: x(bubble.rating),
+          r: 3.5 + Math.min(5, Math.sqrt(bubble.count) * 2.2),
+        };
+      })
+      .sort((a, b) => a.cx - b.cx)
+      .map((bubble) => {
+        const placed = placedByRow.get(bubble.row) ?? [];
+        let offset = 0;
+        for (const slot of [0, 1, -1, 2, -2, 3, -3]) {
+          const dy = Math.sign(slot) * Math.min(Math.abs(slot) * stepPx, maxOffsetPx);
+          const clash = placed.some(
+            (other) =>
+              Math.hypot(other.cx - bubble.cx, other.cy - dy) <
+              other.r + bubble.r + 1.5,
+          );
+          if (!clash) {
+            offset = dy;
+            break;
+          }
+          offset = slot > 0 ? maxOffsetPx : -maxOffsetPx;
+        }
+        placed.push({ cx: bubble.cx, cy: offset, r: bubble.r });
+        placedByRow.set(bubble.row, placed);
+        return { ...bubble, offset, cy: y(bubble.row) + offset };
+      });
 
     const ratios = attempts
       .map((attempt) => attempt.minutes / expectedMinutes(attempt.rating))
@@ -558,12 +601,18 @@ export default function Profile() {
       y,
       curve,
       paceBand,
-      bubbles: Array.from(groups.values()).map((bubble) => {
-        const ratio = bubble.minutes / expectedMinutes(bubble.rating);
-        return { ...bubble, ratio, tone: paceTone(ratio) };
-      }),
+      bubbles,
       xTicks,
-      yTicks,
+      // Rows are drawn top-down: slowest band first.
+      rows: [...LADDER_ORDER].reverse().map((band) => ({
+        band,
+        label: bandMeta(band).label,
+        y: y(LADDER_ORDER.indexOf(band)),
+        // Alternating shading, otherwise the bands tile the whole plot area
+        // and stop telling rows apart, which is their only job.
+        shaded: LADDER_ORDER.indexOf(band) % 2 === 0,
+      })),
+      rowPx,
       count: attempts.length,
       onPace,
       // Left of this line is settled ground, right of it is frontier work.
@@ -738,22 +787,34 @@ export default function Profile() {
               >
                 <polygon points={paceChart.paceBand} className="pace-band" />
 
-                {paceChart.yTicks.map((minutes) => (
-                  <g key={minutes}>
+                {paceChart.rows.map((row) => (
+                  <g key={row.band}>
+                    {/* Shade the row's full height, so a dot nudged off the
+                        centre line by the beeswarm is still read as this band
+                        rather than the neighbouring one. */}
+                    {row.shaded ? (
+                      <rect
+                        x={paceChart.pad.left}
+                        y={row.y - paceChart.rowPx / 2}
+                        width={paceChart.plotW}
+                        height={paceChart.rowPx}
+                        className="pace-row"
+                      />
+                    ) : null}
                     <line
                       x1={paceChart.pad.left}
                       x2={paceChart.W - paceChart.pad.right}
-                      y1={paceChart.y(minutes)}
-                      y2={paceChart.y(minutes)}
+                      y1={row.y}
+                      y2={row.y}
                       className="pace-grid"
                     />
                     <text
                       x={paceChart.pad.left - 8}
-                      y={paceChart.y(minutes) + 3.5}
+                      y={row.y + 3.5}
                       textAnchor="end"
                       className="pace-label"
                     >
-                      {minutes}
+                      {row.label}
                     </text>
                   </g>
                 ))}
@@ -801,14 +862,14 @@ export default function Profile() {
                 {paceChart.bubbles.map((bubble) => (
                   <circle
                     key={`${bubble.rating}-${bubble.band}`}
-                    cx={paceChart.x(bubble.rating)}
-                    cy={paceChart.y(bubble.minutes)}
-                    r={3.5 + Math.min(5, Math.sqrt(bubble.count) * 2.2)}
+                    cx={bubble.cx}
+                    cy={bubble.cy}
+                    r={bubble.r}
                     fill={bubble.tone.color}
                     className="pace-bubble"
                   >
                     <title>
-                      {`${Math.round(bubble.rating)} 分 · ${bubble.minutes} 分钟档 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}×）· ${bubble.count} 次`}
+                      {`${Math.round(bubble.rating)} 分 · ${bubble.tone.label}（${bubble.ratio.toFixed(1)}× 期望）· ${bubble.count} 次`}
                     </title>
                   </circle>
                 ))}
@@ -825,14 +886,6 @@ export default function Profile() {
                   </text>
                 ))}
 
-                <text
-                  x={paceChart.pad.left - 8}
-                  y={paceChart.pad.top - 14}
-                  textAnchor="end"
-                  className="pace-label"
-                >
-                  分钟
-                </text>
                 <text
                   x={paceChart.W - paceChart.pad.right}
                   y={paceChart.H - 3}
@@ -865,9 +918,10 @@ export default function Profile() {
             </div>
 
             <p className="pace-footnote">
-              耗时取各档中值（3 / 9 / 22 / 45 / 75 分钟），点越大代表同一难度同一档位的次数越多；
-              点在曲线<b>上方</b>＝比该难度期望的慢。共 {paceChart.count} 次记录，
-              其中 {paceChart.onPace} 次落在期望区间内。
+              纵轴是耗时档位（等距排列，不是线性的分钟刻度），横轴是难度分；曲线把「该难度应有的
+              熟练耗时」映射到档位空间，落在曲线<b>上方</b>＝比该难度期望的慢。点在同一行内上下
+              错开只是为了避免重叠。共 {paceChart.count} 次记录，其中 {paceChart.onPace}{" "}
+              次落在期望区间内。
               {paceChart.summary?.hint ? ` ${paceChart.summary.hint}。` : ""}
             </p>
           </>

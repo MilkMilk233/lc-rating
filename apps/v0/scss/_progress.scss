@@ -357,6 +357,14 @@
   opacity: .8;
 }
 
+// One shaded band per effort row: the ladder's rows are a categorical scale,
+// and the shading is what makes a beeswarm-nudged dot still read as its own
+// row rather than the one it drifted towards.
+.pace-row {
+  fill: var(--app-border);
+  opacity: .3;
+}
+
 .pace-label {
   fill: var(--app-muted);
   font-size: 11px;
