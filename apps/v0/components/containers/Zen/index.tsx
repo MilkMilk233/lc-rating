@@ -660,8 +660,11 @@ const ZenTableComp = React.memo(
           enableSorting: false,
           cell: (info) => {
             const item = info.row.original;
-            const current = currentByQid.get(item.question_id);
-            const schedule = scheduleByQid.get(item.question_id);
+            // question_id is a JSON number at runtime, but every attempt in the
+            // store is keyed by string, so look it up as a string.
+            const qid = String(item.question_id);
+            const current = currentByQid.get(qid);
+            const schedule = scheduleByQid.get(qid);
             const due = isDue(schedule, Date.now());
 
             return (
@@ -669,9 +672,7 @@ const ZenTableComp = React.memo(
                 <button
                   type="button"
                   className={`pc-state${current ? " recorded" : ""}`}
-                  onClick={() =>
-                    onRecord(item.question_id, item.title, item.rating)
-                  }
+                  onClick={() => onRecord(qid, item.title, item.rating)}
                   title={current ? "重新记录" : "记录这次练习"}
                 >
                   {attemptLabel(current)}

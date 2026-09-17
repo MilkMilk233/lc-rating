@@ -44,8 +44,18 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
 
   if (typeof e.id !== "string" || e.id.length === 0) return null;
   if (e.type !== "attempt") return null;
-  if (typeof e.qid !== "string" || e.qid.length === 0) return null;
   if (typeof e.at !== "number" || !Number.isFinite(e.at)) return null;
+
+  // Question ids arrive as JSON numbers from zenk.json but are stored as
+  // strings, so coerce instead of rejecting: dropping the event would silently
+  // lose a recorded attempt on the next reload.
+  const qid =
+    typeof e.qid === "string"
+      ? e.qid
+      : typeof e.qid === "number" && Number.isFinite(e.qid)
+        ? String(e.qid)
+        : "";
+  if (qid.length === 0) return null;
 
   const src = typeof e.src === "string" && e.src.length > 0 ? e.src : "zen";
   const rating =
@@ -61,7 +71,7 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       ...(e as unknown as SolvedAttempt),
       id: e.id,
       type: "attempt",
-      qid: e.qid,
+      qid,
       at: e.at,
       src,
       rating,
@@ -79,7 +89,7 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       ...(e as unknown as GaveUpAttempt),
       id: e.id,
       type: "attempt",
-      qid: e.qid,
+      qid,
       at: e.at,
       src,
       rating,

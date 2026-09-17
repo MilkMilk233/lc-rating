@@ -99,10 +99,14 @@ class ProgressStore {
 
   logAttempt = (input: LogAttemptInput): AttemptEvent => {
     const at = input.at ?? Date.now();
+    // Callers hand over `question_id` straight from zenk.json, where it is a
+    // JSON number. Every id in the store is a string, so normalise here rather
+    // than trusting each call site.
+    const qid = String(input.qid);
     const base = {
-      id: makeEventId(input.qid, at),
+      id: makeEventId(qid, at),
       type: "attempt" as const,
-      qid: input.qid,
+      qid,
       at,
       src: input.src ?? "recommend",
       ...(typeof input.rating === "number" ? { rating: input.rating } : {}),
