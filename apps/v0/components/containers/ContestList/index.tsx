@@ -33,6 +33,7 @@ import {
 import { rankItem } from "@tanstack/match-sorter-utils";
 
 import { useI18n } from "@hooks/useI18n";
+import { contestName } from "@utils/contestName";
 import { Contest, useContests } from "@hooks/useContests";
 import useStorage from "@hooks/useStorage";
 
@@ -128,7 +129,11 @@ function ContestList() {
       enableColumnFilter: false,
       cell: (info) => (
         <ContestCell
-          title={isEn ? info.row.original.ContestEn : info.getValue()}
+          title={contestName(
+            isEn,
+            info.row.original.TitleSlug,
+            info.getValue(),
+          )}
           titleSlug={info.row.original.TitleSlug}
         />
       ),

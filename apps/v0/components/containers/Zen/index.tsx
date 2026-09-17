@@ -22,6 +22,7 @@ import type {
 import { QTag, useQuestionTags } from "@hooks/useQuestionTags";
 import { useI18n } from "@hooks/useI18n";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
+import { contestName } from "@utils/contestName";
 import type { Locale } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
@@ -590,7 +591,7 @@ const ZenTableComp = React.memo(
     scheduleByQid,
     onRecord,
   }: ZenTableCompProps) => {
-    const { t } = useI18n();
+    const { t, isEn } = useI18n();
   const titleOf = useQuestionTitle();
     const columns = React.useMemo<ColumnDef<ConstQuestion>[]>(
       () => [
@@ -606,7 +607,7 @@ const ZenTableComp = React.memo(
                   href={leetCodeContestUrl(item.cont_title_slug, language)}
                   target="_blank"
                 >
-                  {item.cont_title}
+                  {contestName(isEn, item.cont_title_slug, item.cont_title)}
                 </a>
               </div>
             );
@@ -724,6 +725,7 @@ const ZenTableComp = React.memo(
         scheduleByQid,
         onRecord,
         t,
+        isEn,
         titleOf,
       ],
     );

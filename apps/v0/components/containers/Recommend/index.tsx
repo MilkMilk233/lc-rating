@@ -4,6 +4,7 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
+import { contestName } from "@utils/contestName";
 import type { Message, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import {
@@ -52,7 +53,7 @@ const POOL_BADGE: Record<Pool, { label: MessageKey; tone: string }> = {
 export default function Recommend() {
   const { zen } = useZen();
   const { tags: questionTags } = useQuestionTags(null);
-  const { language, t } = useI18n();
+  const { language, t, isEn } = useI18n();
   const titleOf = useQuestionTitle();
   const { derived } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];

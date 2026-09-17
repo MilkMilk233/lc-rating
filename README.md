@@ -91,9 +91,11 @@ languages. The frozen files here were produced from it in two ways:
 - `titles-en.json` is generated as `{ question_id: English title }`. It is a
   separate file rather than a field inside `zenk.json` so the same strings are
   stored once and readers using the Chinese UI never download them.
-- `contest.json` gains `contest.title_en`, taken from upstream's `ContestID_en`
-  (for example `weekly-contest-478` -> `Weekly Contest 478`). Only 566 entries,
-  so these stay inline.
+- Contest names are not stored in English at all. Every contest slug matches
+  `weekly-contest-N` or `biweekly-contest-N`, and deriving `Weekly Contest N`
+  from it reproduces upstream's `ContestID_en` for all 566 contests exactly
+  (see `apps/v0/utils/contestName.ts`), so a stored copy would only be a second
+  source that can drift.
 
 Upstream English titles are the official ones for almost every problem, but a
 few use their own casing (for example `1d` where LeetCode writes `1D`), and one
