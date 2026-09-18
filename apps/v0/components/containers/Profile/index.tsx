@@ -4,6 +4,7 @@ import { ColorRating } from "@components/RatingCircle";
 import Sidebar from "@components/SettingsPanel/Sidebar";
 import { setting_tabs } from "@components/SettingsPanel/config";
 import { useI18n } from "@hooks/useI18n";
+import { useTagLabel } from "@hooks/useTagLabel";
 import type { Locale, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
 import { estimateAbility } from "@hooks/useProgressStore/ability";
@@ -98,6 +99,7 @@ export default function Profile() {
   const { tags: questionTags } = useQuestionTags(null);
   const { derived } = useProgressStore();
   const { t, locale } = useI18n();
+  const tagLabel = useTagLabel();
   const [activeTab, setActiveTab] = useState(setting_tabs[0].key);
   const [showTagBoard, setShowTagBoard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -216,7 +218,9 @@ export default function Profile() {
     return { last7, prev7 };
   }, [daily, today]);
 
-  // Topic radar: count solves and struggles per Chinese tag name.
+  // Topic radar: counts per canonical English tag name. Stored counts must not
+  // be in a display language, or a locale switch would split every entry in two
+  // and leave the board showing one language's names; display translates.
   const tagRadar = useMemo(() => {
     const strength = new Map<string, number>();
     const struggle = new Map<string, number>();
@@ -224,15 +228,15 @@ export default function Profile() {
     currentByQid.forEach((attempt, qid) => {
       const hash = zenById.get(qid)?.hash;
       if (!hash) return;
-      const zhTags = questionTags[hash]?.[1];
-      if (!zhTags) return;
+      const enTags = questionTags[hash]?.[0];
+      if (!enTags) return;
 
       if (attempt.outcome === "solved") {
-        zhTags.forEach((tag) =>
+        enTags.forEach((tag) =>
           strength.set(tag, (strength.get(tag) || 0) + 1),
         );
       } else {
-        zhTags.forEach((tag) =>
+        enTags.forEach((tag) =>
           struggle.set(tag, (struggle.get(tag) || 0) + 1),
         );
       }
@@ -1164,7 +1168,7 @@ export default function Profile() {
             tagRadar.strengths.map(([name, count], index) => (
               <div className="tag-rank" key={name}>
                 <span className="tag-rank-num">{index + 1}</span>
-                <span className="tag-rank-name">{name}</span>
+                <span className="tag-rank-name">{tagLabel(name)}</span>
                 <div className="duo-bar slim">
                   <span
                     style={{
@@ -1185,7 +1189,7 @@ export default function Profile() {
             tagRadar.struggles.map(([name, count], index) => (
               <div className="tag-rank" key={name}>
                 <span className="tag-rank-num">{index + 1}</span>
-                <span className="tag-rank-name">{name}</span>
+                <span className="tag-rank-name">{tagLabel(name)}</span>
                 <div className="duo-bar slim">
                   <span
                     style={{

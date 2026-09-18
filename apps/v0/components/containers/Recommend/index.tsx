@@ -4,6 +4,7 @@ import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
+import { useTagLabel } from "@hooks/useTagLabel";
 import { contestName } from "@utils/contestName";
 import type { Message, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
@@ -57,6 +58,7 @@ export default function Recommend() {
   const { tags: questionTags } = useQuestionTags(null);
   const { language, t, isEn } = useI18n();
   const titleOf = useQuestionTitle();
+  const tagLabel = useTagLabel();
   const { derived, dismiss } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: Message };
@@ -100,7 +102,9 @@ export default function Recommend() {
         qid,
         rating: question.rating,
         paidOnly: question.paid_only,
-        tags: questionTags[String(question._hash)]?.[isEn ? 0 : 1] ?? [],
+        // Canonical English: the plan outlives a language toggle, so nothing
+        // in it may carry a display-language tag name. Chips translate at render.
+        tags: questionTags[String(question._hash)]?.[0] ?? [],
       };
       questionByQid.set(qid, question);
       byQid.set(qid, candidate);
@@ -360,7 +364,14 @@ export default function Recommend() {
 
         <div className="rec-reason">
           <LuLightbulb aria-hidden size={16} />
-          <span>{t(current.reason.key, current.reason.params)}</span>
+          <span>
+            {t(current.reason.key, {
+              ...current.reason.params,
+              ...(typeof current.reason.params?.tag === "string"
+                ? { tag: tagLabel(current.reason.params.tag) }
+                : {}),
+            })}
+          </span>
         </div>
 
         {currentAttempt && (
