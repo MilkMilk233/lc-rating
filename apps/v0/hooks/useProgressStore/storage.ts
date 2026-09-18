@@ -58,19 +58,20 @@ export function migrateV2Event(raw: unknown): ProgressEvent | null {
   const e = raw as Record<string, unknown>;
   if (e.type !== "attempt") return null;
 
+  const imputed = { minutes: minutesOfV2(e), imputed: true as const, band: undefined };
+
   if (e.outcome === "solved" && e.independence === "solution") {
     return validateEvent({
       ...e,
+      ...imputed,
       outcome: "gaveup",
       reason: "saw_solution",
       independence: undefined,
-      minutes: minutesOfV2(e),
-      band: undefined,
     });
   }
   if (e.outcome === "gaveup" && e.reason === "idea_tedious") return null;
 
-  return validateEvent({ ...e, minutes: minutesOfV2(e), band: undefined });
+  return validateEvent({ ...e, ...imputed });
 }
 
 function minutesOfV2(e: Record<string, unknown>): number | undefined {
@@ -113,6 +114,7 @@ export function validateEvent(raw: unknown): ProgressEvent | null {
       ? e.minutes
       : null;
   const timed = e.timed === true ? (true as const) : undefined;
+  const imputed = e.imputed === true ? (true as const) : undefined;
   // v3 derives the band from the duration, so a leftover v2 `band` is dropped
   // rather than carried along as a second, possibly disagreeing, source.
   const { band: _legacyBand, ...rest } = e;
@@ -132,6 +134,7 @@ export function validateEvent(raw: unknown): ProgressEvent | null {
       outcome: "solved",
       minutes,
       timed,
+      imputed,
       independence: e.independence,
       // Only ever true or absent, so the flag cannot be set to junk on import.
       revisit: e.revisit === true ? true : undefined,
@@ -152,6 +155,7 @@ export function validateEvent(raw: unknown): ProgressEvent | null {
       outcome: "gaveup",
       minutes,
       timed,
+      imputed,
       reason: e.reason,
     };
   }

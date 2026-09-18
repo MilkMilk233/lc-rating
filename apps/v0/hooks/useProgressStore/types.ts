@@ -70,6 +70,16 @@ interface AttemptBase extends EventBase {
   /** True when `minutes` came from the tracker rather than from the user. */
   timed?: true;
   /**
+   * True when `minutes` was inferred rather than observed — currently only by
+   * the v2 conversion, which fills in the midpoint of the band the user picked.
+   *
+   * Kept apart from a hand-typed value because the two have different worth:
+   * a typed duration is a (noisy) report, an imputed one is our own guess. The
+   * calibration check has to be able to drop the guesses, or it would be
+   * testing the model against its own assumptions.
+   */
+  imputed?: true;
+  /**
    * The problem's difficulty at the time of the attempt.
    *
    * Snapshotted on purpose: the scheduler needs it to judge whether the felt
