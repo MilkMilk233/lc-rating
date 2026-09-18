@@ -17,13 +17,20 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 /** Never schedule further out than a year. */
 export const MAX_INTERVAL_DAYS = 365;
 
-/** First interval after a solve, in days. Effort buys recovery time. */
+/**
+ * First interval after a solve, in days. Effort buys recovery time: a draining
+ * problem earns a longer break before it comes back.
+ *
+ * These were doubled after real data showed the review queue could never drain
+ * — a five-day first interval meant a problem solved today returned before the
+ * week was out, so the daily review load equalled the daily new load forever.
+ */
 export const BASE_DAYS: Record<EffortBand, number> = {
-  LE5: 7,
-  L5_15: 5,
-  L15_30: 7,
-  L30_60: 9,
-  GT60: 12,
+  LE5: 14,
+  L5_15: 10,
+  L15_30: 14,
+  L30_60: 18,
+  GT60: 24,
 };
 
 /** Growth factor for consecutive successes. Harder problems grow slower. */
@@ -136,10 +143,18 @@ export function nextIntervalDays(
   }
 
   // Always advance at least one day so slow solves still move forward.
-  // The band sets the base growth; the pace relative to the problem's own
-  // difficulty scales it, so the same band grows differently at 1300 and 2400.
+  // The band sets the base growth; being *faster* than expected at that
+  // difficulty grows it further, so the same band grows differently at 1300
+  // and 2400.
+  //
+  // Lateness deliberately does not slow the growth down. Slowness is already
+  // priced in twice before this point — by BASE_DAYS and by the expectation
+  // table being generous at the top — and letting it shrink every interval
+  // meant one saturated signal compressed the whole schedule at once.
   const pace =
-    event.rating != null ? pointsAbove(event.rating, event.band) : 0;
+    event.rating != null
+      ? Math.max(0, pointsAbove(event.rating, event.band))
+      : 0;
   const ease = 1 + (EASE[event.band] - 1) * easeFactorFromPace(pace);
   return clampInterval(
     Math.max(prev.intervalDays + 1, prev.intervalDays * ease),

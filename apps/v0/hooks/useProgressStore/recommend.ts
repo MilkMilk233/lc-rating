@@ -58,6 +58,13 @@ export interface QueueItem {
 /** Fresh problems per tag per day. */
 export const TAG_DAILY_CAP = 2;
 
+/**
+ * New problems interleaved between two review blocks. 1 means strict
+ * alternation (one review, one fresh); 2 means two fresh per review, so
+ * reviews take about a third of a session.
+ */
+export const FRESH_PER_REVIEW = 2;
+
 /** Rating distance at which difficulty fit drops to 0.5. */
 export const PROXIMITY_SCALE = 80;
 
@@ -374,11 +381,30 @@ export function buildRecommendationQueue({
   const remainingFresh = fresh.filter((item) => !consumed.has(item.qid));
 
   // ---- 5. interleave ----------------------------------------------------
+  // Reviews are spaced out rather than alternated one for one. With a one-to-one
+  // mix a session spends half its time re-solving old problems, and because
+  // each new solve adds a future review the queue never drains — the ratio is
+  // permanent, not a backlog that clears. FRESH_PER_REVIEW buys room for new
+  // work; it does not delete reviews, it defers them.
   const queue: QueueItem[] = [];
-  const length = Math.max(reviewBlocks.length, remainingFresh.length);
-  for (let i = 0; i < length; i += 1) {
-    if (i < reviewBlocks.length) queue.push(...reviewBlocks[i]);
-    if (i < remainingFresh.length) queue.push(remainingFresh[i]);
+  let reviewIndex = 0;
+  let freshIndex = 0;
+  while (
+    reviewIndex < reviewBlocks.length ||
+    freshIndex < remainingFresh.length
+  ) {
+    if (reviewIndex < reviewBlocks.length) {
+      queue.push(...reviewBlocks[reviewIndex]);
+      reviewIndex += 1;
+    }
+    for (
+      let extra = 0;
+      extra < FRESH_PER_REVIEW && freshIndex < remainingFresh.length;
+      extra += 1
+    ) {
+      queue.push(remainingFresh[freshIndex]);
+      freshIndex += 1;
+    }
   }
   // ---- 6. confidence builder -------------------------------------------
   // After repeated "no idea" attempts, lead with something winnable instead of
