@@ -88,6 +88,8 @@ export const en: Messages = {
   "zen.apply": "Apply",
   "zen.page": "Go to page",
   "zen.due": "Due",
+  "zen.dismissed": "Dismissed",
+  "history.dismissed": "Dismissed (never offered again)",
   "zen.reRecord": "Record again",
   "zen.record": "Record this attempt",
 
@@ -112,6 +114,8 @@ export const en: Messages = {
   "rec.record": "Record result",
   "rec.collapse": "Hide",
   "rec.swap": "Another one",
+  "rec.dismiss": "Not interested",
+  "rec.dismissConfirm": "Never show this again?",
   "rec.pool.review": "Due review",
   "rec.pool.revive": "Retry",
   "rec.pool.revisit": "Needs work",

@@ -28,6 +28,7 @@ import type { Locale } from "@hooks/useI18n";
 import useStorage from "@hooks/useStorage";
 import { Tags, useTags } from "@hooks/useTags";
 import { useZen } from "@hooks/useZen";
+import { markAttemptStart } from "@hooks/useAttemptTimer";
 import {
   leetCodeContestUrl,
   leetCodeProblemUrl,
@@ -539,6 +540,7 @@ export default function Zenk() {
           data={filteredData}
           currentByQid={derived.currentByQid}
           scheduleByQid={derived.scheduleByQid}
+          dismissedQids={derived.dismissed}
           onRecord={(qid, title, rating) =>
             setRecordTarget({ qid, title, rating })
           }
@@ -578,6 +580,7 @@ interface ZenTableCompProps {
   tagLanguage: "zh" | "en";
   currentByQid: Map<string, AttemptEvent>;
   scheduleByQid: Map<string, ScheduleState>;
+  dismissedQids: Set<string>;
   onRecord: (qid: string, title: string, rating: number) => void;
 }
 
@@ -590,10 +593,11 @@ const ZenTableComp = React.memo(
     columnVisibility,
     currentByQid,
     scheduleByQid,
+    dismissedQids,
     onRecord,
   }: ZenTableCompProps) => {
     const { t, isEn } = useI18n();
-  const titleOf = useQuestionTitle();
+    const titleOf = useQuestionTitle();
     const columns = React.useMemo<ColumnDef<ConstQuestion>[]>(
       () => [
         {
@@ -634,6 +638,7 @@ const ZenTableComp = React.memo(
                   <a
                     href={leetCodeProblemUrl(item.title_slug, language)}
                     target="_blank"
+                    onClick={() => markAttemptStart(item.question_id)}
                   >
                     {item.question_id}. {titleOf(item.question_id, item.title)}
                   </a>
@@ -697,18 +702,25 @@ const ZenTableComp = React.memo(
             const current = currentByQid.get(qid);
             const schedule = scheduleByQid.get(qid);
             const due = isDue(schedule, Date.now());
+            const dismissed = dismissedQids.has(qid);
 
             return (
               <div className="zen-progress-cell">
                 <button
                   type="button"
-                  className={`pc-state${current ? " recorded" : ""}`}
+                  className={`pc-state${current ? " recorded" : ""}${
+                    dismissed ? " dismissed" : ""
+                  }`}
                   onClick={() =>
-                    onRecord(qid, titleOf(item.question_id, item.title), item.rating)
+                    onRecord(
+                      qid,
+                      titleOf(item.question_id, item.title),
+                      item.rating,
+                    )
                   }
                   title={current ? t("zen.reRecord") : t("zen.record")}
                 >
-                  {attemptLabel(current, t)}
+                  {dismissed ? t("zen.dismissed") : attemptLabel(current, t)}
                 </button>
                 {due && <span className="zen-due">{t("zen.due")}</span>}
               </div>
@@ -724,6 +736,7 @@ const ZenTableComp = React.memo(
         columnVisibility,
         currentByQid,
         scheduleByQid,
+        dismissedQids,
         onRecord,
         t,
         isEn,

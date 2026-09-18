@@ -564,3 +564,11 @@
     margin-left: .35rem;
   }
 }
+
+// A dismissed question keeps its slot in the pool but is never recommended
+// again, so the chip reads as "set aside" rather than "done".
+.pc-state.dismissed {
+  border-style: dotted;
+  border-color: var(--duo-red);
+  color: var(--duo-red);
+}

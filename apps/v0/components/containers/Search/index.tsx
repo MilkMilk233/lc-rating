@@ -1,5 +1,6 @@
 "use client";
 
+import { markAttemptStart } from "@hooks/useAttemptTimer";
 // Question lookup: find a question by number, title, algorithm tag or contest,
 // see whether it has been practised and when it is due, then jump to it.
 //
@@ -216,6 +217,7 @@ export default function Search() {
             className="search-title"
             href={leetCodeProblemUrl(hit.doc.slug, language)}
             target="_blank"
+                    onClick={() => markAttemptStart(hit.doc.qid)}
             rel="noreferrer"
           >
             <span className="search-qid">#{hit.doc.qid}</span> {titleOf(hit.doc.qid, hit.doc.title)}

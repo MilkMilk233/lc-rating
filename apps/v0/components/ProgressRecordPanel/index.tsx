@@ -22,6 +22,11 @@
 
 import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
+import {
+  clearAttemptStart,
+  trackedMinutes as trackedMinutesFor,
+  useActiveProblem,
+} from "@hooks/useAttemptTimer";
 import type {
   AttemptSource,
   GaveUpReason,
@@ -96,10 +101,13 @@ export default function ProgressRecordPanel({
 }: ProgressRecordPanelProps) {
   const { logAttempt } = useProgressStore();
   const { t } = useI18n();
+  const activeProblem = useActiveProblem();
+  // The panel reads the tracker itself so every entry point gets it for free.
+  const tracked = timedMinutes ?? trackedMinutesFor(activeProblem, qid);
 
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [minutesText, setMinutesText] = useState(
-    timedMinutes != null ? String(timedMinutes) : "",
+    tracked != null ? String(tracked) : "",
   );
   const [drill, setDrill] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -116,12 +124,13 @@ export default function ProgressRecordPanel({
   }, [minutesText, suggestedMinutes]);
 
   const timed =
-    timedMinutes != null &&
+    tracked != null &&
     minutesText.trim() !== "" &&
-    Number(minutesText) === timedMinutes;
+    Number(minutesText) === tracked;
 
   const save = () => {
     if (!verdict || minutes == null) return;
+    clearAttemptStart();
     onRecorded?.(
       verdict.solved
         ? logAttempt({
@@ -236,7 +245,7 @@ export default function ProgressRecordPanel({
             {timed && (
               <span className="prp-timed">
                 {t("record.timed", {
-                  time: `${timedMinutes} ${t("record.minutesSuffix")}`,
+                  time: `${tracked} ${t("record.minutesSuffix")}`,
                 })}
               </span>
             )}

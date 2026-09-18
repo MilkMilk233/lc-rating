@@ -290,3 +290,15 @@
 .rec-record {
   margin-top: .85rem;
 }
+
+// Dismissal sits beside "换一道" but is permanent, so it is quiet until it is
+// armed: the first press asks, the second commits.
+.rec-dismiss {
+  opacity: .75;
+
+  &.confirm {
+    opacity: 1;
+    color: var(--duo-red);
+    border-color: var(--duo-red);
+  }
+}

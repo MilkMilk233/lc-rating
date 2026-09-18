@@ -15,7 +15,7 @@ import {
   bandOf,
 } from "@hooks/useProgressStore/bands";
 import type {
-  AttemptEvent,
+  ProgressEvent,
   EffortBand,
 } from "@hooks/useProgressStore/types";
 import { useMemo, useState } from "react";
@@ -51,12 +51,20 @@ export default function HistoryModal({
   const [band, setBand] = useState<"" | EffortBand>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const rows = useMemo<AttemptEvent[]>(() => {
+  const rows = useMemo<ProgressEvent[]>(() => {
     const needle = query.trim().toLowerCase();
     const newestFirst = [...derived.events].reverse();
 
-    return newestFirst.filter((event): event is AttemptEvent => {
-      if (event.type !== "attempt") return false;
+    return newestFirst.filter((event): event is ProgressEvent => {
+      // Dismissals are listed so they can be deleted, which is what revives a
+      // question; they are the only record of that preference.
+      if (event.type === "dismiss") {
+        if (outcome || band) return false;
+        if (!needle) return true;
+        const info = questionById.get(event.qid);
+        const title = info ? titleOf(event.qid, info.title) : "";
+        return `${event.qid} ${title}`.toLowerCase().includes(needle);
+      }
       if (outcome && event.outcome !== outcome) return false;
       if (band && bandOf(event.minutes) !== band) {
         return false;
@@ -169,8 +177,14 @@ export default function HistoryModal({
                 <span className="history-title">
                   {titleOf(event.qid, info?.title ?? t("history.gone"))}
                 </span>
-                <span className="history-state">{attemptLabel(event, t)}</span>
-                <span className="history-src">{event.src}</span>
+                <span className="history-state">
+                  {event.type === "dismiss"
+                    ? t("history.dismissed")
+                    : attemptLabel(event, t)}
+                </span>
+                <span className="history-src">
+                  {event.type === "dismiss" ? "" : event.src}
+                </span>
               </div>
             );
           })}

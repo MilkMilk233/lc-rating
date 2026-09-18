@@ -21,6 +21,7 @@ import type {
 import { DAY_MS, applyAttempt } from "@hooks/useProgressStore/srs";
 import type { AttemptEvent } from "@hooks/useProgressStore/types";
 import { useQuestionTags } from "@hooks/useQuestionTags";
+import { clearAttemptStart, markAttemptStart } from "@hooks/useAttemptTimer";
 import { useZen } from "@hooks/useZen";
 import {
   leetCodeContestUrl,
@@ -36,6 +37,7 @@ import {
   LuLightbulb,
   LuPartyPopper,
   LuRotateCcw,
+  LuBan,
   LuShuffle,
 } from "react-icons/lu";
 
@@ -55,7 +57,7 @@ export default function Recommend() {
   const { tags: questionTags } = useQuestionTags(null);
   const { language, t, isEn } = useI18n();
   const titleOf = useQuestionTitle();
-  const { derived } = useProgressStore();
+  const { derived, dismiss } = useProgressStore();
   type ZenQuestion = (typeof zen)[number];
   type RecItem = { question: ZenQuestion; pool: Pool; reason: Message };
   interface Plan {
@@ -170,7 +172,33 @@ export default function Recommend() {
   const handleSkip = () => {
     if (!current) return;
     setShowRecord(false);
+    clearAttemptStart();
     consume(String(current.question.question_id));
+  };
+
+  // Dismissal is permanent, so it takes a second press. The confirmation is
+  // in-place rather than a dialog: dialogs need dismissing, and this needs to
+  // be cheap to abandon.
+  const [confirmDismiss, setConfirmDismiss] = useState(false);
+
+  useEffect(() => {
+    if (!confirmDismiss) return;
+    const timer = window.setTimeout(() => setConfirmDismiss(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [confirmDismiss]);
+
+  const handleDismiss = () => {
+    if (!current) return;
+    const qidToDismiss = String(current.question.question_id);
+    if (!confirmDismiss) {
+      setConfirmDismiss(true);
+      return;
+    }
+    setConfirmDismiss(false);
+    setShowRecord(false);
+    clearAttemptStart();
+    dismiss(qidToDismiss);
+    consume(qidToDismiss);
   };
 
   // Card-level shortcuts: O 去做题 / R 记录结果 / N 换一道.
@@ -201,7 +229,9 @@ export default function Recommend() {
       if (!question) return;
 
       const key = event.key.toLowerCase();
+      const currentQid = String(question.question_id);
       if (key === "o") {
+        markAttemptStart(currentQid);
         window.open(
           leetCodeProblemUrl(question.title_slug, language),
           "_blank",
@@ -210,13 +240,15 @@ export default function Recommend() {
       } else if (key === "r") {
         setShowRecord(true);
       } else if (key === "n") {
-        consume(String(question.question_id));
+        handleSkip();
+      } else if (key === "x") {
+        handleDismiss();
       }
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [showRecord, plan, language, consume]);
+  }, [showRecord, plan, language, consume, confirmDismiss, current, dismiss]);
 
   const renderBody = () => {
     if (zen.length === 0 || plan === null) {
@@ -295,6 +327,7 @@ export default function Recommend() {
           href={leetCodeProblemUrl(question.title_slug, language)}
           target="_blank"
           rel="noreferrer"
+          onClick={() => markAttemptStart(qid)}
         >
           {question.question_id}. {titleOf(question.question_id, question.title)}
           <LuArrowUpRight aria-hidden size={20} />
@@ -345,6 +378,7 @@ export default function Recommend() {
             href={leetCodeProblemUrl(question.title_slug, language)}
             target="_blank"
             rel="noreferrer"
+            onClick={() => markAttemptStart(qid)}
           >
             <span>{t("rec.open")}</span>
             <kbd className="kbd-hint">O</kbd>
@@ -362,6 +396,19 @@ export default function Recommend() {
             <LuShuffle aria-hidden size={17} />
             <span>{t("rec.swap")}</span>
             <kbd className="kbd-hint">N</kbd>
+          </button>
+          <button
+            type="button"
+            className={clsx("duo-btn-ghost", "rec-dismiss", {
+              confirm: confirmDismiss,
+            })}
+            onClick={handleDismiss}
+          >
+            <LuBan aria-hidden size={17} />
+            <span>
+              {t(confirmDismiss ? "rec.dismissConfirm" : "rec.dismiss")}
+            </span>
+            <kbd className="kbd-hint">X</kbd>
           </button>
         </div>
 

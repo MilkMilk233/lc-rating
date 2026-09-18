@@ -106,6 +106,8 @@ export const zh = {
   "zen.apply": "应用设置",
   "zen.page": "跳转页码",
   "zen.due": "到期",
+  "zen.dismissed": "已搁置",
+  "history.dismissed": "已搁置（不再推荐）",
   "zen.reRecord": "重新记录",
   "zen.record": "记录这次练习",
 
@@ -130,6 +132,8 @@ export const zh = {
   "rec.record": "记录结果",
   "rec.collapse": "收起记录",
   "rec.swap": "换一道",
+  "rec.dismiss": "我不想做",
+  "rec.dismissConfirm": "确定不再推荐？",
   "rec.pool.review": "到期复习",
   "rec.pool.revive": "复活挑战",
   "rec.pool.revisit": "待强化",
