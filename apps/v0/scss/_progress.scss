@@ -13,6 +13,7 @@
   align-items: baseline;
   gap: .6rem;
   margin-bottom: .5rem;
+  min-width: 0;
 }
 
 .prp-kicker {
@@ -46,84 +47,52 @@
   font-weight: 700;
 }
 
-.prp-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .6rem;
-
-  &.column {
-    flex-direction: column;
-  }
-}
-
-.prp-choice {
-  display: inline-flex;
-  flex: 1 1 10rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
-  padding: .8rem 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
-  background: var(--app-surface-muted);
-  color: var(--app-text);
-  font-size: .95rem;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform .08s ease, border-color .15s ease, background .15s ease;
-
-  &:hover {
-    border-color: var(--app-accent);
-  }
-
-  &:active {
-    transform: translateY(2px);
-  }
-
-  &.primary {
-    border-color: var(--app-accent);
-    background: var(--app-accent-soft);
-  }
-}
-
-.prp-bands {
+// Outcome picker: a 2x2 grid. The four options are one ladder (top row is "my
+// own algorithm", bottom row is "not mine"), and a grid both halves the height
+// of four stacked rows and makes that grouping visible.
+.prp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: .5rem;
+  margin-bottom: .9rem;
 }
 
-.prp-band {
+.prp-option {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: .15rem;
-  padding: .6rem .75rem;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius);
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  padding: .55rem .7rem;
+  border: 1.5px solid var(--app-border);
+  border-radius: 12px;
   background: var(--app-surface-muted);
   color: var(--app-text);
+  font-size: .88rem;
+  font-weight: 800;
+  text-align: left;
   cursor: pointer;
-  transition: transform .08s ease, border-color .15s ease, background .15s ease;
+  transition: border-color .15s ease, background .15s ease;
+
+  // The label is the only part that may shrink; the key badge must stay put.
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  kbd {
+    flex: none;
+  }
 
   &:hover {
     border-color: var(--app-accent);
+  }
+
+  &.active {
+    border-color: var(--app-accent);
     background: var(--app-accent-soft);
   }
-
-  &:active {
-    transform: translateY(2px);
-  }
-}
-
-.prp-band-label {
-  font-size: .9rem;
-  font-weight: 850;
-}
-
-.prp-band-hint {
-  color: var(--app-muted);
-  font-size: .78rem;
-  font-weight: 700;
 }
 
 .prp-independence {
@@ -153,9 +122,11 @@
 .prp-foot {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
+  gap: .6rem;
   margin-top: .85rem;
+  // Without this the three items compete for width and the labels wrap one
+  // character per line; the note is the part that should give way instead.
+  flex-wrap: nowrap;
 }
 
 .prp-back {
@@ -494,22 +465,61 @@
   line-height: 1.55;
 }
 
-// v3 record panel: a duration in minutes replaces the felt-difficulty band.
+// v3 record panel: the duration is a geometric slider paired with a number
+// field. Dragging lands on a stop; typing keeps the exact value and only moves
+// the slider to the nearest stop, so the field is always the source of truth.
+.prp-time {
+  margin: .1rem 0 .55rem;
+  padding: 0 .1rem;
+}
+
+.prp-slider {
+  display: block;
+  width: 100%;
+  height: 1.4rem;
+  margin: 0;
+  accent-color: var(--app-accent);
+  cursor: pointer;
+
+  // Pinned at the cap while the field holds something larger: the track cannot
+  // show the value, so it warns instead of lying.
+  &.over {
+    // The panel also renders inside modals, which portal to <body> and so sit
+    // outside .duo-shell where these tokens are defined.
+    accent-color: var(--duo-orange, #ff9600);
+  }
+}
+
+.prp-ticks {
+  position: relative;
+  height: .9rem;
+  margin-top: -.1rem;
+}
+
+.prp-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  color: var(--app-muted);
+  font-size: .68rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .prp-minutes {
   display: flex;
   align-items: center;
   gap: .5rem;
-  margin: .1rem 0 .7rem;
+  margin-bottom: .7rem;
 }
 
 .prp-minutes-input {
-  width: 6rem;
-  padding: .45rem .6rem;
-  border: 2px solid var(--app-border);
+  width: 5.5rem;
+  padding: .4rem .55rem;
+  border: 1.5px solid var(--app-border);
   border-radius: 10px;
   background: var(--app-surface);
   color: var(--app-text);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 800;
   text-align: right;
 
@@ -534,15 +544,18 @@
   font-weight: 800;
 }
 
-.prp-timed {
-  color: var(--app-accent);
-  font-size: .78rem;
+.prp-over-cap {
+  color: var(--duo-orange, #ff9600);
+  font-size: .74rem;
   font-weight: 800;
 }
 
-.prp-choice.active {
-  border-color: var(--app-accent);
-  background: var(--app-accent-soft);
+.prp-timed {
+  margin-left: .5rem;
+  color: var(--app-accent);
+  font-size: .74rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .prp-save {
@@ -569,6 +582,40 @@
 // again, so the chip reads as "set aside" rather than "done".
 .pc-state.dismissed {
   border-style: dotted;
-  border-color: var(--duo-red);
-  color: var(--duo-red);
+  // Zen's container is not .duo-shell, so this needs a literal fallback.
+  border-color: var(--duo-red, #ff4b4b);
+  color: var(--duo-red, #ff4b4b);
+}
+
+// The footer note is the only flexible item, so it truncates rather than
+// forcing the buttons to wrap.
+.prp-back,
+.prp-note,
+.prp-save {
+  white-space: nowrap;
+}
+
+.prp-note {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prp-kicker,
+.prp-title {
+  white-space: nowrap;
+}
+
+.prp-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// The last stop sits at 100%, so centring it would push half the label off the
+// panel; right-aligning keeps the cap visible, which is what makes the track
+// end read as "180" rather than "120".
+.prp-tick:last-child {
+  transform: translateX(-100%);
 }

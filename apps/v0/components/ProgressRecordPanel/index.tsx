@@ -2,23 +2,18 @@
 
 // Post-attempt recording panel.
 //
-// Two stages: how it went (a single four-step ladder), then how long it took.
+// Layout notes:
+//   - the outcome is a 2x2 grid, not four full-width rows: the four options are
+//     one ladder, and a grid groups them the way the user thinks about them
+//     (top row "my own algorithm", bottom row "not mine") while halving the
+//     height
+//   - the duration pairs a slider with a number field, and the two have
+//     different jobs: dragging lands exactly on a stop, while typing keeps the
+//     exact value and only moves the slider to the nearest stop
+//   - the slider's stops are geometric, so 1-30 minutes get half the travel
+//
 // The panel is presentation-only: it calls `logAttempt` and hands the event to
 // the parent, which owns the undo toast and navigation.
-//
-// The outcome ladder is ordered by whose idea the solution was, because that is
-// the only distinction the scheduler and the difficulty estimate consume:
-//
-//   1 solo        algorithm mine, finished
-//   2 syntax      algorithm mine, looked up an API  (duration includes reading)
-//   3 sawSolution read the editorial
-//   4 noIdea      out of ideas
-//
-// 3 and 4 are the same observation to both consumers — the user did not produce
-// the algorithm within the time they spent — so they are kept apart only for the
-// record. "Had the idea but could not be bothered to write it" is deliberately
-// absent: it carries no monotone signal about ability, and it is now expressed
-// by dismissing a problem before starting it.
 
 import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
@@ -44,6 +39,8 @@ interface Verdict {
   reason?: GaveUpReason;
 }
 
+// Reading order matches the 2x2 grid: the top row is "my own algorithm", the
+// bottom row is "not mine", and 3 and 4 are the same observation to the model.
 export const VERDICTS: readonly Verdict[] = [
   {
     key: "solo",
@@ -70,6 +67,37 @@ export const VERDICTS: readonly Verdict[] = [
     reason: "no_idea",
   },
 ];
+
+/**
+ * Slider stops, roughly geometric.
+ *
+ * A linear 0-180 track would spend most of its travel on values nobody picks.
+ * Eleven of these twenty stops sit below half an hour, which is where real
+ * solve times live; the rest stretch to the three-hour cap that matches the
+ * tracker's own plausibility window.
+ */
+export const MINUTE_STOPS = [
+  1, 2, 3, 4, 5, 7, 9, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120, 150, 180,
+] as const;
+export const SLIDER_CAP = MINUTE_STOPS[MINUTE_STOPS.length - 1];
+
+/** Ticks worth labelling; labelling all twenty would crowd the track. */
+const LABELLED = [5, 15, 30, 60, 180];
+
+/** Nearest stop in log space, so 37 lands on 40 rather than 30. */
+export function nearestStopIndex(value: number): number {
+  const target = Math.log(Math.max(1, value));
+  let best = 0;
+  let bestDistance = Infinity;
+  MINUTE_STOPS.forEach((stop, index) => {
+    const distance = Math.abs(target - Math.log(stop));
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = index;
+    }
+  });
+  return best;
+}
 
 export interface ProgressRecordPanelProps {
   qid: string;
@@ -118,10 +146,16 @@ export default function ProgressRecordPanel({
   const minutes = useMemo(() => {
     const typed = Number(minutesText);
     if (minutesText.trim() !== "" && Number.isFinite(typed) && typed >= 0) {
-      return typed;
+      return Math.round(typed);
     }
     return suggestedMinutes ?? null;
   }, [minutesText, suggestedMinutes]);
+
+  const sliderValue =
+    minutes == null
+      ? nearestStopIndex(suggestedMinutes ?? 1)
+      : nearestStopIndex(minutes);
+  const overCap = minutes != null && minutes > SLIDER_CAP;
 
   const timed =
     tracked != null &&
@@ -176,8 +210,8 @@ export default function ProgressRecordPanel({
         return;
       }
 
-      // Focus sits in the minutes field, so only the surrounding controls are
-      // handled here; digits belong to the input.
+      // Focus sits in the minutes field, so digits belong to the input and only
+      // the surrounding controls are handled here.
       if (event.key === "Escape") {
         setVerdict(null);
       } else if (event.key === "Enter") {
@@ -205,24 +239,70 @@ export default function ProgressRecordPanel({
       </header>
 
       <p className="prp-question">{t("record.prompt.outcome")}</p>
-      <div className="prp-row column">
+      <div
+        className="prp-grid"
+        role="group"
+        aria-label={t("record.prompt.outcome")}
+      >
         {VERDICTS.map((item, index) => (
           <button
             key={item.key}
             type="button"
-            className={`prp-choice${verdict?.key === item.key ? " active" : ""}`}
+            className={`prp-option${verdict?.key === item.key ? " active" : ""}`}
             aria-pressed={verdict?.key === item.key}
             onClick={() => setVerdict(item)}
           >
-            <span>{t(item.labelKey)}</span>
             <kbd>{index + 1}</kbd>
+            <span>{t(item.labelKey)}</span>
           </button>
         ))}
       </div>
 
       {verdict && (
         <>
-          <p className="prp-question">{t("record.prompt.minutes")}</p>
+          <p className="prp-question">
+            {t("record.prompt.minutes")}
+            {timed && (
+              <span className="prp-timed">
+                {t("record.timed", {
+                  time: `${tracked} ${t("record.minutesSuffix")}`,
+                })}
+              </span>
+            )}
+          </p>
+
+          <div className="prp-time">
+            <input
+              type="range"
+              className={`prp-slider${overCap ? " over" : ""}`}
+              min={0}
+              max={MINUTE_STOPS.length - 1}
+              step={1}
+              value={sliderValue}
+              aria-label={t("record.prompt.minutes")}
+              aria-valuetext={`${minutes ?? ""} ${t("record.minutesSuffix")}`}
+              onChange={(event) =>
+                setMinutesText(String(MINUTE_STOPS[Number(event.target.value)]))
+              }
+            />
+            <div className="prp-ticks" aria-hidden>
+              {LABELLED.map((stop) => {
+                const index = MINUTE_STOPS.indexOf(stop as never);
+                return (
+                  <span
+                    key={stop}
+                    className="prp-tick"
+                    style={{
+                      left: `${(index / (MINUTE_STOPS.length - 1)) * 100}%`,
+                    }}
+                  >
+                    {stop}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="prp-minutes">
             <input
               ref={inputRef}
@@ -242,11 +322,9 @@ export default function ProgressRecordPanel({
             <span className="prp-minutes-unit">
               {t("record.minutesSuffix")}
             </span>
-            {timed && (
-              <span className="prp-timed">
-                {t("record.timed", {
-                  time: `${tracked} ${t("record.minutesSuffix")}`,
-                })}
+            {overCap && (
+              <span className="prp-over-cap">
+                {t("record.overCap", { cap: SLIDER_CAP })}
               </span>
             )}
           </div>
