@@ -2,39 +2,83 @@
 
 // Post-attempt recording panel.
 //
-// Two stages: outcome (solved / gave up), then a mandatory band or reason.
+// Two stages: how it went (a single four-step ladder), then how long it took.
 // The panel is presentation-only: it calls `logAttempt` and hands the event to
 // the parent, which owns the undo toast and navigation.
+//
+// The outcome ladder is ordered by whose idea the solution was, because that is
+// the only distinction the scheduler and the difficulty estimate consume:
+//
+//   1 solo        algorithm mine, finished
+//   2 syntax      algorithm mine, looked up an API  (duration includes reading)
+//   3 sawSolution read the editorial
+//   4 noIdea      out of ideas
+//
+// 3 and 4 are the same observation to both consumers — the user did not produce
+// the algorithm within the time they spent — so they are kept apart only for the
+// record. "Had the idea but could not be bothered to write it" is deliberately
+// absent: it carries no monotone signal about ability, and it is now expressed
+// by dismissing a problem before starting it.
 
 import { useI18n } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
-import {
-  EFFORT_BANDS,
-  GAVEUP_REASONS,
-  INDEPENDENCE_OPTIONS,
-  bandHintKey,
-  bandLabelKey,
-  gaveUpReasonKey,
-  independenceKey,
-} from "@hooks/useProgressStore/bands";
 import type {
-  AttemptEvent,
   AttemptSource,
-  EffortBand,
   GaveUpReason,
   Independence,
 } from "@hooks/useProgressStore/types";
-import { useEffect, useState } from "react";
+import type { MessageKey } from "@hooks/useI18n";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-type Stage = "outcome" | "solved" | "gaveup";
+interface Verdict {
+  key: string;
+  labelKey: MessageKey;
+  /** Solved with the user's own algorithm. */
+  solved: boolean;
+  independence?: Independence;
+  reason?: GaveUpReason;
+}
+
+export const VERDICTS: readonly Verdict[] = [
+  {
+    key: "solo",
+    labelKey: "record.outcome.solo",
+    solved: true,
+    independence: "solo",
+  },
+  {
+    key: "syntax",
+    labelKey: "record.outcome.syntax",
+    solved: true,
+    independence: "syntax",
+  },
+  {
+    key: "sawSolution",
+    labelKey: "record.outcome.sawSolution",
+    solved: false,
+    reason: "saw_solution",
+  },
+  {
+    key: "noIdea",
+    labelKey: "record.outcome.noIdea",
+    solved: false,
+    reason: "no_idea",
+  },
+];
 
 export interface ProgressRecordPanelProps {
   qid: string;
   questionTitle?: string;
-  /** Problem difficulty, snapshotted into the event for pace judgement. */
   rating?: number;
   source?: AttemptSource;
-  onRecorded?: (event: AttemptEvent) => void;
+  /**
+   * Duration measured by the tracker, if the user started from this site.
+   * Prefilled and trusted unless the user changes it.
+   */
+  timedMinutes?: number;
+  /** Rough expectation shown as a placeholder so an empty field is answerable. */
+  suggestedMinutes?: number;
+  onRecorded?: (event: unknown) => void;
   onCancel?: () => void;
   className?: string;
 }
@@ -44,85 +88,102 @@ export default function ProgressRecordPanel({
   questionTitle,
   rating,
   source = "recommend",
+  timedMinutes,
+  suggestedMinutes,
   onRecorded,
   onCancel,
   className,
 }: ProgressRecordPanelProps) {
   const { logAttempt } = useProgressStore();
   const { t } = useI18n();
-  const [stage, setStage] = useState<Stage>("outcome");
-  const [independence, setIndependence] = useState<Independence>("solo");
+
+  const [verdict, setVerdict] = useState<Verdict | null>(null);
+  const [minutesText, setMinutesText] = useState(
+    timedMinutes != null ? String(timedMinutes) : "",
+  );
   const [drill, setDrill] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const recordSolved = (band: EffortBand) => {
+  // An empty field falls back to the placeholder, so the record is always
+  // saved with a duration. Accepting an expectation is a guess, and `timed`
+  // stays false so the estimator knows to trust it less.
+  const minutes = useMemo(() => {
+    const typed = Number(minutesText);
+    if (minutesText.trim() !== "" && Number.isFinite(typed) && typed >= 0) {
+      return typed;
+    }
+    return suggestedMinutes ?? null;
+  }, [minutesText, suggestedMinutes]);
+
+  const timed =
+    timedMinutes != null &&
+    minutesText.trim() !== "" &&
+    Number(minutesText) === timedMinutes;
+
+  const save = () => {
+    if (!verdict || minutes == null) return;
     onRecorded?.(
-      logAttempt({
-        qid,
-        outcome: "solved",
-        band,
-        independence,
-        revisit: drill,
-        rating,
-        src: source,
-      }),
+      verdict.solved
+        ? logAttempt({
+            qid,
+            outcome: "solved",
+            minutes,
+            timed,
+            independence: verdict.independence ?? "solo",
+            revisit: drill,
+            rating,
+            src: source,
+          })
+        : logAttempt({
+            qid,
+            outcome: "gaveup",
+            minutes,
+            timed,
+            reason: verdict.reason ?? "no_idea",
+            rating,
+            src: source,
+          }),
     );
   };
 
-  const recordGaveUp = (reason: GaveUpReason) => {
-    onRecorded?.(
-      logAttempt({ qid, outcome: "gaveup", reason, rating, src: source }),
-    );
-  };
+  useEffect(() => {
+    if (verdict) inputRef.current?.focus();
+  }, [verdict]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
-      ) {
+      if (!verdict) {
+        if (event.key === "Escape") {
+          onCancel?.();
+          return;
+        }
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < VERDICTS.length) {
+          event.preventDefault();
+          setVerdict(VERDICTS[index]);
+        }
         return;
       }
 
+      // Focus sits in the minutes field, so only the surrounding controls are
+      // handled here; digits belong to the input.
       if (event.key === "Escape") {
-        if (stage === "outcome") onCancel?.();
-        else setStage("outcome");
-        return;
-      }
-
-      if (stage === "outcome") {
-        if (event.key === "1") setStage("solved");
-        else if (event.key === "0") setStage("gaveup");
-        return;
-      }
-
-      if (stage === "solved") {
-        const index = Number(event.key) - 1;
-        if (index >= 0 && index < EFFORT_BANDS.length) {
-          recordSolved(EFFORT_BANDS[index].key);
-        } else if (event.key.toLowerCase() === "s") {
-          setIndependence((prev) => (prev === "solo" ? "solution" : "solo"));
-        } else if (event.key.toLowerCase() === "d") {
-          setDrill((prev) => !prev);
-        }
-        return;
-      }
-
-      if (stage === "gaveup") {
-        const index = Number(event.key) - 1;
-        if (index >= 0 && index < GAVEUP_REASONS.length) {
-          recordGaveUp(GAVEUP_REASONS[index].key);
-        }
+        setVerdict(null);
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        save();
+      } else if (event.key.toLowerCase() === "d" && verdict.solved) {
+        event.preventDefault();
+        setDrill((prev) => !prev);
       }
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [stage, independence, drill, onCancel, qid, source]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verdict, minutes, timed, drill, onCancel, qid, source, rating]);
 
   return (
     <section
@@ -134,98 +195,71 @@ export default function ProgressRecordPanel({
         {questionTitle && <span className="prp-title">{questionTitle}</span>}
       </header>
 
-      {stage === "outcome" && (
-        <>
-          <p className="prp-question">{t("record.prompt.outcome")}</p>
-          <div className="prp-row">
-            <button
-              type="button"
-              className="prp-choice primary"
-              onClick={() => setStage("solved")}
-            >
-              <span>{t("record.outcome.solved")}</span>
-              <kbd>1</kbd>
-            </button>
-            <button
-              type="button"
-              className="prp-choice"
-              onClick={() => setStage("gaveup")}
-            >
-              <span>{t("record.outcome.gaveup")}</span>
-              <kbd>0</kbd>
-            </button>
-          </div>
-        </>
-      )}
+      <p className="prp-question">{t("record.prompt.outcome")}</p>
+      <div className="prp-row column">
+        {VERDICTS.map((item, index) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`prp-choice${verdict?.key === item.key ? " active" : ""}`}
+            aria-pressed={verdict?.key === item.key}
+            onClick={() => setVerdict(item)}
+          >
+            <span>{t(item.labelKey)}</span>
+            <kbd>{index + 1}</kbd>
+          </button>
+        ))}
+      </div>
 
-      {stage === "solved" && (
+      {verdict && (
         <>
-          <p className="prp-question">
-            {t("record.prompt.band")}<span className="prp-required">{t("record.required")}</span>
-          </p>
-          <div className="prp-bands">
-            {EFFORT_BANDS.map((band, index) => (
-              <button
-                key={band.key}
-                type="button"
-                className="prp-band"
-                onClick={() => recordSolved(band.key)}
-              >
-                <span className="prp-band-label">{t(bandLabelKey(band.key))}</span>
-                <span className="prp-band-hint">{t(bandHintKey(band.key))}</span>
-                <kbd>{index + 1}</kbd>
-              </button>
-            ))}
+          <p className="prp-question">{t("record.prompt.minutes")}</p>
+          <div className="prp-minutes">
+            <input
+              ref={inputRef}
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              className="prp-minutes-input"
+              value={minutesText}
+              placeholder={
+                suggestedMinutes != null
+                  ? t("record.suggested", { minutes: suggestedMinutes })
+                  : ""
+              }
+              onChange={(event) => setMinutesText(event.target.value)}
+            />
+            <span className="prp-minutes-unit">
+              {t("record.minutesSuffix")}
+            </span>
+            {timed && (
+              <span className="prp-timed">
+                {t("record.timed", {
+                  time: `${timedMinutes} ${t("record.minutesSuffix")}`,
+                })}
+              </span>
+            )}
           </div>
-          <div className="prp-independence" role="group" aria-label={t("record.group.independence")}>
-            {INDEPENDENCE_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={`prp-toggle${
-                  independence === option.key ? " active" : ""
-                }`}
-                aria-pressed={independence === option.key}
-                onClick={() => setIndependence(option.key)}
-              >
-                {t(independenceKey(option.key))}
-              </button>
-            ))}
-            <kbd>S</kbd>
-          </div>
-          <div className="prp-independence" role="group" aria-label={t("record.group.drill")}>
-            <button
-              type="button"
-              className={`prp-toggle${drill ? " active" : ""}`}
-              aria-pressed={drill}
-              onClick={() => setDrill((prev) => !prev)}
-            >
-              {t("record.drill.toggle")}
-            </button>
-            <kbd>D</kbd>
-            <span className="prp-hint">{t("record.drill.hint")}</span>
-          </div>
-        </>
-      )}
 
-      {stage === "gaveup" && (
-        <>
-          <p className="prp-question">
-            {t("record.prompt.reason")}<span className="prp-required">{t("record.required")}</span>
-          </p>
-          <div className="prp-row column">
-            {GAVEUP_REASONS.map((reason, index) => (
+          {verdict.solved && (
+            <div
+              className="prp-independence"
+              role="group"
+              aria-label={t("record.group.drill")}
+            >
               <button
-                key={reason.key}
                 type="button"
-                className="prp-choice"
-                onClick={() => recordGaveUp(reason.key)}
+                className={`prp-toggle${drill ? " active" : ""}`}
+                aria-pressed={drill}
+                onClick={() => setDrill((prev) => !prev)}
               >
-                <span>{t(gaveUpReasonKey(reason.key))}</span>
-                <kbd>{index + 1}</kbd>
+                {t("record.drill.toggle")}
               </button>
-            ))}
-          </div>
+              <kbd>D</kbd>
+              <span className="prp-hint">{t("record.drill.hint")}</span>
+            </div>
+          )}
         </>
       )}
 
@@ -233,15 +267,24 @@ export default function ProgressRecordPanel({
         <button
           type="button"
           className="prp-back"
-          onClick={() =>
-            stage === "outcome" ? onCancel?.() : setStage("outcome")
-          }
+          onClick={() => (verdict ? setVerdict(null) : onCancel?.())}
         >
-          {stage === "outcome" ? t("common.cancel") : t("common.back")}
+          {verdict ? t("common.back") : t("common.cancel")}
         </button>
         <span className="prp-note">
-          {stage === "outcome" ? t("record.footer.outcome") : t("record.footer.steps")}
+          {verdict ? t("record.footer.steps") : t("record.footer.outcome")}
         </span>
+        {verdict && (
+          <button
+            type="button"
+            className="prp-save"
+            onClick={save}
+            disabled={minutes == null}
+          >
+            {t("record.save")}
+            <kbd>Enter</kbd>
+          </button>
+        )}
       </footer>
     </section>
   );

@@ -3,6 +3,7 @@
 // XP economy.
 
 import type { MessageKey } from "@hooks/useI18n/messages";
+import { bandOf } from "@hooks/useProgressStore/bands";
 import type { AttemptEvent, EffortBand } from "@hooks/useProgressStore/types";
 
 /** Band names live in the message dictionary, addressed by this key. */
@@ -45,8 +46,8 @@ export const EFFORT_XP_MULTIPLIER: Record<EffortBand, number> = {
 export const SOLUTION_XP_FACTOR = 0.5;
 
 export const GAVEUP_XP = {
-  idea_tedious: 2,
   no_idea: 1,
+  saw_solution: 1,
 } as const;
 
 /** XP earned by a single attempt. `rating` is the problem's difficulty score. */
@@ -57,6 +58,9 @@ export function xpForAttempt(
   if (event.outcome === "gaveup") return GAVEUP_XP[event.reason];
 
   const base = rating == null ? RATING_BANDS[0].xp : bandFor(rating).xp;
-  const factor = event.independence === "solution" ? SOLUTION_XP_FACTOR : 1;
-  return Math.max(1, Math.round(base * EFFORT_XP_MULTIPLIER[event.band] * factor));
+  // Looking up an API costs a little XP: the algorithm was still the user's,
+  // but the solve was not fully unaided.
+  const factor = event.independence === "syntax" ? SOLUTION_XP_FACTOR : 1;
+  const band = bandOf(event.minutes);
+  return Math.max(1, Math.round(base * EFFORT_XP_MULTIPLIER[band] * factor));
 }

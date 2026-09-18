@@ -194,6 +194,8 @@ export function buildRecommendationQueue({
   const due: { qid: string; dueAt: number; urgency: number }[] = [];
   scheduleByQid.forEach((schedule, qid) => {
     if (!isDue(schedule, now)) return;
+    // A dismissed question is never offered again, however overdue it is.
+    if (derived.dismissed.has(qid)) return;
     const candidate = byQid.get(qid);
     if (!candidate || candidate.paidOnly) return;
 
@@ -250,7 +252,10 @@ export function buildRecommendationQueue({
   // ---- 2. fresh problems, scored against their own target ---------------
   const scored = candidates
     .filter(
-      (candidate) => !currentByQid.has(candidate.qid) && !candidate.paidOnly,
+      (candidate) =>
+        !currentByQid.has(candidate.qid) &&
+        !candidate.paidOnly &&
+        !derived.dismissed.has(candidate.qid),
     )
     .map((candidate) => {
       const target = targetFor(candidate.tags);

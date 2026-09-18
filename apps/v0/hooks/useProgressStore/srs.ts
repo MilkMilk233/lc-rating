@@ -9,8 +9,9 @@
 // real regardless of difficulty), while the GROWTH rate follows relative pace
 // (how fast that duration was *for that difficulty*). See ./pace.ts.
 
+import { bandOf } from "./bands";
 import { easeFactorFromPace, pointsAbove } from "./pace";
-import type { AttemptEvent, EffortBand } from "./types";
+import type { AttemptEvent, EffortBand, GaveUpReason } from "./types";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -42,13 +43,18 @@ export const EASE: Record<EffortBand, number> = {
   GT60: 1.5,
 };
 
-/** Leaning on the editorial means it was not really retrieved. */
-export const SOLUTION_FACTOR = 0.6;
-
-export const GAVEUP_COOLDOWN_DAYS = {
-  idea_tedious: 2,
+/**
+ * Days before a failed problem comes back.
+ *
+ * Both reasons mean "no algorithm of my own within the time I spent", so they
+ * share a cooldown; the distinction is kept in the record rather than acted on.
+ * ("Had an idea, too tedious to write" used to live here with a 2-day cooldown,
+ * which is exactly the wrong response — it is now a dismissal.)
+ */
+export const GAVEUP_COOLDOWN_DAYS: Record<GaveUpReason, number> = {
   no_idea: 7,
-} as const;
+  saw_solution: 7,
+};
 
 /** Consecutive give-ups before a problem is parked as a "leech". */
 export const LEECH_THRESHOLD = 3;
@@ -132,11 +138,7 @@ export function nextIntervalDays(
       : GAVEUP_COOLDOWN_DAYS[event.reason];
   }
 
-  const base = BASE_DAYS[event.band];
-
-  if (event.independence === "solution") {
-    return clampInterval(base * SOLUTION_FACTOR);
-  }
+  const base = BASE_DAYS[bandOf(event.minutes)];
 
   if (!prev || prev.lastOutcome === "gaveup") {
     return clampInterval(base);
@@ -153,9 +155,10 @@ export function nextIntervalDays(
   // meant one saturated signal compressed the whole schedule at once.
   const pace =
     event.rating != null
-      ? Math.max(0, pointsAbove(event.rating, event.band))
+      ? Math.max(0, pointsAbove(event.rating, bandOf(event.minutes)))
       : 0;
-  const ease = 1 + (EASE[event.band] - 1) * easeFactorFromPace(pace);
+  const band = bandOf(event.minutes);
+  const ease = 1 + (EASE[band] - 1) * easeFactorFromPace(pace);
   return clampInterval(
     Math.max(prev.intervalDays + 1, prev.intervalDays * ease),
   );
@@ -216,8 +219,8 @@ export function isFluentSolve(attempt: AttemptEvent | undefined): boolean {
   if (!attempt || attempt.outcome !== "solved") return false;
   if (attempt.independence !== "solo") return false;
   if (attempt.revisit === true) return false;
-  if (attempt.rating == null) return EASY_BANDS.includes(attempt.band);
-  return pointsAbove(attempt.rating, attempt.band) >= 0;
+  if (attempt.rating == null) return EASY_BANDS.includes(bandOf(attempt.minutes));
+  return pointsAbove(attempt.rating, bandOf(attempt.minutes)) >= 0;
 }
 
 /**

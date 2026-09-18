@@ -19,6 +19,27 @@ export interface BandMeta {
   order: number;
 }
 
+/**
+ * Upper bound of each band, in minutes, aligned with the midpoint table in
+ * pace.ts. The band is a *derived* view of a measured duration: `minutes` is
+ * the stored fact, so a record can never disagree with itself.
+ */
+export const BAND_UPPER_MINUTES: readonly { band: EffortBand; max: number }[] = [
+  { band: "LE5", max: 5 },
+  { band: "L5_15", max: 15 },
+  { band: "L15_30", max: 30 },
+  { band: "L30_60", max: 60 },
+  { band: "GT60", max: Infinity },
+];
+
+/** Bucket a duration into its felt-difficulty band. */
+export function bandOf(minutes: number): EffortBand {
+  const safe = Number.isFinite(minutes) && minutes > 0 ? minutes : 0;
+  return (
+    BAND_UPPER_MINUTES.find((entry) => safe <= entry.max)?.band ?? "GT60"
+  );
+}
+
 export const EFFORT_BANDS: readonly BandMeta[] = [
   { key: "LE5", order: 0 },
   { key: "L5_15", order: 1 },
@@ -58,8 +79,8 @@ export interface ReasonMeta {
 }
 
 export const GAVEUP_REASONS: readonly ReasonMeta[] = [
-  { key: "idea_tedious" },
   { key: "no_idea" },
+  { key: "saw_solution" },
 ];
 
 export const gaveUpReasonKey = (reason: GaveUpReason): MessageKey =>
@@ -87,7 +108,7 @@ export interface IndependenceMeta {
 
 export const INDEPENDENCE_OPTIONS: readonly IndependenceMeta[] = [
   { key: "solo" },
-  { key: "solution" },
+  { key: "syntax" },
 ];
 
 export const independenceKey = (value: Independence): MessageKey =>
@@ -105,11 +126,11 @@ export function attemptLabel(
   if (!event) return t("attempt.none");
   if (event.outcome === "solved") {
     const base = t("attempt.solved", {
-      band: t(bandLabelKey(event.band)),
+      band: t(bandLabelKey(bandOf(event.minutes))),
       mode: t(
         event.independence === "solo"
           ? "attempt.mode.solo"
-          : "attempt.mode.solution",
+          : "attempt.mode.syntax",
       ),
     });
     return event.revisit === true ? t("attempt.drill", { base }) : base;

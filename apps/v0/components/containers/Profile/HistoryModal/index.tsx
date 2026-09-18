@@ -12,6 +12,7 @@ import {
   attemptLabel,
   bandHintKey,
   bandLabelKey,
+  bandOf,
 } from "@hooks/useProgressStore/bands";
 import type {
   AttemptEvent,
@@ -57,7 +58,7 @@ export default function HistoryModal({
     return newestFirst.filter((event): event is AttemptEvent => {
       if (event.type !== "attempt") return false;
       if (outcome && event.outcome !== outcome) return false;
-      if (band && (event.outcome !== "solved" || event.band !== band)) {
+      if (band && bandOf(event.minutes) !== band) {
         return false;
       }
       if (needle) {

@@ -4,7 +4,7 @@
 // no React, no clock (callers pass `now` where it matters). UI code should read
 // these projections instead of raw events so that schema changes stay contained.
 
-import { BAND_ORDER } from "./bands";
+import { BAND_ORDER, bandOf } from "./bands";
 import { isDue, overdueDays, replay } from "./srs";
 import type { ScheduleState } from "./srs";
 import type {
@@ -41,9 +41,18 @@ export interface DerivedProgress {
   attemptsByQid: Map<string, AttemptEvent[]>;
   /** Latest attempt per question. */
   currentByQid: Map<string, AttemptEvent>;
-  /** Questions whose latest attempt was a solo/solution solve. */
+  /** Questions whose latest attempt was a solve with the user's own algorithm. */
   currentSolved: SolvedAttempt[];
   scheduleByQid: Map<string, ScheduleState>;
+  /**
+   * Questions the user asked never to see again.
+   *
+   * A dismissal is a preference about the candidate, not an observation about
+   * an attempt, so it never reaches the scheduler or the estimate. The latest
+   * event wins: recording an attempt afterwards revives the question, and
+   * deleting the dismissal revives it too.
+   */
+  dismissed: Set<string>;
   daily: Map<string, DayStats>;
   totals: ProgressTotals;
 }
@@ -118,13 +127,21 @@ export function deriveProgress(events: ProgressEvent[]): DerivedProgress {
 
     if (event.outcome === "solved") {
       stats.solved += 1;
-      stats.byBand[event.band] += 1;
+      stats.byBand[bandOf(event.minutes)] += 1;
       solvedAttempts += 1;
     } else {
       stats.gaveup += 1;
       gaveupAttempts += 1;
     }
   }
+
+  // Latest event per question across all kinds, used to decide dismissal.
+  const latestByQid = new Map<string, ProgressEvent>();
+  for (const event of ordered) latestByQid.set(event.qid, event);
+  const dismissed = new Set<string>();
+  latestByQid.forEach((event, qid) => {
+    if (event.type === "dismiss") dismissed.add(qid);
+  });
 
   const currentByQid = new Map<string, AttemptEvent>();
   const scheduleByQid = new Map<string, ScheduleState>();
@@ -152,6 +169,7 @@ export function deriveProgress(events: ProgressEvent[]): DerivedProgress {
     currentByQid,
     currentSolved,
     scheduleByQid,
+    dismissed,
     daily,
     totals: {
       marked: currentByQid.size,

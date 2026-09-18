@@ -21,14 +21,17 @@ import type {
   EffortBand,
   GaveUpReason,
   Independence,
-  ProgressStoreV2,
+  ProgressStore as ProgressDocument,
 } from "./types";
 
 export type LogAttemptInput =
   | {
       qid: string;
       outcome: "solved";
-      band: EffortBand;
+      /** How long the attempt took. The felt band is derived from it. */
+      minutes: number;
+      /** True when `minutes` came from the tracker rather than from the user. */
+      timed?: boolean;
       independence?: Independence;
       /** Drill mode: something here is worth memorising. */
       revisit?: boolean;
@@ -40,6 +43,8 @@ export type LogAttemptInput =
   | {
       qid: string;
       outcome: "gaveup";
+      minutes: number;
+      timed?: boolean;
       reason: GaveUpReason;
       rating?: number;
       at?: number;
@@ -56,8 +61,8 @@ export interface ImportResult {
 }
 
 /** Stable snapshot used during SSR/hydration, before localStorage is readable. */
-const SERVER_SNAPSHOT: ProgressStoreV2 = {
-  version: 2,
+const SERVER_SNAPSHOT: ProgressDocument = {
+  version: 3,
   installedAt: 0,
   events: [],
 };
@@ -67,7 +72,7 @@ function makeEventId(qid: string, at: number): string {
 }
 
 class ProgressStore {
-  private state: ProgressStoreV2 = SERVER_SNAPSHOT;
+  private state: ProgressDocument = SERVER_SNAPSHOT;
   private listeners = new Set<() => void>();
   private lastLoggedId: string | null = null;
 
@@ -78,9 +83,9 @@ class ProgressStore {
     window.addEventListener("storage", this.handleStorage);
   }
 
-  getSnapshot = (): ProgressStoreV2 => this.state;
+  getSnapshot = (): ProgressDocument => this.state;
 
-  getServerSnapshot = (): ProgressStoreV2 => SERVER_SNAPSHOT;
+  getServerSnapshot = (): ProgressDocument => SERVER_SNAPSHOT;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -111,6 +116,8 @@ class ProgressStore {
       qid,
       at,
       src: input.src ?? "recommend",
+      minutes: Math.max(0, Math.round(input.minutes)),
+      ...(input.timed ? { timed: true as const } : {}),
       ...(typeof input.rating === "number" ? { rating: input.rating } : {}),
     };
     const event: AttemptEvent =
@@ -118,7 +125,6 @@ class ProgressStore {
         ? {
             ...base,
             outcome: "solved",
-            band: input.band,
             independence: input.independence ?? "solo",
             ...(input.revisit ? { revisit: true as const } : {}),
           }
@@ -131,6 +137,25 @@ class ProgressStore {
     this.lastLoggedId = event.id;
     this.notify();
     return event;
+  };
+
+  /**
+   * Never offer this question again.
+   *
+   * Stored as an event rather than a flag so it survives export/import and can
+   * be revoked by deleting it, and so "the latest event wins" already handles
+   * reviving a question that is attempted later.
+   */
+  dismiss = (qid: string, src: AttemptSource = "recommend"): void => {
+    const at = Date.now();
+    this.state = mutateStore((current) => ({
+      ...current,
+      events: [
+        ...current.events,
+        { id: makeEventId(String(qid), at), type: "dismiss", qid: String(qid), at },
+      ],
+    }));
+    this.notify();
   };
 
   /** Undo the most recent attempt logged in this session. */
@@ -204,6 +229,7 @@ export function useProgressStore() {
     store: snapshot,
     derived,
     logAttempt: store.logAttempt,
+    dismiss: store.dismiss,
     undoLast: store.undoLast,
     removeAttempts: store.removeAttempts,
     exportData: store.exportData,

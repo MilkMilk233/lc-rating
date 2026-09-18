@@ -493,3 +493,74 @@
   font-weight: 650;
   line-height: 1.55;
 }
+
+// v3 record panel: a duration in minutes replaces the felt-difficulty band.
+.prp-minutes {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: .1rem 0 .7rem;
+}
+
+.prp-minutes-input {
+  width: 6rem;
+  padding: .45rem .6rem;
+  border: 2px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: right;
+
+  &:focus {
+    border-color: var(--app-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--app-accent-soft);
+  }
+
+  // Spinners fight the keyboard-first flow and shift the layout on hover.
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+
+  appearance: textfield;
+}
+
+.prp-minutes-unit {
+  color: var(--app-muted);
+  font-weight: 800;
+}
+
+.prp-timed {
+  color: var(--app-accent);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.prp-choice.active {
+  border-color: var(--app-accent);
+  background: var(--app-accent-soft);
+}
+
+.prp-save {
+  margin-left: auto;
+  padding: .35rem .8rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--app-accent);
+  color: #fff;
+  font-weight: 850;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  kbd {
+    margin-left: .35rem;
+  }
+}

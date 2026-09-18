@@ -1,4 +1,4 @@
-// Progress data schema (v2).
+// Progress data schema (v3).
 //
 // The append-only event log is the single source of truth. Every user action
 // that changes a question's state is stored as an immutable event; everything
@@ -10,16 +10,34 @@
 //   FORBIDDEN renaming / removing fields or changing the meaning of an existing
 //             field. Those need a version bump plus an explicit conversion.
 //
+// v3 replaced the coarse felt-difficulty band with a measured duration in
+// minutes, dropped the "solved with the editorial" pseudo-success, and added
+// dismissals. `bandOf(minutes)` reproduces the old band exactly, and the v2
+// conversion lives in ./storage.ts.
+//
 // Persistence layout lives in ./storage.ts.
 
-/** How long the attempt felt, used as the primary difficulty signal. */
+/** Coarse duration bucket. Derived from `minutes`, never stored. */
 export type EffortBand = "LE5" | "L5_15" | "L15_30" | "L30_60" | "GT60";
 
-/** Whether the user solved it alone or leaned on the editorial. */
-export type Independence = "solo" | "solution";
+/**
+ * Whether the algorithm was the user's own.
+ *
+ * `syntax` means they knew the approach and only looked up an API or language
+ * detail: the algorithmic evidence is intact, but the duration now includes
+ * time spent reading documentation.
+ */
+export type Independence = "solo" | "syntax";
 
-/** Why the user gave up on an attempt. */
-export type GaveUpReason = "idea_tedious" | "no_idea";
+/**
+ * How an attempt ended without a solution of the user's own.
+ *
+ * `saw_solution` means they read the editorial; `no_idea` means they ran out
+ * of ideas. Both are the same observation to the scheduler and the estimator —
+ * the user did not produce the algorithm inside the time they spent — so the
+ * distinction is kept for the record rather than for the model.
+ */
+export type GaveUpReason = "no_idea" | "saw_solution";
 
 /**
  * Which entry point produced the event. Unknown values are preserved so a
@@ -27,16 +45,30 @@ export type GaveUpReason = "idea_tedious" | "no_idea";
  */
 export type AttemptSource = "zen" | "recommend" | (string & {});
 
-interface AttemptBase {
+interface EventBase {
   /** Stable id, used to deduplicate events on import. */
   id: string;
-  /** Top-level discriminator so future event kinds can join the log. */
-  type: "attempt";
   /** LeetCode question_id. */
   qid: string;
-  /** When the attempt happened, epoch ms (defaults to the record time). */
+  /** When the event happened, epoch ms (defaults to the record time). */
   at: number;
+}
+
+interface AttemptBase extends EventBase {
+  /** Top-level discriminator so future event kinds can join the log. */
+  type: "attempt";
   src: AttemptSource;
+  /**
+   * How long the user spent on the problem, in minutes.
+   *
+   * This is the only duration fact: the felt-difficulty band is derived from
+   * it, so a record can never carry a band that disagrees with its own
+   * duration. Values the tracker did not measure (typed by hand, or carried
+   * over from a v2 band) are marked by `timed` and given a wider error term.
+   */
+  minutes: number;
+  /** True when `minutes` came from the tracker rather than from the user. */
+  timed?: true;
   /**
    * The problem's difficulty at the time of the attempt.
    *
@@ -50,7 +82,6 @@ interface AttemptBase {
 
 export interface SolvedAttempt extends AttemptBase {
   outcome: "solved";
-  band: EffortBand;
   independence: Independence;
   /**
    * "There is something here worth drilling" — a transferable fragment such as
@@ -70,12 +101,24 @@ export interface GaveUpAttempt extends AttemptBase {
 
 export type AttemptEvent = SolvedAttempt | GaveUpAttempt;
 
+/**
+ * "Do not offer me this problem again."
+ *
+ * A preference about the candidate, not an observation of an attempt, which is
+ * why it is its own event kind: it must never enter the difficulty estimate,
+ * and it needs to be revocable by deleting it. A later attempt on the same
+ * question also revives it, because the latest event wins.
+ */
+export interface DismissEvent extends EventBase {
+  type: "dismiss";
+}
+
 /** Future event kinds (bookmarks, notes, ...) join this union. */
-export type ProgressEvent = AttemptEvent;
+export type ProgressEvent = AttemptEvent | DismissEvent;
 
 /** The whole persisted document, stored under a single localStorage key. */
-export interface ProgressStoreV2 {
-  version: 2;
+export interface ProgressStore {
+  version: 3;
   installedAt: number;
   /** Ordered by (at, id). */
   events: ProgressEvent[];

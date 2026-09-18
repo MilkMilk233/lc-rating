@@ -14,7 +14,7 @@ import {
   streakDays,
 } from "@hooks/useProgressStore/derive";
 import { isDue, isGraduated } from "@hooks/useProgressStore/srs";
-import { bandLabelKey } from "@hooks/useProgressStore/bands";
+import { bandLabelKey, bandOf } from "@hooks/useProgressStore/bands";
 import {
   BAND_MINUTES,
   LADDER_MAX,
@@ -488,10 +488,12 @@ export default function Profile() {
       if (event.type !== "attempt" || event.outcome !== "solved") return;
       const rating = event.rating ?? zenById.get(event.qid)?.rating;
       if (rating == null) return;
+      // v3 stores a measured duration, so the chart plots the real value
+      // instead of the band midpoint it used to stand for.
       attempts.push({
         rating,
-        band: event.band,
-        minutes: BAND_MINUTES[event.band],
+        band: bandOf(event.minutes),
+        minutes: event.minutes,
       });
     });
 

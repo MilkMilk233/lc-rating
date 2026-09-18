@@ -12,6 +12,7 @@ import {
   EFFORT_BANDS,
   attemptLabel,
   bandLabelKey,
+  bandOf,
 } from "@hooks/useProgressStore/bands";
 import { isDue } from "@hooks/useProgressStore/srs";
 import type { ScheduleState } from "@hooks/useProgressStore/srs";
@@ -465,7 +466,7 @@ export default function Zenk() {
 
       if (filters.outcome === "solved") {
         if (!current || current.outcome !== "solved") return false;
-        if (bandFilterActive && !selectedBands.includes(current.band)) {
+        if (bandFilterActive && !selectedBands.includes(bandOf(current.minutes))) {
           return false;
         }
       } else if (filters.outcome === "gaveup") {

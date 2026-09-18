@@ -8,6 +8,7 @@
 // backend (IndexedDB, sharded keys, ...) should not touch the rest of the app.
 
 import type { MessageKey } from "@hooks/useI18n/messages";
+import { BAND_MINUTES } from "./pace";
 import {
   isEffortBand,
   isGaveUpReason,
@@ -15,10 +16,10 @@ import {
 } from "./bands";
 import { mergeEvents } from "./derive";
 import type {
-  AttemptEvent,
+  EffortBand,
   GaveUpAttempt,
   ProgressEvent,
-  ProgressStoreV2,
+  ProgressStore,
   SolvedAttempt,
 } from "./types";
 
@@ -35,16 +36,55 @@ export const LEGACY_PROGRESS_KEYS = [
 
 const isBrowser = () => typeof window !== "undefined";
 
-export function emptyStore(): ProgressStoreV2 {
-  return { version: 2, installedAt: Date.now(), events: [] };
+export function emptyStore(): ProgressStore {
+  return { version: 3, installedAt: Date.now(), events: [] };
 }
 
-export function validateEvent(raw: unknown): AttemptEvent | null {
+/**
+ * Convert one v2 attempt to v3.
+ *
+ * - the felt band becomes the duration it stood for (`BAND_MINUTES`), marked
+ *   `timed: false` because it was never measured; the estimator gives such
+ *   records a wider error term, and validation can exclude them entirely
+ * - "solved with the editorial" was never a solve, so it becomes a give-up
+ *   whose reason is `saw_solution`
+ * - "had an idea but too tedious" carried no monotone signal about ability and
+ *   is now expressed by dismissing a problem, so those attempts are dropped
+ *
+ * Returns null for events with no v3 equivalent.
+ */
+export function migrateV2Event(raw: unknown): ProgressEvent | null {
+  if (!raw || typeof raw !== "object") return null;
+  const e = raw as Record<string, unknown>;
+  if (e.type !== "attempt") return null;
+
+  if (e.outcome === "solved" && e.independence === "solution") {
+    return validateEvent({
+      ...e,
+      outcome: "gaveup",
+      reason: "saw_solution",
+      independence: undefined,
+      minutes: minutesOfV2(e),
+      band: undefined,
+    });
+  }
+  if (e.outcome === "gaveup" && e.reason === "idea_tedious") return null;
+
+  return validateEvent({ ...e, minutes: minutesOfV2(e), band: undefined });
+}
+
+function minutesOfV2(e: Record<string, unknown>): number | undefined {
+  if (typeof e.minutes === "number" && Number.isFinite(e.minutes)) return e.minutes;
+  return typeof e.band === "string" && e.band in BAND_MINUTES
+    ? BAND_MINUTES[e.band as EffortBand]
+    : undefined;
+}
+
+export function validateEvent(raw: unknown): ProgressEvent | null {
   if (!raw || typeof raw !== "object") return null;
   const e = raw as Record<string, unknown>;
 
   if (typeof e.id !== "string" || e.id.length === 0) return null;
-  if (e.type !== "attempt") return null;
   if (typeof e.at !== "number" || !Number.isFinite(e.at)) return null;
 
   // Question ids arrive as JSON numbers from zenk.json but are stored as
@@ -58,18 +98,31 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
         : "";
   if (qid.length === 0) return null;
 
+  if (e.type === "dismiss") {
+    return { id: e.id, type: "dismiss", qid, at: e.at };
+  }
+  if (e.type !== "attempt") return null;
+
   const src = typeof e.src === "string" && e.src.length > 0 ? e.src : "zen";
   const rating =
     typeof e.rating === "number" && Number.isFinite(e.rating)
       ? e.rating
       : undefined;
+  const minutes =
+    typeof e.minutes === "number" && Number.isFinite(e.minutes) && e.minutes >= 0
+      ? e.minutes
+      : null;
+  const timed = e.timed === true ? (true as const) : undefined;
+  // v3 derives the band from the duration, so a leftover v2 `band` is dropped
+  // rather than carried along as a second, possibly disagreeing, source.
+  const { band: _legacyBand, ...rest } = e;
 
   if (e.outcome === "solved") {
-    if (!isEffortBand(e.band)) return null;
+    if (minutes == null) return null;
     if (!isIndependence(e.independence)) return null;
     // Spread first so fields written by a newer client survive a round-trip.
     return {
-      ...(e as unknown as SolvedAttempt),
+      ...(rest as unknown as SolvedAttempt),
       id: e.id,
       type: "attempt",
       qid,
@@ -77,7 +130,8 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       src,
       rating,
       outcome: "solved",
-      band: e.band,
+      minutes,
+      timed,
       independence: e.independence,
       // Only ever true or absent, so the flag cannot be set to junk on import.
       revisit: e.revisit === true ? true : undefined,
@@ -85,9 +139,10 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
   }
 
   if (e.outcome === "gaveup") {
+    if (minutes == null) return null;
     if (!isGaveUpReason(e.reason)) return null;
     return {
-      ...(e as unknown as GaveUpAttempt),
+      ...(rest as unknown as GaveUpAttempt),
       id: e.id,
       type: "attempt",
       qid,
@@ -95,6 +150,8 @@ export function validateEvent(raw: unknown): AttemptEvent | null {
       src,
       rating,
       outcome: "gaveup",
+      minutes,
+      timed,
       reason: e.reason,
     };
   }
@@ -118,7 +175,10 @@ function extractEvents(raw: unknown): ExtractResult | null {
   const events: ProgressEvent[] = [];
   let invalid = 0;
   for (const item of list) {
-    const event = validateEvent(item);
+    // v2 records are converted on the way in, so the rest of the app only ever
+    // sees one shape. An attempt the conversion drops counts as invalid rather
+    // than silently disappearing.
+    const event = validateEvent(item) ?? migrateV2Event(item);
     if (event) events.push(event);
     else invalid += 1;
   }
@@ -134,7 +194,7 @@ function installedAtOf(raw: unknown): number {
 }
 
 /** Load the persisted document, dropping malformed events instead of failing. */
-export function loadStore(): ProgressStoreV2 {
+export function loadStore(): ProgressStore {
   if (!isBrowser()) return emptyStore();
 
   const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -145,7 +205,7 @@ export function loadStore(): ProgressStoreV2 {
     const extracted = extractEvents(parsed);
     if (!extracted) return emptyStore();
     return {
-      version: 2,
+      version: 3,
       installedAt: installedAtOf(parsed),
       events: mergeEvents(extracted.events),
     };
@@ -161,12 +221,12 @@ export function loadStore(): ProgressStoreV2 {
  * other tab appended between our render and this write is preserved.
  */
 export function mutateStore(
-  mutator: (current: ProgressStoreV2) => ProgressStoreV2,
-): ProgressStoreV2 {
+  mutator: (current: ProgressStore) => ProgressStore,
+): ProgressStore {
   const current = loadStore();
   const draft = mutator(current);
-  const next: ProgressStoreV2 = {
-    version: 2,
+  const next: ProgressStore = {
+    version: 3,
     installedAt: current.installedAt || Date.now(),
     events: mergeEvents(draft.events),
   };
@@ -208,15 +268,15 @@ export function cleanupLegacyKeys(): number {
 }
 
 export interface ExportPayload {
-  version: 2;
+  version: 3;
   exportedAt: number;
   installedAt: number;
   events: ProgressEvent[];
 }
 
-export function buildExport(store: ProgressStoreV2): string {
+export function buildExport(store: ProgressStore): string {
   const payload: ExportPayload = {
-    version: 2,
+    version: 3,
     exportedAt: Date.now(),
     installedAt: store.installedAt,
     events: store.events,

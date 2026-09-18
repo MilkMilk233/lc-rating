@@ -19,6 +19,7 @@
 // because being unable to solve at rating R is direct evidence against ability
 // above R.
 
+import { bandOf } from "./bands";
 import { impliedAbility, pointsAbove } from "./pace";
 import { DAY_MS } from "./srs";
 import type { ProgressEvent, SolvedAttempt } from "./types";
@@ -133,7 +134,7 @@ export function estimateAbility(
     const sample: AbilitySample = {
       rating:
         event.independence === "solo"
-          ? impliedAbility(rating, event.band)
+          ? impliedAbility(rating, bandOf(event.minutes))
           : rating,
       weight,
     };
@@ -266,8 +267,11 @@ function clamp(value: number, min: number, max: number): number {
 
 /** Solo solve that landed clearly above the problem's own level. */
 function isClearlyFastForLevel(attempt: SolvedAttempt): boolean {
-  if (attempt.rating == null) return attempt.band === "LE5";
-  return pointsAbove(attempt.rating, attempt.band) >= MOMENTUM_PACE_THRESHOLD;
+  if (attempt.rating == null) return bandOf(attempt.minutes) === "LE5";
+  return (
+    pointsAbove(attempt.rating, bandOf(attempt.minutes)) >=
+    MOMENTUM_PACE_THRESHOLD
+  );
 }
 
 export function targetAdjustment(
