@@ -163,6 +163,17 @@ export interface BuildQueueParams {
   ability: AbilityEstimate;
   /** Short-term difficulty adjustment (form, frustration, momentum). */
   adjustment: TargetAdjustment;
+  /**
+   * Fresh problems still owed before the next review.
+   *
+   * The queue is recomputed on every step so it reflects the latest ability
+   * estimate, which means the interleave's position inside its own pattern has
+   * to be handed back in — otherwise each rebuild would restart at "review
+   * first" and reviews would arrive back to back.
+   */
+  leadFresh?: number;
+  /** Questions already served in this session, whatever their outcome. */
+  skip?: Set<string>;
   now: number;
 }
 
@@ -173,6 +184,8 @@ export function buildRecommendationQueue({
   ability,
   adjustment,
   now,
+  leadFresh = 0,
+  skip,
 }: BuildQueueParams): QueueItem[] {
   const { currentByQid, scheduleByQid, currentSolved } = derived;
   const offset = adjustment.offset;
@@ -196,6 +209,8 @@ export function buildRecommendationQueue({
     if (!isDue(schedule, now)) return;
     // A dismissed question is never offered again, however overdue it is.
     if (derived.dismissed.has(qid)) return;
+    // Nor one already served this session, which is how "another one" sticks.
+    if (skip?.has(qid)) return;
     const candidate = byQid.get(qid);
     if (!candidate || candidate.paidOnly) return;
 
@@ -255,7 +270,8 @@ export function buildRecommendationQueue({
       (candidate) =>
         !currentByQid.has(candidate.qid) &&
         !candidate.paidOnly &&
-        !derived.dismissed.has(candidate.qid),
+        !derived.dismissed.has(candidate.qid) &&
+        !skip?.has(candidate.qid),
     )
     .map((candidate) => {
       const target = targetFor(candidate.tags);
@@ -394,6 +410,20 @@ export function buildRecommendationQueue({
   const queue: QueueItem[] = [];
   let reviewIndex = 0;
   let freshIndex = 0;
+
+  // Resume mid-pattern: a session that has already served some of the fresh
+  // problems owed after a review must not start over with another review, or
+  // every rebuild would serve reviews back to back and the one-to-two ratio
+  // would never hold.
+  for (
+    let owed = 0;
+    owed < leadFresh && freshIndex < remainingFresh.length;
+    owed += 1
+  ) {
+    queue.push(remainingFresh[freshIndex]);
+    freshIndex += 1;
+  }
+
   while (
     reviewIndex < reviewBlocks.length ||
     freshIndex < remainingFresh.length

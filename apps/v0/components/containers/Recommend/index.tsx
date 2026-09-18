@@ -5,6 +5,13 @@ import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import { useTagLabel } from "@hooks/useTagLabel";
+import {
+  clearSession,
+  readSession,
+  writeSession,
+} from "@hooks/usePlanPersistence";
+import type { QueueSession } from "@hooks/usePlanPersistence";
+import { FRESH_PER_REVIEW } from "@hooks/useProgressStore/recommend";
 import { contestName } from "@utils/contestName";
 import type { Message, MessageKey } from "@hooks/useI18n";
 import { useProgressStore } from "@hooks/useProgressStore";
@@ -91,7 +98,7 @@ export default function Recommend() {
   // card. Re-deriving it after every attempt restarts the review/new
   // interleaving from the top, which puts a review at the head every time — the
   // user then sees review after review with no alternation.
-  const buildPlan = useCallback((): Plan => {
+  const buildPlan = useCallback((session: QueueSession): Plan => {
     const questionByQid = new Map<string, ZenQuestion>();
     const byQid = new Map<string, Candidate>();
     const candidates: Candidate[] = [];
@@ -131,6 +138,8 @@ export default function Recommend() {
       ability,
       adjustment,
       now,
+      leadFresh: session.pendingFresh,
+      skip: new Set(session.served),
     });
     for (const item of plan) {
       const question = questionByQid.get(item.qid);
@@ -139,6 +148,9 @@ export default function Recommend() {
       }
     }
 
+    // Nothing about the queue is stored: it is rebuilt from the log on every
+    // step, so the order always reflects the current ability estimate. Only the
+    // session's position is remembered, and that is what a reload restores.
     return {
       items,
       target: adjustment.effective,
@@ -149,35 +161,57 @@ export default function Recommend() {
 
   useEffect(() => {
     if (plan !== null || zen.length === 0) return;
-    setPlan(buildPlan());
+
+    // Resume the stored queue when there is one, so a reload keeps the card the
+    // user was looking at. Items whose question is gone from the pool are
+    // dropped; anything else is trusted, since the stored plan was already
+    // filtered as it was consumed.
+    // The session only carries position; the queue is rebuilt from it. Two
+    // loads with the same log therefore produce the same card, which is what
+    // makes a reload stop shuffling the recommendation.
+    setPlan(buildPlan(readSession()));
   }, [plan, zen.length, buildPlan]);
 
   const current = plan?.items[0];
 
-  const consume = useCallback((qid: string) => {
-    setPlan((prev) =>
-      prev
-        ? {
-            ...prev,
-            items: prev.items.filter(
-              (item) => String(item.question.question_id) !== qid,
-            ),
-          }
-        : prev,
-    );
-  }, []);
+  /**
+   * Advance past the current card.
+   *
+   * The session records what was served and how far into the interleave pattern
+   * it got; the queue itself is then rebuilt from the log, so the next card is
+   * chosen against the newest ability estimate rather than a stale ordering.
+   */
+  const consume = useCallback(
+    (qid: string, pool: string) => {
+      const previous = readSession();
+      const wasReview = pool === "review" || pool === "revive";
+      const session: QueueSession = {
+        served: previous.served.includes(qid)
+          ? previous.served
+          : [...previous.served, qid],
+        pendingFresh: wasReview
+          ? FRESH_PER_REVIEW
+          : Math.max(0, previous.pendingFresh - 1),
+        updatedAt: Date.now(),
+      };
+      writeSession(session);
+      setPlan(buildPlan(session));
+    },
+    [buildPlan],
+  );
 
   const restart = () => {
     setShowRecord(false);
     setLastResult(null);
-    setPlan(buildPlan());
+    clearSession();
+    setPlan(buildPlan({ served: [], pendingFresh: 0, updatedAt: Date.now() }));
   };
 
   const handleSkip = () => {
     if (!current) return;
     setShowRecord(false);
     clearAttemptStart();
-    consume(String(current.question.question_id));
+    consume(String(current.question.question_id), current.pool);
   };
 
   // Dismissal is permanent, so it takes a second press. The confirmation is
@@ -202,7 +236,7 @@ export default function Recommend() {
     setShowRecord(false);
     clearAttemptStart();
     dismiss(qidToDismiss);
-    consume(qidToDismiss);
+    consume(qidToDismiss, current.pool);
   };
 
   // Card-level shortcuts: O 去做题 / R 记录结果 / N 换一道.
@@ -296,7 +330,7 @@ export default function Recommend() {
 
     const handleRecorded = (event: AttemptEvent) => {
       setShowRecord(false);
-      consume(qid);
+      consume(qid, current.pool);
 
       const next = applyAttempt(schedule, event);
       const days = Math.max(1, Math.round((next.dueAt - event.at) / DAY_MS));
