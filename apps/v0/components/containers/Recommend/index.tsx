@@ -62,7 +62,7 @@ const POOL_BADGE: Record<Pool, { label: MessageKey; tone: string }> = {
 
 export default function Recommend() {
   const { zen } = useZen();
-  const { tags: questionTags } = useQuestionTags(null);
+  const { tags: questionTags, isPending: tagsPending } = useQuestionTags(null);
   const { language, t, isEn } = useI18n();
   const titleOf = useQuestionTitle();
   const tagLabel = useTagLabel();
@@ -160,17 +160,19 @@ export default function Recommend() {
   }, [zen, derived, questionTags, now, isEn]);
 
   useEffect(() => {
-    if (plan !== null || zen.length === 0) return;
+    // Both data sources have to be in before the queue is built. The pool and
+    // the tag table are separate requests, and tags are what the novelty score
+    // is made of: building while they are still empty makes every problem look
+    // equally new and produces a completely different order (1286 vs 1253 on
+    // the same log), which is why a refresh could serve a different card than
+    // the session had just shown.
+    if (plan !== null || zen.length === 0 || tagsPending) return;
 
-    // Resume the stored queue when there is one, so a reload keeps the card the
-    // user was looking at. Items whose question is gone from the pool are
-    // dropped; anything else is trusted, since the stored plan was already
-    // filtered as it was consumed.
     // The session only carries position; the queue is rebuilt from it. Two
     // loads with the same log therefore produce the same card, which is what
     // makes a reload stop shuffling the recommendation.
     setPlan(buildPlan(readSession()));
-  }, [plan, zen.length, buildPlan]);
+  }, [plan, zen.length, tagsPending, buildPlan]);
 
   const current = plan?.items[0];
 
