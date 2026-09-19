@@ -12,6 +12,7 @@ import Loading from "@components/Loading";
 import ProgressRecordPanel from "@components/ProgressRecordPanel";
 import RatingCircle, { ColorRating } from "@components/RatingCircle";
 import { useI18n } from "@hooks/useI18n";
+import { useTagLabel } from "@hooks/useTagLabel";
 import { contestName } from "@utils/contestName";
 import { useQuestionTitle } from "@hooks/useQuestionTitles";
 import type { Locale } from "@hooks/useI18n";
@@ -56,6 +57,7 @@ export default function Search() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { language, isCn, isEn, t, locale } = useI18n();
+  const tagLabel = useTagLabel();
   const titleOf = useQuestionTitle();
   const { derived } = useProgressStore();
   const { currentByQid, scheduleByQid } = derived;
@@ -109,19 +111,19 @@ export default function Search() {
   }, [deferredQuery, onlyTodo]);
 
   // The tag most of the results matched, so a broad query can be continued in
-  // /zen with that filter already applied.
+  // /zen with that filter already applied. Counted and handed over as the
+  // canonical English name — the same shape /zen filters on — and translated
+  // only for display, so the hand-off link cannot outlive a locale switch.
   const dominantTag = useMemo(() => {
     if (hidden <= 0) return null;
-    const counts = new Map<string, { en: string; cn: string; count: number }>();
+    const counts = new Map<string, number>();
     filtered.forEach((hit) => {
       if (!hit.tag) return;
-      const entry = counts.get(hit.tag);
-      if (entry) entry.count += 1;
-      else counts.set(hit.tag, { en: hit.tag, cn: hit.tagCn ?? hit.tag, count: 1 });
+      counts.set(hit.tag, (counts.get(hit.tag) ?? 0) + 1);
     });
-    let best: { en: string; cn: string; count: number } | null = null;
-    counts.forEach((entry) => {
-      if (!best || entry.count > best.count) best = entry;
+    let best: string | null = null;
+    counts.forEach((count, tag) => {
+      if (best === null || count > (counts.get(best) ?? 0)) best = tag;
     });
     return best;
   }, [filtered, hidden]);
@@ -380,9 +382,9 @@ export default function Search() {
                 {dominantTag && (
                   <Link
                     className="search-handoff"
-                    href={`/zen?tags=${encodeURIComponent(dominantTag.en)}`}
+                    href={`/zen?tags=${encodeURIComponent(dominantTag)}`}
                   >
-                    {t("search.handoff", { tag: dominantTag.cn })}
+                    {t("search.handoff", { tag: tagLabel(dominantTag) })}
                   </Link>
                 )}
               </div>

@@ -82,8 +82,48 @@ blockquote {
 
     .top-nav {
         grid-area: top-nav;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: .75rem 1rem;
         text-align: center;
         font-size: 2rem;
+    }
+
+    // This route group renders outside the site layout, so it cannot borrow
+    // `.language-toggle` from styles.scss. Translucent colours and `inherit`
+    // keep the switch readable whether or not the page inherits a theme.
+    .mdx-lang-toggle {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .15rem;
+        align-items: center;
+        min-width: 72px;
+        height: 34px;
+        padding: .2rem;
+        border: 1px solid rgba(128, 128, 128, .45);
+        border-radius: 8px;
+        background: rgba(128, 128, 128, .1);
+        color: inherit;
+        font-size: .78rem;
+        font-weight: 800;
+        cursor: pointer;
+
+        span {
+            display: inline-grid;
+            place-items: center;
+            height: 26px;
+            border-radius: 6px;
+        }
+
+        span.active {
+            background: rgba(15, 118, 110, .22);
+        }
     }
 
     .content {
@@ -96,6 +136,19 @@ blockquote {
         & * {
             outline: none;
         }
+
+        // `.mdx-lang-note` lives in _common.scss, which this route group does
+        // not load; restated here with translucent colours so it reads on
+        // either background.
+        .mdx-lang-note {
+            margin: 0 0 1rem;
+            padding: .5rem .9rem;
+            border: 1px solid rgba(128, 128, 128, .35);
+            border-radius: 10px;
+            background: rgba(15, 118, 110, .12);
+            font-size: .85rem;
+            font-weight: 700;
+        }
     }
 }
 
@@ -105,4 +158,3 @@ blockquote {
         margin: 0 auto;
     }
 }
-

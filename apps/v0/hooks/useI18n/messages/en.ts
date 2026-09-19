@@ -238,6 +238,12 @@ export const en: Messages = {
 
   "content.chineseOnly": "This content is only available in Chinese.",
 
+  "algo.string": "String",
+  "algo.monotoneStack": "Monotone Stack",
+  "algo.dijkstra": "Dijkstra",
+  "algo.sparseTable": "SparseTable",
+  "algo.segmentTree": "SegmentTree",
+
   "common.cancel": "Cancel",
   "common.back": "Back",
 

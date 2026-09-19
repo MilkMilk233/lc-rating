@@ -256,6 +256,15 @@ export const zh = {
 
   "content.chineseOnly": "这部分内容只有中文版。",
 
+  // --- code templates -----------------------------------------------------
+  // The template bodies are Chinese-only prose, but the menu is part of the
+  // chrome, so it follows the locale like every other label.
+  "algo.string": "字符串 (String)",
+  "algo.monotoneStack": "单调栈 (Monotone Stack)",
+  "algo.dijkstra": "Dijkstra",
+  "algo.sparseTable": "SparseTable",
+  "algo.segmentTree": "SegmentTree",
+
   // --- common -------------------------------------------------------------
   "common.cancel": "取消",
   "common.back": "返回",

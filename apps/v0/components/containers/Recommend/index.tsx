@@ -84,8 +84,18 @@ export default function Recommend() {
   // reflected, instead of being missed by a closure that predates it.
   const [session, setSession] = useState<QueueSession>(() => readSession());
   const [showRecord, setShowRecord] = useState(false);
+  // The banner holds the *data* of the recorded attempt, not a finished
+  // sentence: a string composed at record time keeps the locale (and the
+  // problem title) it was built with, so switching the language afterwards
+  // would leave one Chinese line under an English page. It is rendered from
+  // these fields instead, which also lets the title pick up titles-en.json
+  // when that arrives after the attempt was logged.
   const [lastResult, setLastResult] = useState<{
-    text: string;
+    qid: string;
+    /** Chinese title, the fallback `titleOf` uses. */
+    title: string;
+    xp: number;
+    days: number;
     solved: boolean;
   } | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -342,17 +352,10 @@ export default function Recommend() {
       const xp = xpForAttempt(event, question.rating);
       setLastResult({
         solved: event.outcome === "solved",
-        text:
-          event.outcome === "solved"
-            ? t("rec.toast.revisit", {
-                title: titleOf(question.question_id, question.title),
-                xp,
-                days,
-              })
-            : t("rec.toast.solved", {
-                title: titleOf(question.question_id, question.title),
-                days,
-              }),
+        qid,
+        title: question.title,
+        xp,
+        days,
       });
     };
 
@@ -503,7 +506,13 @@ export default function Recommend() {
           ) : (
             <LuCheck aria-hidden size={18} />
           )}
-          <span>{lastResult.text}</span>
+          <span>
+            {t(lastResult.solved ? "rec.toast.revisit" : "rec.toast.solved", {
+              title: titleOf(lastResult.qid, lastResult.title),
+              xp: lastResult.xp,
+              days: lastResult.days,
+            })}
+          </span>
         </div>
       )}
 
