@@ -37,7 +37,7 @@ import {
 } from "@utils/leetcodeLinks";
 import { bandFor, xpForAttempt } from "@utils/practice";
 import clsx from "clsx";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Container } from "react-bootstrap";
 import {
   LuArrowUpRight,
@@ -77,7 +77,12 @@ export default function Recommend() {
     gapDays: number;
   }
 
-  const [plan, setPlan] = useState<Plan | null>(null);
+  // The queue is derived, not stored: `session` is the only state, and the plan
+  // is a pure function of it plus the current data. That is what makes the card
+  // identical before and after a reload — both compute f(session, log, pool,
+  // tags) — and it also means an attempt recorded a moment ago is already
+  // reflected, instead of being missed by a closure that predates it.
+  const [session, setSession] = useState<QueueSession>(() => readSession());
   const [showRecord, setShowRecord] = useState(false);
   const [lastResult, setLastResult] = useState<{
     text: string;
@@ -94,10 +99,11 @@ export default function Recommend() {
   // The recommendation engine. Everything derives from the practice pool, the
   // event log, and topic tags — no extra storage needed.
   //
-  // Deliberately NOT a useMemo: the plan is built once and then consumed card by
-  // card. Re-deriving it after every attempt restarts the review/new
-  // interleaving from the top, which puts a review at the head every time — the
-  // user then sees review after review with no alternation.
+  // The queue is rebuilt from the log whenever the log changes, which is what
+  // keeps the recommendation current. What stops that from restarting the
+  // review/new interleaving at the top is the session's `pendingFresh`: the
+  // pattern's position is handed back in, so a rebuild continues the rhythm
+  // instead of beginning a new one.
   const buildPlan = useCallback((session: QueueSession): Plan => {
     const questionByQid = new Map<string, ZenQuestion>();
     const byQid = new Map<string, Candidate>();
@@ -159,20 +165,13 @@ export default function Recommend() {
     };
   }, [zen, derived, questionTags, now, isEn]);
 
-  useEffect(() => {
-    // Both data sources have to be in before the queue is built. The pool and
-    // the tag table are separate requests, and tags are what the novelty score
-    // is made of: building while they are still empty makes every problem look
-    // equally new and produces a completely different order (1286 vs 1253 on
-    // the same log), which is why a refresh could serve a different card than
-    // the session had just shown.
-    if (plan !== null || zen.length === 0 || tagsPending) return;
-
-    // The session only carries position; the queue is rebuilt from it. Two
-    // loads with the same log therefore produce the same card, which is what
-    // makes a reload stop shuffling the recommendation.
-    setPlan(buildPlan(readSession()));
-  }, [plan, zen.length, tagsPending, buildPlan]);
+  // Both data sources have to be in first. The pool and the tag table are
+  // separate requests and tags are what the novelty score is made of, so a
+  // build against an empty tag table orders the pool completely differently.
+  const plan = useMemo(
+    () => (zen.length === 0 || tagsPending ? null : buildPlan(session)),
+    [zen.length, tagsPending, buildPlan, session],
+  );
 
   const current = plan?.items[0];
 
@@ -185,28 +184,32 @@ export default function Recommend() {
    */
   const consume = useCallback(
     (qid: string, pool: string) => {
-      const previous = readSession();
       const wasReview = pool === "review" || pool === "revive";
-      const session: QueueSession = {
-        served: previous.served.includes(qid)
-          ? previous.served
-          : [...previous.served, qid],
-        pendingFresh: wasReview
-          ? FRESH_PER_REVIEW
-          : Math.max(0, previous.pendingFresh - 1),
-        updatedAt: Date.now(),
-      };
-      writeSession(session);
-      setPlan(buildPlan(session));
+      // Derived from the in-memory session rather than from localStorage: a
+      // session that had just crossed its lifetime would otherwise read back as
+      // empty and silently reset the position mid-sitting.
+      setSession((previous) => {
+        const next: QueueSession = {
+          served: previous.served.includes(qid)
+            ? previous.served
+            : [...previous.served, qid],
+          pendingFresh: wasReview
+            ? FRESH_PER_REVIEW
+            : Math.max(0, previous.pendingFresh - 1),
+          updatedAt: Date.now(),
+        };
+        writeSession(next);
+        return next;
+      });
     },
-    [buildPlan],
+    [],
   );
 
   const restart = () => {
     setShowRecord(false);
     setLastResult(null);
     clearSession();
-    setPlan(buildPlan({ served: [], pendingFresh: 0, updatedAt: Date.now() }));
+    setSession({ served: [], pendingFresh: 0, updatedAt: Date.now() });
   };
 
   const handleSkip = () => {
